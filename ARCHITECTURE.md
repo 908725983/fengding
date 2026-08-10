@@ -41,6 +41,7 @@ Types -> Config -> Repository -> Service -> Store/Composable -> View
 - 低层不能依赖高层；`shared/` 不得包含具体业务规则。
 - View 不得直接导入 `mock/fixtures`，也不得在组件中编写金额、库存或状态流转规则。
 - 跨领域调用通过公开 service/provider，禁止直接访问其他领域的 store 或内部文件。
+- 跨领域代码只允许导入 `src/features/<domain>/public.ts`；公开入口只导出稳定类型和 provider，不导出 store、view 或内部 repository。
 - 订单确认出库、采购确认入库等跨领域动作必须由服务协调并形成单一事务结果。
 - 金额统一使用“分”为内部单位，展示层再格式化为元；禁止浮点金额计算。
 - 数量使用显式单位；跨单位换算必须经商品单位规则。
@@ -55,6 +56,7 @@ src/
 │  └─ <domain>/
 │     ├─ types/
 │     ├─ config/
+│     ├─ public.ts          跨领域唯一公开入口
 │     ├─ repositories/
 │     ├─ services/
 │     ├─ stores/

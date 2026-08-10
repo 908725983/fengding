@@ -169,8 +169,37 @@ async function walk(directory) {
 const sourceFiles = (await walk(resolve(root, 'src'))).filter((path) => /\.(vue|ts|tsx)$/.test(path))
 for (const path of sourceFiles) {
   const contents = await readFile(path, 'utf8')
+  const sourcePath = relative(root, path).replaceAll('\\', '/')
   if (/from\s+['"][^'"]*mock\/fixtures/.test(contents)) {
     failures.push(`View/source 不得直接导入 fixture：${relative(root, path)}`)
+  }
+  if (path.endsWith('.vue') && /\bv-html\s*=/.test(contents)) failures.push(`Vue 模板禁止未经专门评审使用 v-html：${sourcePath}`)
+  if (/\/views?\//.test(sourcePath) && /\b(fetch|localStorage|sessionStorage)\s*[.(]/.test(contents)) {
+    failures.push(`View 不得直接请求网络或访问浏览器存储：${sourcePath}`)
+  }
+  if (/\/services?\//.test(sourcePath) && /(Math\.random\s*\(|Date\.now\s*\(|new\s+Date\s*\(\s*\))/.test(contents)) {
+    failures.push(`Service 不得使用随机数或真实当前时间决定业务结果，请注入 ID/Clock provider：${sourcePath}`)
+  }
+  const sourceDomain = sourcePath.match(/^src\/features\/([^/]+)\//)?.[1]
+  const featureImports = [...contents.matchAll(/from\s+['"]@\/features\/([^/]+)\/([^'"]+)['"]/g)]
+  for (const featureImport of featureImports) {
+    const [, targetDomain, targetPath] = featureImport
+    if (sourceDomain && targetDomain !== sourceDomain && targetPath !== 'public' && !targetPath.startsWith('public/')) {
+      failures.push(`跨领域只能导入对方 public.ts：${sourcePath} -> ${targetDomain}/${targetPath}`)
+    }
+  }
+}
+
+const securityFiles = [
+  ...(await walk(resolve(root, 'src'))),
+  ...(await walk(resolve(root, 'mock'))),
+  ...(await walk(resolve(root, 'scripts'))),
+].filter((path) => /\.(vue|ts|tsx|js|mjs|json|ps1)$/.test(path))
+for (const path of securityFiles) {
+  const contents = await readFile(path, 'utf8')
+  if (/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(contents)) failures.push(`发现私钥内容：${relative(root, path)}`)
+  if (/(api[_-]?key|access[_-]?token|client[_-]?secret)\s*[:=]\s*['"][^'"]{8,}['"]/i.test(contents)) {
+    failures.push(`发现疑似硬编码凭据：${relative(root, path)}`)
   }
 }
 
