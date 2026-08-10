@@ -17,7 +17,7 @@
 | Mock 可重复性 | 通过（基线） | 固定 fixture、五类场景、显式 reset | 应用尚未实现业务 repository，不能证明跨领域事务 |
 | 中断恢复 | 通过 | progress、active plan 模板、恢复点、completed 证据 | 开发者必须在中断前真实更新恢复点 |
 | 机械验证 | 通过 | Harness、类型、3 个测试、生产构建；字段/计划/依赖负向门禁；View/跨领域/时间随机/凭据静态约束 | 业务代码增加后继续补充规则级测试 |
-| 安全边界 | 通过（原型） | `SECURITY.md`、fake adapter、无真实数据规则 | 不代表生产安全；真实集成必须重新设计 |
+| 安全边界 | 通过（原型） | `SECURITY.md`、fake adapter、凭据/`v-html` 静态检查，`npm audit` 为 0 项漏洞 | 不代表生产安全；真实集成必须重新设计 |
 | 版本控制 | 通过 | 独立 Git 仓库、`.gitignore`、`.gitattributes` 和 Harness 基线提交 | 后续功能仍需保持小范围、可审查提交 |
 
 ## 允许开工的条件
