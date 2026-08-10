@@ -1,0 +1,5 @@
+{
+  "name": "slow",
+  "latencyMs": 1800,
+  "overrides": {}
+}

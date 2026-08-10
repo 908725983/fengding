@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-08-10",
+  "upstream_root": "C:\\project\\订货系统\\订货系统\\蜂订系统\\蜂订系统后台管理端需求文档",
+  "files": [
+    {
+      "name": "01-整体架构与首页.md",
+      "bytes": 9681,
+      "lines": 216,
+      "sha256": "41252c1c31e684a706cb10b4f25f08d14b70b891dd3e5393b8781185d88b8b88"
+    },
+    {
+      "name": "02-订单模块.md",
+      "bytes": 33126,
+      "lines": 820,
+      "sha256": "1736e958b8a14d79b2843aa7012e9b265af2d0938eb783a847c343640d8295e3"
+    },
+    {
+      "name": "03-商品模块.md",
+      "bytes": 29667,
+      "lines": 865,
+      "sha256": "b71317590a0c483aebde5fbfa95d4d7e88c7ff399234d98e7776a06a59b8ea1e"
+    },
+    {
+      "name": "04-采购模块.md",
+      "bytes": 19081,
+      "lines": 600,
+      "sha256": "bf576e149a29e3019a5912996d49bec2f27a945b00ffd0ccfda3395d993a28fc"
+    },
+    {
+      "name": "05-库存模块.md",
+      "bytes": 35051,
+      "lines": 1128,
+      "sha256": "561b42660528a2059ca223b0337e2325bc72c4b90c3a43774e7194cb6e4e3690"
+    },
+    {
+      "name": "06-客户模块.md",
+      "bytes": 71449,
+      "lines": 1949,
+      "sha256": "8078e72a224c95f02aa4e94c8c74caf280339d5ffbf7a3e432405f4ca77bf850"
+    },
+    {
+      "name": "07-资金模块.md",
+      "bytes": 22485,
+      "lines": 691,
+      "sha256": "c3a8a74684d4f482e079a2b2277ec06e71c650fa838b8ca05f40da585cf73142"
+    },
+    {
+      "name": "08-设置模块.md",
+      "bytes": 18275,
+      "lines": 492,
+      "sha256": "b0d895d242415c9e9d77e5eb98bba76d87a9c26a0f483f601d81714fca5005fd"
+    }
+  ]
+}

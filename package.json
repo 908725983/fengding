@@ -1,0 +1,33 @@
+{
+  "name": "fengding-prototype-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "test:run": "vitest run",
+    "verify:harness": "node scripts/verify-harness.mjs",
+    "verify": "npm run verify:harness && npm run typecheck && npm run test:run && npm run build",
+    "mock:reset": "node scripts/reset-mock.mjs"
+  },
+  "dependencies": {
+    "pinia": "4.0.2",
+    "vue": "3.5.41",
+    "vue-router": "5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@vitejs/plugin-vue": "6.0.8",
+    "@vue/test-utils": "2.4.11",
+    "jsdom": "30.0.1",
+    "typescript": "5.9.3",
+    "vite": "8.2.1",
+    "vitest": "4.1.10",
+    "vue-tsc": "3.3.9"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

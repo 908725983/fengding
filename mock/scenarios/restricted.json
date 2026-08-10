@@ -1,0 +1,8 @@
+{
+  "name": "restricted",
+  "latencyMs": 100,
+  "overrides": {
+    "currentRole": "viewer",
+    "denyCommands": true
+  }
+}
