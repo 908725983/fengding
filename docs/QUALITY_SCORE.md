@@ -1,7 +1,7 @@
 # 质量评分
 
 - 最近审计：2026-08-11
-- 当前阶段：`PRD-001` 数据与 Service 检查点已完成；正在实现 Runtime、场景和 SPU/SKU 商品列表。
+- 当前阶段：`PRD-001` Runtime、六种场景和 SPU/SKU 列表已完成；正在实现详情、状态/删除和完整表单。
 
 ## 评分标准
 
@@ -21,9 +21,9 @@
 | 已达到 ready 的业务切片 | 2 | `CUS-001` 已完成；`PRD-001` 的阻塞决策已决定并写回，允许 implementation |
 | 因需求不足 blocked | 2 | `MER-001` 商家、`ANA-001` 独立数据分析 |
 | 已知人工决策门 | 42 | `CUS-001` 十二项、`PRD-001` 十项均已决定；其他切片决策仍 open |
-| 当前业务 active plan | 1 | `PRD-001` 处于 implementation，下一步是 Runtime、六种场景与商品列表 |
+| 当前业务 active plan | 1 | `PRD-001` 处于 implementation，下一步是详情、状态/删除和完整表单 |
 
-下一业务动作是实现 `PRD-001` Runtime、六种场景与 SPU/SKU 商品列表。
+下一业务动作是实现 `PRD-001` 详情、状态/删除和完整新增/编辑表单。
 
 ## 产品领域
 
@@ -32,7 +32,7 @@
 | 应用壳 | A | 八领域入口、响应式布局、构建与浏览器基线已有证据 | 壳结构变更后重跑完整验证 |
 | 首页 | C | 仅有原型状态页，`DASH-001` 契约未提取 | 指标来源、口径、权限、跳转与黄金旅程通过 |
 | 客户 | B | `CUS-001` 列表、详情、表单、分类、标签、智能标签及核心操作已实现；10 文件/23 条测试、浏览器黄金旅程、Mock 重置和干净启动通过 | 后续补充更广的逐控件人工回归与跨领域联调后再评估 A |
-| 商品 | C | `PRD-001` Types、Schema、baseline、事务 Repository 和核心 Service 已实现；12 文件/36 条全仓测试通过 | 完成 Runtime、全部页面状态、UI 与黄金旅程 |
+| 商品 | C | `PRD-001` 数据/Service、六种 Runtime 场景和 SPU/SKU 列表已实现；15 文件/40 条全仓测试通过 | 完成详情、表单、完整 UI 与黄金旅程 |
 | 订单 | D | 6 个切片已登记，均为 source-only | 建单、审核、出库到应收链路可重复 |
 | 库存 | D | 6 个切片已登记，均为 source-only | 库存查询与变更流水可重复且守恒 |
 | 采购 | D | 5 个切片已登记，均为 source-only | 采购、入库到应付链路可重复 |
@@ -69,6 +69,7 @@
 | 2026-08-11 | `PRD-001` 规格提取 | `npm run verify` 通过：44 个功能切片、42 个决策门、类型检查、10 个测试文件/23 条测试和生产构建 | 对照商品原始需求 §2.1～§2.3 Tab 1、§6.3、§7 与全局 §4～§5 逐项复核 | 页面、字段、状态、Mock 与验收已有 source-only 契约；`DEC-PRD-003～012` 未决定，禁止商品业务编码 |
 | 2026-08-11 | `PRD-001` 决策写回 | `npm run verify` 通过：42 个决策门、类型检查、10 个测试文件/23 条测试和生产构建 | 用户确认 `DEC-PRD-003～012` 全部推荐方案，逐项核对写回契约、目录与计划 | `PRD-001` 达到 ready 并进入 implementation；尚无商品业务代码 |
 | 2026-08-11 | `PRD-001` 数据与 Service | `npm run verify` 通过：12 个测试文件/36 条测试、类型检查和生产构建；`mock:reset` SHA-256 一致 | 无页面变更 | Product Types、Schema、三商品 baseline、事务 Repository 和核心 Service passing；Runtime/UI 尚未实现 |
+| 2026-08-11 | `PRD-001` Runtime 与列表 | `npm run verify` 通过：Harness、类型检查、15 个测试文件/40 条测试和生产构建 | 浏览器人工验收待完整 UI 后统一执行 | normal/empty/error/slow/permission-denied/partial-failure 可复现；SPU/SKU 行粒度、筛选和未接入 provider 已明确 |
 
 ## 允许与禁止的结论
 

@@ -55,7 +55,9 @@
 - [x] 12 个测试文件/36 条测试通过，覆盖 SPU/SKU 编码、条码、筛选、权限、价格上下限、状态、删除、批量原子性、单位换算和导入导出。
 - [x] `npm run verify` 全通过；`mock:reset` 后 baseline/work SHA-256 均为 `7D0C84BB87E786C9F4F52C03B35201C690B15A0343EB662A3A4C3CAB4BD81491`。
 - [x] 数据与 Service 检查点已提交：`6448928`。
-- [ ] 当前步骤：实现 Product Runtime、normal/empty/error/slow/permission-denied/partial-failure 场景和 SPU/SKU 商品列表，并保存 Runtime/列表检查点。
+- [x] 完成 Product Runtime、normal/empty/error/slow/permission-denied/partial-failure 场景和 SPU/SKU 商品列表。
+- [x] Runtime/列表加入后全仓 15 个测试文件/40 条测试通过；检查点已提交：`77cf43b`。
+- [ ] 当前步骤：实现商品详情、状态/删除操作与完整新增/编辑表单，再补页面合同测试。
 
 ## 开放决策
 
@@ -74,4 +76,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation。决策检查点为 `a932f5f`，数据与 Service 检查点为 `6448928`；全仓 12 文件/36 条测试通过，Mock 哈希一致。恢复时直接执行当前步骤：实现 Product Runtime、六种场景和 SPU/SKU 列表；页面不得直接读取 fixture，所有读写继续经过 Service。
+当前处于 implementation。决策检查点为 `a932f5f`，数据/Service 为 `6448928`，Runtime/列表为 `77cf43b`；全仓 15 文件/40 条测试通过。恢复时直接执行当前步骤：实现商品详情、状态/删除操作和完整表单；所有读写继续经过 Runtime/Service，不得直接读取 fixture。
