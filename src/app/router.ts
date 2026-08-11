@@ -8,6 +8,8 @@ import CustomerCategoryView from '@/features/customers/views/CustomerCategoryVie
 import CustomerTagView from '@/features/customers/views/CustomerTagView.vue'
 import CustomerSmartTagView from '@/features/customers/views/CustomerSmartTagView.vue'
 import { guardCustomerSubroute } from '@/features/customers/runtime/customer-access'
+import ProductListView from '@/features/products/views/ProductListView.vue'
+import { guardProductSubroute } from '@/features/products/runtime/product-access'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -21,11 +23,13 @@ export const router = createRouter({
     { path: '/customers/smart-tags', name: 'customer-smart-tags', component: CustomerSmartTagView },
     { path: '/customers/:customerId/edit', name: 'customer-edit', component: CustomerFormView },
     { path: '/customers/:customerId', name: 'customer-detail', component: CustomerDetailView },
+    { path: '/products', name: 'product-list', component: ProductListView },
     { path: '/:module(orders|products|procurement|inventory|customers|finance|settings)', name: 'module', component: ModulePlaceholderView },
   ],
 })
 
 router.beforeEach((to) => {
-  const result = guardCustomerSubroute(to.path)
-  return result === true ? true : result
+  const customerResult = guardCustomerSubroute(to.path)
+  if (customerResult !== true) return customerResult
+  return guardProductSubroute(to.path)
 })

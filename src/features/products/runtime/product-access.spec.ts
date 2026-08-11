@@ -1,0 +1,12 @@
+import { describe, expect, it } from 'vitest'
+import { guardProductSubroute, setCurrentProductRole } from './product-access'
+
+describe('PRD-001 product route access', () => {
+  it('keeps denial on the list surface and blocks protected subroutes', () => {
+    setCurrentProductRole('finance')
+    expect(guardProductSubroute('/products')).toBe(true)
+    expect(guardProductSubroute('/products/new')).toBe('/products?denied=1')
+    setCurrentProductRole('warehouse')
+    expect(guardProductSubroute('/products/product-1')).toBe(true)
+  })
+})
