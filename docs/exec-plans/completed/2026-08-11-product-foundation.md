@@ -2,9 +2,9 @@
 
 - 类型：business-feature
 - 功能：PRD-001
-- 当前阶段：implementation
-- 状态：active
-- 最近更新：2026-08-11
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-11
 
 ## 目标
 
@@ -57,7 +57,11 @@
 - [x] 数据与 Service 检查点已提交：`6448928`。
 - [x] 完成 Product Runtime、normal/empty/error/slow/permission-denied/partial-failure 场景和 SPU/SKU 商品列表。
 - [x] Runtime/列表加入后全仓 15 个测试文件/40 条测试通过；检查点已提交：`77cf43b`。
-- [ ] 当前步骤：实现商品详情、状态/删除操作与完整新增/编辑表单，再补页面合同测试。
+- [x] 完成商品详情、状态/删除、新增/编辑、双 SKU、四维单位、结构化描述、模拟媒体和变更日志页面。
+- [x] 完成 UTF-8 CSV 解析、逐行预览、整批原子提交与筛选/勾选导出；真实 Vue 验收发现并修复响应式代理跨 store 边界的深拷贝问题。
+- [x] 全仓 `npm run verify` 通过：44 个切片、42 个决策门、18 个测试文件/45 条测试、类型检查和生产构建全部成功。
+- [x] 1280×720 浏览器验收通过：normal、empty、error、slow、permission-denied、partial-failure，双 SKU 新增、详情、编辑回显及 CSV 原子导入；控制台无错误。截图见 `../evidence/2026-08-11-prd001-list-1280.png` 与 `../evidence/2026-08-11-prd001-form-1280.png`。
+- [x] `mock:reset` 后 `mock/fixtures/baseline.json` 与 `work/mock-state.json` SHA-256 均为 `7D0C84BB87E786C9F4F52C03B35201C690B15A0343EB662A3A4C3CAB4BD81491`；干净停止/启动后 `/products` HTTP 200。
 
 ## 开放决策
 
@@ -76,4 +80,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation。决策检查点为 `a932f5f`，数据/Service 为 `6448928`，Runtime/列表为 `77cf43b`；全仓 15 文件/40 条测试通过。恢复时直接执行当前步骤：实现商品详情、状态/删除操作和完整表单；所有读写继续经过 Runtime/Service，不得直接读取 fixture。
+本计划已完成，不再从这里恢复开发。决策检查点为 `a932f5f`，数据/Service 为 `6448928`，Runtime/列表为 `77cf43b`，完整工作流为 `104b8d1`；最终响应式导入修复、证据和归档见归档后的提交。下一切片严格按 `docs/design-docs/implementation-sequence.md` 进入 `PRD-002`，开始前新建唯一 active plan，并重新执行规格提取、决策门和验证流程。

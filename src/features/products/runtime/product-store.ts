@@ -100,7 +100,8 @@ export const useProductStore = defineStore('products', () => {
   async function batchChangeStatus(ids: string[], target: ProductStatus): Promise<void> { await session.run(() => session.service.batchChangeStatus(actor.value, ids, target)); await load() }
   async function importProducts(drafts: ProductDraft[]): Promise<ProductImportResult> {
     saving.value = true
-    try { const imported = await session.run(() => session.service.importProducts(actor.value, drafts)); await load(); return imported }
+    const payload = JSON.parse(JSON.stringify(drafts)) as ProductDraft[]
+    try { const imported = await session.run(() => session.service.importProducts(actor.value, payload)); await load(); return imported }
     finally { saving.value = false }
   }
   function exportCsv(selectedIds: string[]): string { return session.service.exportProductsCsv(actor.value, query.value, selectedIds) }
