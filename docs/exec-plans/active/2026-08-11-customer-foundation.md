@@ -58,8 +58,11 @@
 - [x] ready 门禁通过；完成 Types、可执行 Schema、`featureData.CUS-001` 基准 fixture、内存事务 Repository 和核心 Service。
 - [x] 14 条测试通过：默认值/账期联动、编码唯一与原子回滚、分类后代/多标签筛选、权限/脱敏、状态机/额度、分类/标签引用、AI 人工确认、跨域数据不可用。
 - [x] `npm run verify` 全通过；`mock:reset` 后工作状态 SHA-256 与 baseline 一致。
-- [ ] 当前步骤：提交数据与业务层检查点，然后实现 Runtime 与 Mock 场景适配。
-- [ ] 实现 Runtime 与客户列表、详情、表单、分类、标签、智能标签 UI。
+- [x] 数据与 Service 检查点已提交：`84c1d70`。
+- [x] 完成 Pinia Runtime、normal/empty/error/slow/permission-denied 场景适配和客户列表首版；跨域指标明确显示未接入。
+- [x] Runtime 与列表合同测试加入后，全仓 6 个测试文件/17 条测试通过。
+- [ ] 当前步骤：提交 Runtime/列表检查点，然后实现客户详情、状态操作与新增/编辑表单。
+- [ ] 实现客户分类、标签、智能标签 UI。
 - [ ] 进入 verification，完成全部场景、黄金旅程、1280px、重置和干净启动验收。
 
 ## 开放决策
@@ -81,4 +84,4 @@
 
 ## 中断恢复点
 
-全部产品决策已写回。Types、Schema、`featureData.CUS-001`、事务 Repository、核心 Service 和 11 条新增规则测试已完成；全仓共 4 个测试文件/14 条测试通过，生产构建通过，Mock 重置哈希一致。恢复时先检查本计划与 Git 状态，再运行 `npm run verify`；下一步创建 Runtime/Composable 和场景适配，不改已确认业务规则，然后接客户列表 UI。主要新增位置：`src/features/customers/`、`mock/handlers/customer-handler.ts`、`mock/schemas/customer-foundation.schema.json`、`mock/fixtures/baseline.json`。最近规格检查点为 `e1864f3`；数据/Service 检查点将在本轮提交。
+全部产品决策已写回。数据/Service 检查点 `84c1d70` 已稳定；其后已新增 `runtime/customer-store.ts`、五种 Mock 场景运行适配、`views/CustomerListView.vue` 和路由，6 个测试文件/17 条测试通过。恢复时先运行 `npm run verify`；下一步提交当前 Runtime/列表节点，再实现详情、状态命令和客户表单。列表中的详情/编辑/新增按钮当前有意禁用，不能误称完成；分类、标签、智能标签仍无 UI。主要未提交修改：`mock/handlers/customer-handler.ts`、`src/app/router.ts`、`src/features/customers/runtime/`、`src/features/customers/views/`。
