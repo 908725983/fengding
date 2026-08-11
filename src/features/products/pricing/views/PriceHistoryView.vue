@@ -1,0 +1,43 @@
+<script setup lang="ts">
+import { onMounted, reactive } from 'vue'
+import { storeToRefs } from 'pinia'
+import PriceSubnav from '../components/PriceSubnav.vue'
+import { usePricingStore, type PricingRuntimeScenario } from '../runtime/pricing-store'
+import type { PriceHistoryQuery } from '../types'
+
+const store = usePricingStore()
+const { history, loading, error, referenceError, isEmpty, scenario, clock } = storeToRefs(store)
+const filters = reactive({ adjustmentNumber: '', adjustmentType: '', skuId: '', effectiveFrom: '', effectiveTo: '' })
+const typeLabels = { level: '等级调价', purchase: '进价调价', customer: '客户调价', strategy: '自动策略', 'unit-override': '单位覆盖' } as const
+const fieldLabels = { costPriceCents: '成本价', basePurchasePriceCents: '基准进货价', baseOrderPriceCents: '基准订货价', tierOnePriceCents: '一批价', tierTwoPriceCents: '二批价', storePriceCents: '门店价', terminalPriceCents: '终端价', minimumSalePriceCents: '最低售价', maximumSalePriceCents: '最高售价' } as const
+
+function iso(value: string, end = false): string | undefined { return value ? `${value}T${end ? '23:59' : '00:00'}:00+08:00` : undefined }
+function displayTime(value: string | null): string { return value ? value.slice(0, 16).replace('T', ' ') : '—' }
+function money(value: number | null): string { return value === null ? '—' : `¥ ${(value / 100).toFixed(2)}` }
+
+async function search(): Promise<void> {
+  await store.applyHistoryQuery({ adjustmentNumber: filters.adjustmentNumber || undefined, adjustmentType: (filters.adjustmentType || undefined) as PriceHistoryQuery['adjustmentType'], skuId: filters.skuId || undefined, effectiveFrom: iso(filters.effectiveFrom), effectiveTo: iso(filters.effectiveTo, true), pageSize: history.value.pageSize as 10 | 30 | 50 | 100 })
+}
+async function reset(): Promise<void> { Object.assign(filters, { adjustmentNumber: '', adjustmentType: '', skuId: '', effectiveFrom: '', effectiveTo: '' }); await search() }
+async function switchScenario(event: Event): Promise<void> { await store.setScenario((event.target as HTMLSelectElement).value as PricingRuntimeScenario) }
+
+onMounted(() => store.loadHistory())
+</script>
+
+<template>
+  <section class="history-page" aria-labelledby="price-history-title">
+    <header class="page-header"><div><p class="eyebrow">PRD-002 · 价格体系与调价</p><h1 id="price-history-title">历史调价</h1><p>每个单据明细 × SKU × 单位 × 实际变更字段保留一条可追溯记录。</p></div><label class="scenario"><span>模拟场景</span><select :value="scenario" @change="switchScenario"><option value="normal">正常</option><option value="empty">空数据</option><option value="error">服务错误</option><option value="slow">慢响应</option><option value="permission-denied">无权限</option><option value="partial-failure">部分资料失败</option><option value="boundary">生效分钟边界</option></select></label></header>
+    <PriceSubnav />
+    <div class="clock-bar"><strong>模拟时钟</strong><span>{{ displayTime(clock) }}</span><small>失效时间来自后续版本覆盖。</small></div>
+    <form class="filters" @submit.prevent="search"><label><span>调价单号</span><input v-model="filters.adjustmentNumber" placeholder="输入单号"></label><label><span>调价类型</span><select v-model="filters.adjustmentType"><option value="">全部类型</option><option v-for="(label,key) in typeLabels" :key="key" :value="key">{{ label }}</option></select></label><label><span>SKU ID</span><input v-model="filters.skuId" placeholder="例如 sku-1"></label><label><span>生效日期起</span><input v-model="filters.effectiveFrom" type="date"></label><label><span>生效日期止</span><input v-model="filters.effectiveTo" type="date"></label><div class="filter-actions"><button class="button" type="button" @click="reset">重置</button><button class="button primary" type="submit">查询</button></div></form>
+    <p v-if="referenceError" class="warning" role="status">{{ referenceError }}</p>
+    <div v-if="error" class="state error" role="alert"><strong>历史数据加载失败</strong><p>{{ error }}</p><button class="button" type="button" @click="store.reload">重试</button></div>
+    <div v-else-if="loading" class="state"><span class="spinner"></span><strong>正在加载历史调价…</strong></div>
+    <div v-else-if="isEmpty" class="state"><strong>暂无历史调价</strong><p>当前筛选或模拟场景没有数据。</p></div>
+    <template v-else><div class="table-tools"><span>共 {{ history.total }} 条逐字段记录</span><button class="button" type="button" @click="store.reload">刷新</button></div><div class="table-wrap"><table><thead><tr><th>调价单号</th><th>类型</th><th>SKU 编码</th><th>商品名称 / 规格</th><th>价格字段</th><th>原价格</th><th>新价格</th><th>价差</th><th>生效时间</th><th>失效时间</th></tr></thead><tbody><tr v-for="item in history.items" :key="item.id"><td class="mono">{{ item.adjustmentNumber }}</td><td>{{ typeLabels[item.adjustmentType] }}</td><td class="mono">{{ store.skuSnapshot(item.skuId)?.skuCode || item.skuId }}</td><td><strong>{{ store.skuSnapshot(item.skuId)?.productName || '商品资料不可用' }}</strong><small>{{ store.skuSnapshot(item.skuId)?.specification || '—' }}</small></td><td>{{ fieldLabels[item.field] }}</td><td class="money">{{ money(item.previousValueCents) }}</td><td class="money">{{ money(item.valueCents) }}</td><td class="money" :class="{ decrease: (item.differenceCents ?? 0)<0 }">{{ item.differenceCents===null?'—':`${item.differenceCents>0?'+':''}${money(item.differenceCents)}` }}</td><td>{{ displayTime(item.effectiveAt) }}</td><td>{{ displayTime(item.expiredAt) }}</td></tr></tbody></table></div><footer class="pagination"><span>第 {{ history.page }} 页</span><button class="button" :disabled="history.page<=1" type="button" @click="store.setPage(history.page-1)">上一页</button><button class="button" :disabled="history.page*history.pageSize>=history.total" type="button" @click="store.setPage(history.page+1)">下一页</button></footer></template>
+  </section>
+</template>
+
+<style scoped>
+.history-page{max-width:1680px;margin:0 auto}.page-header{display:flex;justify-content:space-between;gap:20px;margin-bottom:14px}.page-header h1{margin:3px 0}.page-header p{margin-bottom:0;color:var(--color-muted)}.scenario,.filters label{display:grid;gap:4px;color:var(--color-muted);font-size:12px}.scenario{align-self:end}select,input{min-height:36px;padding:6px 9px;background:#fff;border:1px solid var(--color-border-strong);border-radius:var(--radius-sm)}.button{min-height:36px;padding:0 13px;color:#4d5968;background:#fff;border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);cursor:pointer}.button.primary{color:#fff;background:var(--color-primary);border-color:var(--color-primary)}.button:disabled{opacity:.5}.clock-bar{display:flex;align-items:center;gap:12px;padding:10px 15px;color:#53616f;background:#f4faf9;border:1px solid #cfe6e3;border-top:0}.clock-bar span{font-family:"Cascadia Code",Consolas,monospace}.clock-bar small{margin-left:auto;color:var(--color-muted)}.filters{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr)) auto;gap:12px;padding:14px 16px;background:#fff;border:1px solid var(--color-border);border-top:0}.filter-actions{display:flex;align-items:flex-end;gap:8px}.warning{padding:9px 12px;color:#8a640d;background:#fff8e8;border:1px solid #eed99b}.state{display:grid;min-height:270px;place-items:center;align-content:center;gap:8px;margin-top:12px;background:#fff;border:1px solid var(--color-border)}.state p{margin:0}.state.error{color:var(--color-danger)}.spinner{width:24px;height:24px;border:3px solid #cfe8e6;border-top-color:var(--color-primary);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.table-tools{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:10px 12px;background:#fff;border:1px solid var(--color-border);border-bottom:0}.table-tools span{color:var(--color-muted)}.table-wrap{overflow-x:auto;background:#fff;border:1px solid var(--color-border)}table{width:100%;min-width:1380px;border-collapse:collapse}th,td{height:50px;padding:8px 11px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--color-border)}th{color:#4d5968;font-size:12px;background:var(--color-table-head)}td strong,td small{display:block}td small{color:var(--color-muted)}.mono{font-family:"Cascadia Code",Consolas,monospace}.money{text-align:right;font-variant-numeric:tabular-nums}.decrease{color:var(--color-danger)}.pagination{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:11px;background:#fff;border:1px solid var(--color-border);border-top:0}.pagination span{margin-right:8px;color:var(--color-muted)}@media(max-width:1100px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.page-header{display:block}.scenario{margin-top:12px}}@media(max-width:650px){.filters{grid-template-columns:1fr}.clock-bar{align-items:flex-start;flex-direction:column}.clock-bar small{margin-left:0}}
+</style>

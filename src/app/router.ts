@@ -12,6 +12,8 @@ import ProductListView from '@/features/products/views/ProductListView.vue'
 import ProductDetailView from '@/features/products/views/ProductDetailView.vue'
 import ProductFormView from '@/features/products/views/ProductFormView.vue'
 import { guardProductSubroute } from '@/features/products/runtime/product-access'
+import PriceAdjustmentListView from '@/features/products/pricing/views/PriceAdjustmentListView.vue'
+import PriceHistoryView from '@/features/products/pricing/views/PriceHistoryView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -27,6 +29,10 @@ export const router = createRouter({
     { path: '/customers/:customerId', name: 'customer-detail', component: CustomerDetailView },
     { path: '/products', name: 'product-list', component: ProductListView },
     { path: '/products/new', name: 'product-new', component: ProductFormView },
+    { path: '/products/prices/level-adjustments', name: 'price-level-adjustments', component: PriceAdjustmentListView, props: { type: 'level' } },
+    { path: '/products/prices/purchase-adjustments', name: 'price-purchase-adjustments', component: PriceAdjustmentListView, props: { type: 'purchase' } },
+    { path: '/products/prices/customer-adjustments', name: 'price-customer-adjustments', component: PriceAdjustmentListView, props: { type: 'customer' } },
+    { path: '/products/prices/history', name: 'price-history', component: PriceHistoryView },
     { path: '/products/:productId/edit', name: 'product-edit', component: ProductFormView },
     { path: '/products/:productId', name: 'product-detail', component: ProductDetailView },
     { path: '/:module(orders|products|procurement|inventory|customers|finance|settings)', name: 'module', component: ModulePlaceholderView },

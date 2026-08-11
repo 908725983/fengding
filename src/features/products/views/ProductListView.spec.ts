@@ -16,7 +16,7 @@ describe('PRD-001 product list view', () => {
     expect(wrapper.text()).toContain('商品列表')
     expect(wrapper.text()).toContain('SPU-000001')
     expect(wrapper.text()).toContain('演示食品')
-    expect(wrapper.text()).toContain('价格管理 · PRD-002 规划中')
+    expect(wrapper.text()).toContain('价格管理 · PRD-002')
     expect(wrapper.text()).toContain('¥ 5.00～8.00')
     expect(wrapper.text()).not.toContain('真实商品')
   })

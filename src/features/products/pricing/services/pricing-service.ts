@@ -11,6 +11,8 @@ import type {
   PriceAdjustmentQuery,
   PriceField,
   PriceHistoryEntry,
+  PriceHistoryPage,
+  PriceHistoryQuery,
   PriceTier,
   PriceValues,
   PricingActor,
@@ -365,11 +367,19 @@ export function createPricingService(dependencies: PricingServiceDependencies) {
       conversionRate: rate, calculatedAt: state.clock }
   }
 
-  function listHistory(actor: PricingActor): PriceHistoryEntry[] {
+  function listHistory(actor: PricingActor, query: PriceHistoryQuery = {}): PriceHistoryPage {
     assertRead(actor)
     let items = repository.read().history
     if (actor.role === 'salesperson' || actor.role === 'warehouse') items = items.filter((item) => item.expiredAt === null && time(item.effectiveAt) <= time(repository.read().clock))
-    return items.map((item) => historyForActor(item, actor)).filter((item): item is PriceHistoryEntry => item !== null).sort((a, b) => time(b.effectiveAt) - time(a.effectiveAt))
+    items = items.map((item) => historyForActor(item, actor)).filter((item): item is PriceHistoryEntry => item !== null)
+    if (query.adjustmentNumber) items = items.filter((item) => item.adjustmentNumber.toLocaleLowerCase().includes(query.adjustmentNumber!.trim().toLocaleLowerCase()))
+    if (query.adjustmentType) items = items.filter((item) => item.adjustmentType === query.adjustmentType)
+    if (query.skuId) items = items.filter((item) => item.skuId === query.skuId)
+    if (query.effectiveFrom) items = items.filter((item) => time(item.effectiveAt) >= time(query.effectiveFrom!))
+    if (query.effectiveTo) items = items.filter((item) => time(item.effectiveAt) <= time(query.effectiveTo!))
+    items.sort((a, b) => time(b.effectiveAt) - time(a.effectiveAt) || b.id.localeCompare(a.id))
+    const page = Math.max(1, query.page ?? 1); const pageSize = query.pageSize ?? 30; const total = items.length
+    return { items: items.slice((page - 1) * pageSize, page * pageSize), total, page, pageSize }
   }
   function getClock(actor: PricingActor): string { assertRead(actor); return repository.read().clock }
 

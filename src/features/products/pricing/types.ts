@@ -146,6 +146,16 @@ export interface PriceAdjustmentQuery {
   pageSize?: 10 | 30 | 50 | 100
 }
 
+export interface PriceHistoryQuery {
+  adjustmentNumber?: string
+  adjustmentType?: AdjustmentType | 'unit-override' | 'strategy'
+  skuId?: EntityId
+  effectiveFrom?: string
+  effectiveTo?: string
+  page?: number
+  pageSize?: 10 | 30 | 50 | 100
+}
+
 export interface PricingSkuSnapshot {
   skuId: EntityId
   productId: EntityId
@@ -160,6 +170,7 @@ export interface PricingSkuSnapshot {
 
 export interface PricingCustomerSnapshot {
   customerId: EntityId
+  customerName: string
   status: 'pending' | 'active' | 'inactive' | 'frozen'
   categoryLineage: EntityId[]
 }
@@ -181,3 +192,4 @@ export interface ResolvedPrice {
 }
 
 export type PriceAdjustmentPage = PageResult<PriceAdjustment>
+export type PriceHistoryPage = PageResult<PriceHistoryEntry>

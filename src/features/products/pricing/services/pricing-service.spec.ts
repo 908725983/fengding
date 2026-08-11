@@ -34,8 +34,8 @@ describe('PRD-002 pricing service', () => {
     expect(supervisorPurchase.lines).toEqual([])
     const salespersonLevel = session.service.getAdjustment(salesperson, 'price-adjustment-level-1')
     expect(salespersonLevel.lines[0]?.changes).toEqual({ tierOnePriceCents: 1080 })
-    expect(session.service.listHistory(supervisor).some((item) => item.field === 'costPriceCents')).toBe(false)
-    expect(session.service.listHistory(salesperson).every((item) => item.customerId === null)).toBe(true)
+    expect(session.service.listHistory(supervisor).items.some((item) => item.field === 'costPriceCents')).toBe(false)
+    expect(session.service.listHistory(salesperson).items.every((item) => item.customerId === null)).toBe(true)
   })
 
   it('resolves category tier price, then switches to customer price at the controlled clock', () => {
@@ -47,7 +47,7 @@ describe('PRD-002 pricing service', () => {
     expect(session.service.getAdjustment(admin, 'price-adjustment-customer-1').status).toBe('effective')
     expect(session.service.resolvePrice(salesperson, { customerId: 'customer-1', skuId: 'sku-1', unitId: 'unit-piece', quantity: 2 }))
       .toMatchObject({ unitPriceCents: 990, source: 'customer' })
-    expect(session.service.listHistory(admin)[0]).toMatchObject({ previousValueCents: 1080, valueCents: 990, differenceCents: -90 })
+    expect(session.service.listHistory(admin).items[0]).toMatchObject({ previousValueCents: 1080, valueCents: 990, differenceCents: -90 })
   })
 
   it('allows pending edits and deletion but freezes effective adjustments', () => {
@@ -95,7 +95,7 @@ describe('PRD-002 pricing service', () => {
 
   it('runs automatic strategies deterministically and records the true prior value', () => {
     session.service.advanceClock(admin, '2026-08-10T10:30:00+08:00')
-    const entry = session.service.listHistory(admin).find((item) => item.adjustmentNumber === 'STRATEGY-price-strategy-1')
+    const entry = session.service.listHistory(admin).items.find((item) => item.adjustmentNumber === 'STRATEGY-price-strategy-1')
     expect(entry).toMatchObject({ field: 'storePriceCents', previousValueCents: 1400, valueCents: 1320, differenceCents: -80 })
     expect(session.repository.read().strategies[0]).toMatchObject({ lastRunAt: '2026-08-10T10:30:00+08:00', lastError: null })
   })
