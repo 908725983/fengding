@@ -1,22 +1,3 @@
-# 数据结构快照
-
-- 来源：`mock/schemas/` 与 `mock/fixtures/baseline.json`
-- 生成方式：`npm run docs:generate`
-- 最近刷新：2026-08-11
-
-> 本文件由脚本生成，禁止手工编辑“生成内容”。当前原型没有数据库，本页描述的是已通过字段准备门的 Mock 契约，不是生产表结构。
-
-## 生成内容
-
-- Mock schema 版本：2
-- 默认场景：normal
-- 已登记功能数据：`CUS-001`
-
-### mock/schemas/customer-foundation.schema.json
-
-- SHA-256：`73de3e6fe33bc65b168c2e4aa5b6a3e6414a1a2d67b9c9672b71bdb62c4457dd`
-
-```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "fengding://mock/CUS-001",
@@ -58,4 +39,3 @@
   },
   "additionalProperties": false
 }
-```

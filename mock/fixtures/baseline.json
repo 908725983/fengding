@@ -2,5 +2,71 @@
   "schemaVersion": 2,
   "scenario": "normal",
   "clock": "2026-08-10T09:00:00+08:00",
-  "featureData": {}
+  "featureData": {
+    "CUS-001": {
+      "schemaVersion": 1,
+      "enterpriseId": "ent-demo",
+      "nextCustomerSequence": 3,
+      "categories": [
+        {
+          "id": "category-retail", "enterpriseId": "ent-demo", "name": "演示零售客户", "code": "DEMO-RETAIL", "parentId": null,
+          "discountRatePercent": 95, "minimumOrderAmountCents": 0, "defaultCreditLimitCents": 100000, "defaultPaymentTermDays": 30,
+          "sortOrder": 0, "icon": null, "status": "active", "remark": "仅供原型演示",
+          "createdAt": "2026-08-10T09:00:00+08:00", "updatedAt": "2026-08-10T09:00:00+08:00"
+        },
+        {
+          "id": "category-retail-east", "enterpriseId": "ent-demo", "name": "演示华东零售", "code": "DEMO-RETAIL-EAST", "parentId": "category-retail",
+          "discountRatePercent": 92, "minimumOrderAmountCents": 20000, "defaultCreditLimitCents": 200000, "defaultPaymentTermDays": 30,
+          "sortOrder": 0, "icon": null, "status": "active", "remark": null,
+          "createdAt": "2026-08-10T09:01:00+08:00", "updatedAt": "2026-08-10T09:01:00+08:00"
+        }
+      ],
+      "tags": [
+        {
+          "id": "tag-focus", "enterpriseId": "ent-demo", "name": "演示重点", "code": "DEMO-FOCUS", "color": "#F5222D", "type": "manual",
+          "sortOrder": 0, "description": "明显虚构的演示标签", "status": "active",
+          "createdAt": "2026-08-10T09:00:00+08:00", "updatedAt": "2026-08-10T09:00:00+08:00"
+        },
+        {
+          "id": "tag-ai", "enterpriseId": "ent-demo", "name": "演示活跃", "code": "DEMO-ACTIVE", "color": "#1890FF", "type": "smart",
+          "sortOrder": 1, "description": "fake AI 建议使用", "status": "active",
+          "createdAt": "2026-08-10T09:02:00+08:00", "updatedAt": "2026-08-10T09:02:00+08:00"
+        }
+      ],
+      "customers": [
+        {
+          "id": "customer-1", "enterpriseId": "ent-demo", "code": "CUS-000001", "name": "演示客户甲", "categoryId": "category-retail-east",
+          "customerType": "enterprise", "source": "offline-development", "importanceLevel": "A", "primaryContactName": "演示联系人甲",
+          "primaryPhone": "000-0000-0001", "backupPhone": null, "provinceCode": "DEMO-P", "cityCode": "DEMO-C", "districtCode": "DEMO-D",
+          "address": "演示地址一号（非真实地址）", "addressLabel": "company", "longitude": null, "latitude": null,
+          "email": "demo-customer-1@example.invalid", "wechatId": null, "salespersonId": "staff-demo-1", "creditLimitCents": 200000,
+          "settlementMethod": "terms", "paymentTermDays": 30, "paymentMethods": ["bank-transfer"], "bankName": "演示银行",
+          "bankAccount": "0000000000000001", "taxId": "DEMO00000000000001", "invoiceTitle": "演示客户甲",
+          "description": "原型测试客户，不对应真实主体。", "remark": null, "attachments": [], "tagIds": ["tag-focus"],
+          "businessSettings": { "canViewInventory": false, "canSelfOrder": false, "canViewPrice": false, "acceptsMarketing": false, "autoAssignOrders": false },
+          "legalRepresentative": null, "registeredCapital": null, "establishedDate": null, "businessScope": null, "storeArea": null, "employeeCount": null,
+          "status": "active", "frozenReason": null, "createdAt": "2026-08-10T09:10:00+08:00", "updatedAt": "2026-08-10T09:10:00+08:00"
+        },
+        {
+          "id": "customer-2", "enterpriseId": "ent-demo", "code": "CUS-000002", "name": "演示客户乙", "categoryId": "category-retail",
+          "customerType": "individual", "source": "online-registration", "importanceLevel": "C", "primaryContactName": "演示联系人乙",
+          "primaryPhone": "000-0000-0002", "backupPhone": null, "provinceCode": "DEMO-P", "cityCode": "DEMO-C2", "districtCode": "DEMO-D2",
+          "address": "演示地址二号（非真实地址）", "addressLabel": "delivery", "longitude": null, "latitude": null,
+          "email": null, "wechatId": null, "salespersonId": "staff-demo-2", "creditLimitCents": 0,
+          "settlementMethod": "cash", "paymentTermDays": null, "paymentMethods": ["cash"], "bankName": null, "bankAccount": null, "taxId": null,
+          "invoiceTitle": null, "description": null, "remark": null, "attachments": [], "tagIds": [],
+          "businessSettings": { "canViewInventory": false, "canSelfOrder": false, "canViewPrice": false, "acceptsMarketing": false, "autoAssignOrders": false },
+          "legalRepresentative": null, "registeredCapital": null, "establishedDate": null, "businessScope": null, "storeArea": null, "employeeCount": null,
+          "status": "pending", "frozenReason": null, "createdAt": "2026-08-10T09:20:00+08:00", "updatedAt": "2026-08-10T09:20:00+08:00"
+        }
+      ],
+      "suggestions": [
+        {
+          "id": "suggestion-1", "enterpriseId": "ent-demo", "customerId": "customer-1", "tagId": "tag-ai", "action": "add", "status": "pending",
+          "createdAt": "2026-08-10T09:30:00+08:00", "resolvedAt": null
+        }
+      ],
+      "changeLogs": []
+    }
+  }
 }

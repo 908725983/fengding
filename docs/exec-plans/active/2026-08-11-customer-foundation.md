@@ -34,12 +34,14 @@
 
 - 对照指定原文章节逐字段核对，确保页面、筛选、列表、表单、详情、状态、操作、Mock 和验收均有结论或明确决策 ID。
 - `npm run verify:harness`：检查来源、章节、决策、active plan 和 ready 门禁。
-- 规格完成且决策解决后，再规划 Types/Schema/Repository/Service/UI 的实现与分层测试；本阶段不执行这些实现验收。
+- `npm run typecheck`、`npm run test:run`：验证 Types/Schema、Repository 原子性与 Service 规则。
+- `npm run build`：验证生产构建；`npm run mock:reset` 后比较 baseline 与工作状态哈希，验证可重复恢复。
+- UI 完成后补正常、边界、失败、慢响应、空数据、无权限、部分失败和 1280px 黄金旅程。
 
 ## 风险与阻塞
 
-- 十组核心缺口已经由用户确认推荐方案并写回产品规格。
-- 首次推荐遗漏了少量必填选择项/状态默认值、账期字段联动、分类子级筛选和状态编辑条件；已集中登记 `DEC-CUS-012`，不能用控件默认行为代替产品决定。
+- 十二组核心缺口均已由用户确认并写回，当前无产品决策阻塞。
+- 当前风险转为实现完整性：Runtime/UI 尚未接入，error/slow/empty/permission-denied/partial-failure 尚未形成页面证据，不能把数据层通过当成功能完成。
 
 ## 进度日志
 
@@ -53,7 +55,10 @@
 - [x] 用户回复“继续执行吧”，确认 `DEC-CUS-012` 推荐方案并完成写回。
 - [x] ready 门禁通过后开始设计 Types/Schema；在编码分类账期联动前发现 `DEC-CUS-005` 与 `DEC-CUS-012` 冲突，未提交半成品业务代码。
 - [x] 用户回复“按推荐处理”，确认 `DEC-CUS-013`：带默认账期的分类自动切换账期结算并带入天数，切回现结/月结时清空。
-- [ ] 当前步骤：运行 ready 门禁；通过后实现 Types/Schema、确定性 fixture、Repository 和核心 Service 测试。
+- [x] ready 门禁通过；完成 Types、可执行 Schema、`featureData.CUS-001` 基准 fixture、内存事务 Repository 和核心 Service。
+- [x] 14 条测试通过：默认值/账期联动、编码唯一与原子回滚、分类后代/多标签筛选、权限/脱敏、状态机/额度、分类/标签引用、AI 人工确认、跨域数据不可用。
+- [x] `npm run verify` 全通过；`mock:reset` 后工作状态 SHA-256 与 baseline 一致。
+- [ ] 当前步骤：提交数据与业务层检查点，然后实现 Runtime 与 Mock 场景适配。
 - [ ] 实现 Runtime 与客户列表、详情、表单、分类、标签、智能标签 UI。
 - [ ] 进入 verification，完成全部场景、黄金旅程、1280px、重置和干净启动验收。
 
@@ -76,4 +81,4 @@
 
 ## 中断恢复点
 
-全部产品决策已写回，`CUS-001` 恢复 ready 并进入 implementation。恢复时先运行 `npm run verify:harness`；通过后从 Types/Schema 开始，再实现确定性 fixture、Repository、核心 Service 与规则测试。最近可回退检查点：`047d0dc` 原始规格、`bcd3e18` 前十项决定、`97d6cf3` 默认值确认与冲突登记。
+全部产品决策已写回。Types、Schema、`featureData.CUS-001`、事务 Repository、核心 Service 和 11 条新增规则测试已完成；全仓共 4 个测试文件/14 条测试通过，生产构建通过，Mock 重置哈希一致。恢复时先检查本计划与 Git 状态，再运行 `npm run verify`；下一步创建 Runtime/Composable 和场景适配，不改已确认业务规则，然后接客户列表 UI。主要新增位置：`src/features/customers/`、`mock/handlers/customer-handler.ts`、`mock/schemas/customer-foundation.schema.json`、`mock/fixtures/baseline.json`。最近规格检查点为 `e1864f3`；数据/Service 检查点将在本轮提交。
