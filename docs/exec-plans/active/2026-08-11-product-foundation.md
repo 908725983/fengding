@@ -51,7 +51,11 @@
 - [x] 规格检查点全仓 `npm run verify` 通过：Harness、类型检查、10 个测试文件/23 条测试和生产构建全部成功。
 - [x] 用户于 2026-08-11 回复“全部按推荐方案执行”；十组决定已写回商品契约、规格索引和本计划，并把 `PRD-001` 标记为 ready。
 - [x] ready 门禁后的 `npm run verify` 通过：42 个决策门、类型检查、10 个测试文件/23 条测试和生产构建成功。
-- [ ] 当前步骤：建立 Types、Schema、baseline fixture、事务 Repository 与核心 Service，并保存数据/Service 检查点。
+- [x] 完成 Product Types、可执行 Schema、`featureData.PRD-001` baseline、事务 Repository、Mock session 与核心 Service。
+- [x] 12 个测试文件/36 条测试通过，覆盖 SPU/SKU 编码、条码、筛选、权限、价格上下限、状态、删除、批量原子性、单位换算和导入导出。
+- [x] `npm run verify` 全通过；`mock:reset` 后 baseline/work SHA-256 均为 `7D0C84BB87E786C9F4F52C03B35201C690B15A0343EB662A3A4C3CAB4BD81491`。
+- [x] 数据与 Service 检查点已提交：`6448928`。
+- [ ] 当前步骤：实现 Product Runtime、normal/empty/error/slow/permission-denied/partial-failure 场景和 SPU/SKU 商品列表，并保存 Runtime/列表检查点。
 
 ## 开放决策
 
@@ -70,4 +74,4 @@
 
 ## 中断恢复点
 
-当前已进入 implementation，尚未修改商品业务代码。`DEC-PRD-003～012` 已确认写回，`PRD-001` 已标记 ready，ready 后全仓验证通过。恢复时直接执行当前步骤：按 Types/Schema → baseline fixture → Repository → Service 顺序实现并先保存数据/Service 检查点，不提前写页面。
+当前处于 implementation。决策检查点为 `a932f5f`，数据与 Service 检查点为 `6448928`；全仓 12 文件/36 条测试通过，Mock 哈希一致。恢复时直接执行当前步骤：实现 Product Runtime、六种场景和 SPU/SKU 列表；页面不得直接读取 fixture，所有读写继续经过 Service。

@@ -1,7 +1,7 @@
 # 质量评分
 
 - 最近审计：2026-08-11
-- 当前阶段：`PRD-001` 已完成决策写回并进入 implementation；先实现 Types、Schema、fixture、Repository 与核心 Service。
+- 当前阶段：`PRD-001` 数据与 Service 检查点已完成；正在实现 Runtime、场景和 SPU/SKU 商品列表。
 
 ## 评分标准
 
@@ -21,9 +21,9 @@
 | 已达到 ready 的业务切片 | 2 | `CUS-001` 已完成；`PRD-001` 的阻塞决策已决定并写回，允许 implementation |
 | 因需求不足 blocked | 2 | `MER-001` 商家、`ANA-001` 独立数据分析 |
 | 已知人工决策门 | 42 | `CUS-001` 十二项、`PRD-001` 十项均已决定；其他切片决策仍 open |
-| 当前业务 active plan | 1 | `PRD-001` 处于 implementation，下一步是数据与 Service 检查点 |
+| 当前业务 active plan | 1 | `PRD-001` 处于 implementation，下一步是 Runtime、六种场景与商品列表 |
 
-下一业务动作是运行 ready 门禁审计，再实现 `PRD-001` 数据与 Service 检查点。
+下一业务动作是实现 `PRD-001` Runtime、六种场景与 SPU/SKU 商品列表。
 
 ## 产品领域
 
@@ -32,7 +32,7 @@
 | 应用壳 | A | 八领域入口、响应式布局、构建与浏览器基线已有证据 | 壳结构变更后重跑完整验证 |
 | 首页 | C | 仅有原型状态页，`DASH-001` 契约未提取 | 指标来源、口径、权限、跳转与黄金旅程通过 |
 | 客户 | B | `CUS-001` 列表、详情、表单、分类、标签、智能标签及核心操作已实现；10 文件/23 条测试、浏览器黄金旅程、Mock 重置和干净启动通过 | 后续补充更广的逐控件人工回归与跨领域联调后再评估 A |
-| 商品 | D | `PRD-001` 已 ready 并进入 implementation，尚无商品业务代码；其余 4 个切片尚未提取 | 完成商品/SKU/单位行为、页面与验收 |
+| 商品 | C | `PRD-001` Types、Schema、baseline、事务 Repository 和核心 Service 已实现；12 文件/36 条全仓测试通过 | 完成 Runtime、全部页面状态、UI 与黄金旅程 |
 | 订单 | D | 6 个切片已登记，均为 source-only | 建单、审核、出库到应收链路可重复 |
 | 库存 | D | 6 个切片已登记，均为 source-only | 库存查询与变更流水可重复且守恒 |
 | 采购 | D | 5 个切片已登记，均为 source-only | 采购、入库到应付链路可重复 |
@@ -49,8 +49,8 @@
 | 防幻觉门禁 | A | source-only/ready/blocked、人工决策门、计划阶段门和机械校验共同约束 |
 | 计划与恢复 | A | 首个业务切片已通过三段 Git 检查点和 active plan 恢复点完成中断续作，并在验收后归档 |
 | 架构约束 | B | 分层、跨领域、确定性和安全静态检查已建立；尚未经过复杂业务链路检验 |
-| Mock 与 Repository | B | `CUS-001` 可执行 Schema、唯一 baseline 数据、事务 Repository、五种场景运行时与重置哈希已验证；跨域事务尚未实现 |
-| Service 规则 | B | `CUS-001` 编码、筛选、权限、状态、分类/标签引用、AI 确认等核心规则与 UI 集成已有测试；后续跨域规则未验证 |
+| Mock 与 Repository | B | `CUS-001` 与 `PRD-001` 均有可执行 Schema、唯一 baseline、事务 Repository 与重置哈希；商品 Runtime 场景尚未接入 UI |
+| Service 规则 | B | 客户规则已有 UI 集成；商品编码、SKU、筛选、权限、价格、状态、删除、单位和导入原子性已有测试，但 UI 尚未集成 |
 | 前端体验 | B | 应用壳与 `CUS-001` 六类页面已落地；1280×720、五种状态和新增黄金旅程通过，无控制台错误；仍需后续跨域联调 |
 | 原型安全 | B | 凭据、真实数据、`v-html` 与外部副作用有规则和静态检查；不代表生产安全 |
 
@@ -68,6 +68,7 @@
 | 2026-08-11 | `CUS-001` 完成验收 | `npm run verify` 通过：Harness、类型检查、10 个测试文件/23 条测试和生产构建；`mock:reset` 前后 SHA-256 一致 | 1280×720 六类页面、五种场景、新增 `CUS-000003`/账期 30 天、AI 人工确认通过；控制台无错误；干净启动 `/customers` HTTP 200；截图在 `docs/exec-plans/evidence/` | `CUS-001` 以 B 级完成并归档；未把后续跨领域能力伪装为已完成 |
 | 2026-08-11 | `PRD-001` 规格提取 | `npm run verify` 通过：44 个功能切片、42 个决策门、类型检查、10 个测试文件/23 条测试和生产构建 | 对照商品原始需求 §2.1～§2.3 Tab 1、§6.3、§7 与全局 §4～§5 逐项复核 | 页面、字段、状态、Mock 与验收已有 source-only 契约；`DEC-PRD-003～012` 未决定，禁止商品业务编码 |
 | 2026-08-11 | `PRD-001` 决策写回 | `npm run verify` 通过：42 个决策门、类型检查、10 个测试文件/23 条测试和生产构建 | 用户确认 `DEC-PRD-003～012` 全部推荐方案，逐项核对写回契约、目录与计划 | `PRD-001` 达到 ready 并进入 implementation；尚无商品业务代码 |
+| 2026-08-11 | `PRD-001` 数据与 Service | `npm run verify` 通过：12 个测试文件/36 条测试、类型检查和生产构建；`mock:reset` SHA-256 一致 | 无页面变更 | Product Types、Schema、三商品 baseline、事务 Repository 和核心 Service passing；Runtime/UI 尚未实现 |
 
 ## 允许与禁止的结论
 
