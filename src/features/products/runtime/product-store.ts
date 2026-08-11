@@ -10,6 +10,7 @@ import type {
   ProductDraft,
   ProductListItem,
   ProductListQuery,
+  ProductImportResult,
   ProductReferenceData,
   ProductStatus,
 } from '../types'
@@ -97,11 +98,16 @@ export const useProductStore = defineStore('products', () => {
   async function changeStatus(id: string, target: ProductStatus): Promise<void> { await session.run(() => session.service.changeProductStatus(actor.value, id, target)); await loadProduct(id) }
   async function deleteProduct(id: string): Promise<void> { await session.run(() => session.service.deleteProduct(actor.value, id)); await load() }
   async function batchChangeStatus(ids: string[], target: ProductStatus): Promise<void> { await session.run(() => session.service.batchChangeStatus(actor.value, ids, target)); await load() }
+  async function importProducts(drafts: ProductDraft[]): Promise<ProductImportResult> {
+    saving.value = true
+    try { const imported = await session.run(() => session.service.importProducts(actor.value, drafts)); await load(); return imported }
+    finally { saving.value = false }
+  }
   function exportCsv(selectedIds: string[]): string { return session.service.exportProductsCsv(actor.value, query.value, selectedIds) }
 
   return {
     scenario, actor, query, result, references, selectedProduct, changeLogs, loading, saving, error, referenceError, isEmpty, canWrite,
     load, setScenario, applyQuery, setView, resetQuery, setPage, loadProduct, createProduct, updateProduct, changeStatus, deleteProduct,
-    batchChangeStatus, exportCsv,
+    batchChangeStatus, importProducts, exportCsv,
   }
 })

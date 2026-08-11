@@ -9,6 +9,8 @@ import CustomerTagView from '@/features/customers/views/CustomerTagView.vue'
 import CustomerSmartTagView from '@/features/customers/views/CustomerSmartTagView.vue'
 import { guardCustomerSubroute } from '@/features/customers/runtime/customer-access'
 import ProductListView from '@/features/products/views/ProductListView.vue'
+import ProductDetailView from '@/features/products/views/ProductDetailView.vue'
+import ProductFormView from '@/features/products/views/ProductFormView.vue'
 import { guardProductSubroute } from '@/features/products/runtime/product-access'
 
 export const router = createRouter({
@@ -24,6 +26,9 @@ export const router = createRouter({
     { path: '/customers/:customerId/edit', name: 'customer-edit', component: CustomerFormView },
     { path: '/customers/:customerId', name: 'customer-detail', component: CustomerDetailView },
     { path: '/products', name: 'product-list', component: ProductListView },
+    { path: '/products/new', name: 'product-new', component: ProductFormView },
+    { path: '/products/:productId/edit', name: 'product-edit', component: ProductFormView },
+    { path: '/products/:productId', name: 'product-detail', component: ProductDetailView },
     { path: '/:module(orders|products|procurement|inventory|customers|finance|settings)', name: 'module', component: ModulePlaceholderView },
   ],
 })
