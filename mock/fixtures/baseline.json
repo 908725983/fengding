@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "scenario": "normal",
   "clock": "2026-08-10T09:00:00+08:00",
   "featureData": {
@@ -150,6 +150,68 @@
         }
       ],
       "changeLogs": []
+    },
+    "PRD-002": {
+      "schemaVersion": 1,
+      "enterpriseId": "ent-demo",
+      "clock": "2026-08-10T09:00:00+08:00",
+      "nextSequences": { "level": 2, "purchase": 3, "customer": 2 },
+      "costBasis": [
+        { "skuId": "sku-1", "costPriceCents": 700 },
+        { "skuId": "sku-2", "costPriceCents": 250 },
+        { "skuId": "sku-3", "costPriceCents": 420 },
+        { "skuId": "sku-4", "costPriceCents": null }
+      ],
+      "categoryTierMappings": [
+        { "categoryId": "category-retail-east", "tier": "tier-one" },
+        { "categoryId": "category-retail", "tier": "store" }
+      ],
+      "adjustments": [
+        {
+          "id": "price-adjustment-level-1", "enterpriseId": "ent-demo", "number": "LPA-20260810-0001", "type": "level",
+          "customerId": null, "formulaAnchor": "tier-one", "effectiveAt": "2026-08-10T08:30:00+08:00", "status": "effective",
+          "note": "明显虚构的已生效等级调价", "createdBy": "admin-demo", "createdAt": "2026-08-10T08:00:00+08:00", "updatedAt": "2026-08-10T08:30:00+08:00",
+          "lines": [{ "id": "price-line-level-1", "skuId": "sku-1", "unitId": "unit-piece", "changes": { "tierOnePriceCents": 1080 } }]
+        },
+        {
+          "id": "price-adjustment-purchase-1", "enterpriseId": "ent-demo", "number": "PPA-20260810-0001", "type": "purchase",
+          "customerId": null, "formulaAnchor": null, "effectiveAt": "2026-08-10T08:00:00+08:00", "status": "expired",
+          "note": "明显虚构的已失效进价调价", "createdBy": "admin-demo", "createdAt": "2026-08-10T07:30:00+08:00", "updatedAt": "2026-08-10T08:45:00+08:00",
+          "lines": [{ "id": "price-line-purchase-1", "skuId": "sku-1", "unitId": "unit-piece", "changes": { "costPriceCents": 680, "basePurchasePriceCents": 780 } }]
+        },
+        {
+          "id": "price-adjustment-purchase-2", "enterpriseId": "ent-demo", "number": "PPA-20260810-0002", "type": "purchase",
+          "customerId": null, "formulaAnchor": null, "effectiveAt": "2026-08-10T08:45:00+08:00", "status": "effective",
+          "note": "明显虚构的当前进价调价", "createdBy": "admin-demo", "createdAt": "2026-08-10T08:20:00+08:00", "updatedAt": "2026-08-10T08:45:00+08:00",
+          "lines": [{ "id": "price-line-purchase-2", "skuId": "sku-1", "unitId": "unit-piece", "changes": { "costPriceCents": 700, "basePurchasePriceCents": 800 } }]
+        },
+        {
+          "id": "price-adjustment-customer-1", "enterpriseId": "ent-demo", "number": "CPA-20260810-0001", "type": "customer",
+          "customerId": "customer-1", "formulaAnchor": "base-order", "effectiveAt": "2026-08-10T10:00:00+08:00", "status": "pending",
+          "note": "明显虚构的待生效客户调价", "createdBy": "admin-demo", "createdAt": "2026-08-10T08:50:00+08:00", "updatedAt": "2026-08-10T08:50:00+08:00",
+          "lines": [{ "id": "price-line-customer-1", "skuId": "sku-1", "unitId": "unit-piece", "changes": { "tierOnePriceCents": 990 } }]
+        }
+      ],
+      "versions": [
+        { "id": "price-version-level-1", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-level-1", "skuId": "sku-1", "unitId": "unit-piece", "field": "tierOnePriceCents", "valueCents": 1080, "effectiveAt": "2026-08-10T08:30:00+08:00", "expiredAt": null },
+        { "id": "price-version-purchase-cost-1", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-purchase-1", "skuId": "sku-1", "unitId": "unit-piece", "field": "costPriceCents", "valueCents": 680, "effectiveAt": "2026-08-10T08:00:00+08:00", "expiredAt": "2026-08-10T08:45:00+08:00" },
+        { "id": "price-version-purchase-1", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-purchase-1", "skuId": "sku-1", "unitId": "unit-piece", "field": "basePurchasePriceCents", "valueCents": 780, "effectiveAt": "2026-08-10T08:00:00+08:00", "expiredAt": "2026-08-10T08:45:00+08:00" },
+        { "id": "price-version-purchase-cost-2", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-purchase-2", "skuId": "sku-1", "unitId": "unit-piece", "field": "costPriceCents", "valueCents": 700, "effectiveAt": "2026-08-10T08:45:00+08:00", "expiredAt": null },
+        { "id": "price-version-purchase-2", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-purchase-2", "skuId": "sku-1", "unitId": "unit-piece", "field": "basePurchasePriceCents", "valueCents": 800, "effectiveAt": "2026-08-10T08:45:00+08:00", "expiredAt": null }
+      ],
+      "history": [
+        { "id": "price-history-level-1", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-level-1", "adjustmentNumber": "LPA-20260810-0001", "adjustmentType": "level", "skuId": "sku-1", "unitId": "unit-piece", "field": "tierOnePriceCents", "previousValueCents": 1100, "valueCents": 1080, "differenceCents": -20, "effectiveAt": "2026-08-10T08:30:00+08:00", "expiredAt": null },
+        { "id": "price-history-purchase-cost-1", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-purchase-1", "adjustmentNumber": "PPA-20260810-0001", "adjustmentType": "purchase", "skuId": "sku-1", "unitId": "unit-piece", "field": "costPriceCents", "previousValueCents": 700, "valueCents": 680, "differenceCents": -20, "effectiveAt": "2026-08-10T08:00:00+08:00", "expiredAt": "2026-08-10T08:45:00+08:00" },
+        { "id": "price-history-purchase-1", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-purchase-1", "adjustmentNumber": "PPA-20260810-0001", "adjustmentType": "purchase", "skuId": "sku-1", "unitId": "unit-piece", "field": "basePurchasePriceCents", "previousValueCents": 800, "valueCents": 780, "differenceCents": -20, "effectiveAt": "2026-08-10T08:00:00+08:00", "expiredAt": "2026-08-10T08:45:00+08:00" },
+        { "id": "price-history-purchase-cost-2", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-purchase-2", "adjustmentNumber": "PPA-20260810-0002", "adjustmentType": "purchase", "skuId": "sku-1", "unitId": "unit-piece", "field": "costPriceCents", "previousValueCents": 680, "valueCents": 700, "differenceCents": 20, "effectiveAt": "2026-08-10T08:45:00+08:00", "expiredAt": null },
+        { "id": "price-history-purchase-2", "enterpriseId": "ent-demo", "scope": "global", "customerId": null, "adjustmentId": "price-adjustment-purchase-2", "adjustmentNumber": "PPA-20260810-0002", "adjustmentType": "purchase", "skuId": "sku-1", "unitId": "unit-piece", "field": "basePurchasePriceCents", "previousValueCents": 780, "valueCents": 800, "differenceCents": 20, "effectiveAt": "2026-08-10T08:45:00+08:00", "expiredAt": null }
+      ],
+      "unitOverrides": [
+        { "id": "price-override-1", "enterpriseId": "ent-demo", "skuId": "sku-2", "unitId": "unit-box", "prices": { "basePurchasePriceCents": 3500, "baseOrderPriceCents": 5600, "tierOnePriceCents": 5400, "tierTwoPriceCents": 5600, "storePriceCents": 6800, "terminalPriceCents": 7800, "minimumSalePriceCents": 5400, "maximumSalePriceCents": 9600 }, "updatedBy": "admin-demo", "updatedAt": "2026-08-10T08:40:00+08:00" }
+      ],
+      "strategies": [
+        { "id": "price-strategy-1", "enterpriseId": "ent-demo", "skuId": "sku-1", "unitId": "unit-piece", "targetField": "storePriceCents", "anchor": "base-order-price", "amplitudeType": "percent", "amplitude": 10, "enabled": true, "startsAt": "2026-08-10T10:30:00+08:00", "endsAt": null, "lastRunAt": null, "lastError": null }
+      ]
     }
   }
 }

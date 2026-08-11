@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mock/schemas/price-foundation.schema.json",
+  "title": "PRD-002 Price Foundation State",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "clock", "nextSequences", "adjustments", "versions", "history", "unitOverrides", "strategies", "categoryTierMappings", "costBasis"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "clock": { "type": "string", "format": "date-time" },
+    "nextSequences": {
+      "type": "object",
+      "required": ["level", "purchase", "customer"],
+      "properties": {
+        "level": { "type": "integer", "minimum": 1 },
+        "purchase": { "type": "integer", "minimum": 1 },
+        "customer": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "adjustments": { "type": "array" },
+    "versions": { "type": "array" },
+    "history": { "type": "array" },
+    "unitOverrides": { "type": "array" },
+    "strategies": { "type": "array" },
+    "categoryTierMappings": { "type": "array" },
+    "costBasis": { "type": "array" }
+  },
+  "additionalProperties": false
+}

@@ -8,9 +8,9 @@
 
 ## 生成内容
 
-- Mock schema 版本：3
+- Mock schema 版本：4
 - 默认场景：normal
-- 已登记功能数据：`CUS-001`、`PRD-001`
+- 已登记功能数据：`CUS-001`、`PRD-001`、`PRD-002`
 
 ### mock/schemas/customer-foundation.schema.json
 
@@ -55,6 +55,43 @@
     "tags": { "type": "array", "items": { "type": "object", "required": ["id", "code", "name", "color", "type", "status"] } },
     "suggestions": { "type": "array", "items": { "type": "object", "required": ["id", "customerId", "tagId", "action", "status"] } },
     "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+```
+
+### mock/schemas/price-foundation.schema.json
+
+- SHA-256：`e134e3720d0629fa665fc5e0b5b6332a9a9e8c80cfc0496534aeedc0a8b2c941`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mock/schemas/price-foundation.schema.json",
+  "title": "PRD-002 Price Foundation State",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "clock", "nextSequences", "adjustments", "versions", "history", "unitOverrides", "strategies", "categoryTierMappings", "costBasis"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "clock": { "type": "string", "format": "date-time" },
+    "nextSequences": {
+      "type": "object",
+      "required": ["level", "purchase", "customer"],
+      "properties": {
+        "level": { "type": "integer", "minimum": 1 },
+        "purchase": { "type": "integer", "minimum": 1 },
+        "customer": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "adjustments": { "type": "array" },
+    "versions": { "type": "array" },
+    "history": { "type": "array" },
+    "unitOverrides": { "type": "array" },
+    "strategies": { "type": "array" },
+    "categoryTierMappings": { "type": "array" },
+    "costBasis": { "type": "array" }
   },
   "additionalProperties": false
 }
