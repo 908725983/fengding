@@ -1,5 +1,8 @@
 # 对齐 OpenAI 高级 Harness 结构
 
+- 类型：harness
+- 功能：不适用
+- 当前阶段：verification
 - 状态：completed
 - 完成日期：2026-08-11
 

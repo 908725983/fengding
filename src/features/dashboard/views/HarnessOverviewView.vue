@@ -15,7 +15,7 @@ const harnessChecks = [
       <div>
         <p class="eyebrow">Prototype foundation</p>
         <h1 id="overview-title">原型工程总览</h1>
-        <p class="page-header__description">当前完成的是 Harness 与应用壳基线，业务模块仍按功能清单逐项实施。</p>
+        <p class="page-header__description">当前完成的是 Harness 与应用壳基线，业务切片按产品规格索引、准备门和执行计划逐项实施。</p>
       </div>
       <span class="status-badge status-badge--success">Harness Ready</span>
     </header>
@@ -74,7 +74,7 @@ const harnessChecks = [
               </td>
               <td>{{ item.description }}</td>
               <td><code>{{ item.spec }}</code></td>
-              <td><span class="status-badge status-badge--neutral">尚未开始</span></td>
+              <td><span class="status-badge status-badge--neutral">字段契约待提取</span></td>
               <td><RouterLink class="table-link" :to="item.path">查看入口</RouterLink></td>
             </tr>
           </tbody>

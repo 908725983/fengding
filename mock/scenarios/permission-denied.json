@@ -1,0 +1,8 @@
+{
+  "name": "permission-denied",
+  "latencyMs": 100,
+  "overrides": {
+    "denyAllCommands": true,
+    "denyReason": "MOCK_PERMISSION_DENIED"
+  }
+}

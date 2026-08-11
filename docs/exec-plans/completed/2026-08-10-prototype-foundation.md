@@ -1,5 +1,8 @@
 # 原型 Harness 与应用壳基线
 
+- 类型：harness
+- 功能：HNS-001,SHELL-001
+- 当前阶段：verification
 - 状态：completed
 - 完成日期：2026-08-10
 

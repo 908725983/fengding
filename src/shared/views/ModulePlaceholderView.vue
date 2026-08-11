@@ -21,12 +21,16 @@ const moduleInfo = computed(() => findBusinessModule(String(route.params.module)
     <div class="placeholder-panel">
       <span class="placeholder-panel__mark" aria-hidden="true">{{ moduleInfo.shortLabel }}</span>
       <div>
-        <h2>规格已建立，功能尚未实现</h2>
-        <p>开始开发前，请阅读对应业务规格，并按执行计划规则创建边界明确的 active plan。</p>
+        <h2>原始需求与领域规则已登记，字段契约尚未提取</h2>
+        <p>开始开发前，请从功能目录选择切片，按指定原文章节完成字段与交互契约，再建立对应 active plan 进入实现。</p>
         <dl class="fact-list">
           <div>
             <dt>业务规格</dt>
             <dd><code>{{ moduleInfo.spec }}</code></dd>
+          </div>
+          <div>
+            <dt>功能与来源</dt>
+            <dd><code>docs/product-specs/index.md</code></dd>
           </div>
           <div>
             <dt>当前质量</dt>

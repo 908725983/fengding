@@ -8,6 +8,7 @@
     "build": "vite build",
     "typecheck": "vue-tsc --noEmit",
     "test:run": "vitest run",
+    "docs:generate": "node scripts/generate-db-schema.mjs",
     "verify:harness": "node scripts/verify-harness.mjs",
     "verify": "npm run verify:harness && npm run typecheck && npm run test:run && npm run build",
     "mock:reset": "node scripts/reset-mock.mjs"

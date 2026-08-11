@@ -13,8 +13,12 @@
 - AI 开工入口：[AGENTS.md](AGENTS.md)
 - 系统地图：[ARCHITECTURE.md](ARCHITECTURE.md)
 - 产品规格：[docs/product-specs/index.md](docs/product-specs/index.md)
+- 总体实施顺序：[docs/design-docs/implementation-sequence.md](docs/design-docs/implementation-sequence.md)
+- 完整原始需求：[docs/references/requirements](docs/references/requirements)
 - 当前质量：[docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md)
 - 执行计划规则：[docs/PLANS.md](docs/PLANS.md)
+
+当前有 42 个可进入规格提取的业务切片和 2 个因需求不足而 blocked 的模块。42 个业务切片都已定位到原始需求章节，但字段准备度仍为 `source-only`：AI 可以开始逐切片提取字段规格，不能跳过契约直接生成业务页面。下一切片是 `CUS-001` 客户档案、分类与标签。
 
 ## Harness 目录
 
