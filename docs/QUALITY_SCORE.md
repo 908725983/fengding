@@ -1,7 +1,7 @@
 # 质量评分
 
 - 最近审计：2026-08-11
-- 当前阶段：`CUS-001` specification 已写回用户确认的十组推荐方案；写回审计新增一组遗漏默认值决策，业务功能尚未达到 ready 或开始代码实现。
+- 当前阶段：`CUS-001` 已写回 `DEC-CUS-012`，实现审计发现分类账期联动冲突并登记 `DEC-CUS-013`；当前回到 specification，尚未开始业务实现。
 
 ## 评分标准
 
@@ -19,10 +19,10 @@
 | 工程基础 passing | 2 | `HNS-001`、`SHELL-001` 有完成计划和验证证据 |
 | 可进入规格提取的业务切片 | 42 | 全部已登记来源、依赖和规则；当前字段准备度均为 `source-only`，尚未允许编码 |
 | 因需求不足 blocked | 2 | `MER-001` 商家、`ANA-001` 独立数据分析 |
-| 已知人工决策门 | 32 | `CUS-001` 十项已由用户决定并写回；`DEC-CUS-012` 与其他切片决策仍 open |
-| 当前业务 active plan | 1 | `CUS-001` 正在 specification 阶段，仅等待 `DEC-CUS-012` 决定 |
+| 已知人工决策门 | 33 | `CUS-001` 十一项已决定，`DEC-CUS-013` open；其他切片决策仍 open |
+| 当前业务 active plan | 1 | `CUS-001` 回到 specification，仅等待分类默认账期联动决定 |
 
-下一业务动作是取得并写回 `DEC-CUS-012`；Harness 验证通过并达到 `ready` 后才允许编码。
+下一业务动作是取得并写回 `DEC-CUS-013`，再次通过 ready 门禁后实现 Types/Schema、Mock、Repository 和核心 Service 测试。
 
 ## 产品领域
 
