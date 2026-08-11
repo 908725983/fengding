@@ -1,61 +1,45 @@
 # AGENTS.md
 
-本仓库用于构建“蜂订全渠道营销系统”PC 管理后台原型。保持本文件简短：它只定义工作入口、路由和不可违反的规则。
+本仓库用于构建“蜂订全渠道营销系统”PC 管理后台原型。本文件只做 AI 的短导航；业务、设计、计划和验收细节必须进入对应文档，不在这里展开。
 
 ## 开工顺序
 
-1. 确认位于仓库根目录。
-2. 阅读 `progress.md` 和 `feature_list.json`。
-3. 阅读 `docs/ROADMAP.md`，确认当前阶段和依赖顺序。
-4. 阅读 `ARCHITECTURE.md` 和 `docs/ENGINEERING_GUARDRAILS.md`。
-5. 从 `docs/product-specs/index.md` 打开当前功能规格，并读取该功能的 `ui_spec`。
-6. 检查 `docs/OPEN_QUESTIONS.md` 和 `docs/DECISIONS.md`。
-7. 阅读 `docs/PLANS.md` 及当前 active plan。
-8. 运行 `./scripts/init.ps1`；基础验证失败时先恢复 baseline。
-9. 同一时间只允许一个功能处于 `in_progress`。
+1. 确认当前目录是仓库根目录。
+2. 阅读 `ARCHITECTURE.md`，确认边界与依赖方向。
+3. 阅读 `docs/QUALITY_SCORE.md`，了解哪些能力已有证据、哪些仍未实现。
+4. 阅读 `docs/PLANS.md`；若 `docs/exec-plans/active/` 有计划，先从计划中的当前步骤恢复。
+5. 从 `docs/product-specs/index.md` 打开本次工作涉及的产品规格；需要字段细节时查 `docs/references/requirements/`，并先把确认结果写回产品规格。
+6. 阅读与改动相关的 `docs/DESIGN.md`、`docs/FRONTEND.md`、`docs/RELIABILITY.md` 或 `docs/SECURITY.md`。
+7. 运行 `./scripts/init.ps1`。基线失败时先恢复基线，再做功能改动。
 
 ## 知识路由
 
-| 问题 | 唯一事实来源 |
+| 要找的事实 | 唯一入口 |
 |---|---|
-| 系统目的、用户、范围 | `docs/PRODUCT_SENSE.md` |
-| 整体阶段、功能顺序、依赖关系 | `docs/ROADMAP.md` |
-| 功能行为、业务规则、验收标准 | `docs/product-specs/` |
-| 页面字段、控件、列、按钮和页面状态 | `docs/ui-specs/` |
-| 系统结构、依赖方向、代码位置 | `ARCHITECTURE.md` |
-| 不确定事项如何处理、开发硬护栏 | `docs/ENGINEERING_GUARDRAILS.md` |
-| 已知缺口、待业务确认问题 | `docs/OPEN_QUESTIONS.md` |
-| 已确认的非显然决策 | `docs/DECISIONS.md` |
-| UI 风格、组件与交互规则 | `docs/FRONTEND.md` |
-| Mock 契约、数据场景、重置方式 | `docs/MOCK.md` |
-| 原型安全边界、敏感数据和前端安全 | `docs/SECURITY.md` |
-| 计划生命周期与当前计划 | `docs/PLANS.md`、`docs/exec-plans/active/` |
-| 当前功能状态 | `feature_list.json` |
-| 当前已验证状态与下一步 | `progress.md` |
-| 启动、重启、测试与黄金旅程 | `docs/RELIABILITY.md` |
-| Harness 质量审计与剩余风险 | `docs/QUALITY_SCORE.md` |
+| 系统组成、代码位置、依赖边界 | `ARCHITECTURE.md` |
+| 用户、任务、范围、产品判断 | `docs/PRODUCT_SENSE.md` |
+| 页面行为、字段、业务规则、验收 | `docs/product-specs/` |
+| 设计理由与长期实现顺序 | `docs/DESIGN.md` |
+| 当前任务、恢复点、验证证据 | `docs/PLANS.md`、`docs/exec-plans/active/` |
+| 前端视觉、组件、交互与页面状态 | `docs/FRONTEND.md` |
+| 启动、调试、重置、黄金旅程 | `docs/RELIABILITY.md` |
+| 安全边界、外部动作、敏感数据 | `docs/SECURITY.md` |
+| 当前质量、缺口与简化记录 | `docs/QUALITY_SCORE.md` |
+| 已确认但延期处理的技术债 | `docs/exec-plans/tech-debt-tracker.md` |
+| 原始需求与外部参考 | `docs/references/` |
 
-## 工作规则
+## 工作约定
 
-- 不猜业务规则；规格缺失或冲突时，将功能标记为 `blocked` 并记录缺口。
-- 不把参考产品的品牌、Logo、文案、图标或像素级样式复制进本项目。
-- 页面不能直接读取 fixture；必须经 `repository -> service -> store/composable -> view`。
-- 行为变化时同步更新对应 product spec；边界变化时更新 `ARCHITECTURE.md`。
-- 不通过删除、跳过或弱化验证来制造 `passing`。
-- 不在原型中接入真实支付、真实消息、真实地图、真实企微或生产数据。
-- 任务中断前必须更新 active plan 的恢复点和 `progress.md`；恢复时从记录继续，不重做已验证工作。
-- 业务功能设为 `in_progress` 前，必须从原需求提取页面字段规格并在功能清单填写 `ui_spec`。
+- 一次只推进一个边界明确、能独立验收的切片；复杂工作先建立 active plan。
+- 规格缺失或冲突时不要猜：在相关产品规格和 active plan 的“开放决策”中记录后暂停受影响部分。
+- 页面不得直接读取 fixture；数据必须经过 `repository -> service -> store/composable -> view`。
+- 产品可见行为变化时同步更新产品规格；架构边界变化时同步更新 `ARCHITECTURE.md` 和设计文档。
+- 重复出现的评审意见要转化为测试、静态检查或生成规则，而不是继续堆入口文档。
+- 生成内容放入 `docs/generated/`；外部材料放入 `docs/references/`。
+- 原型不接真实支付、消息、地图、企微或生产数据；相关动作使用明确标识的 fake adapter。
 
-## 完成定义
+## 完成与收尾
 
-功能只有同时满足以下条件才能标记为 `passing`：
+只有在行为已实现、相关验证已实际运行、证据已写入 active plan 与 `docs/QUALITY_SCORE.md`、文档已同步、干净重启后仍可复现时，任务才算完成。
 
-- 规格中的目标行为已实现。
-- 规格列出的验收步骤已实际运行。
-- `npm run verify` 通过。
-- 证据已写入 `feature_list.json` 或当前 active plan。
-- 受影响文档已更新，Mock 可重置，仓库可干净重启。
-
-## 收尾
-
-更新当前 active plan、`feature_list.json` 和 `progress.md`，记录已运行验证、遗留风险与下一步。完成的计划移动到 `docs/exec-plans/completed/`。
+收尾时更新 active plan 的进度和恢复点；完成后移入 `docs/exec-plans/completed/`；真实但延期的缺口登记到技术债台账，并写明下一步。

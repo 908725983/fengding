@@ -1,52 +1,51 @@
-# 蜂订全渠道营销系统原型
+# 蜂订管理后台原型
 
-本仓库是蜂订 PC 管理后台的 Vue 3 + Mock 原型，也是面向 coding agent 的 Harness 工程环境。
+这是一个 Vue 3 + Mock 的 PC 管理后台原型，也是按照《Harness Engineering 学习指南》第 101—102 页高级结构组织的 AI 工程环境。产品代码仍放在 `src/` 和 `mock/`；Harness 作为仓库内的导航、规格、计划、验证与证据层存在。
 
-## 当前目标
-
-- 用可重复启动的前端原型验证核心业务流程、页面结构和交互。
-- 以仓库内文档作为产品、业务规则、架构、计划和验收的唯一事实来源。
-- 先验证核心纵向切片，不在原型阶段接入真实后端、支付、地图、企微或生产数据。
-
-## 快速开始
+## 使用入口
 
 ```powershell
 ./scripts/init.ps1
 ./scripts/start.ps1
-```
-
-标准验证：
-
-```powershell
 ./scripts/verify.ps1
 ```
 
-## 阅读入口
+- AI 开工入口：[AGENTS.md](AGENTS.md)
+- 系统地图：[ARCHITECTURE.md](ARCHITECTURE.md)
+- 产品规格：[docs/product-specs/index.md](docs/product-specs/index.md)
+- 当前质量：[docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md)
+- 执行计划规则：[docs/PLANS.md](docs/PLANS.md)
 
-- AI 工作入口：`AGENTS.md`
-- 系统架构与依赖边界：`ARCHITECTURE.md`
-- 产品目标与原型边界：`docs/PRODUCT_SENSE.md`
-- 整体开发顺序与阶段目标：`docs/ROADMAP.md`
-- 业务规格索引：`docs/product-specs/index.md`
-- 页面字段规格规则：`docs/ui-specs/README.md`
-- AI 开发护栏：`docs/ENGINEERING_GUARDRAILS.md`
-- 待确认问题：`docs/OPEN_QUESTIONS.md`
-- 原型安全边界：`docs/SECURITY.md`
-- Harness 质量审计：`docs/QUALITY_SCORE.md`
-- 当前功能状态：`feature_list.json`
-- 当前已验证状态：`progress.md`
-- 最近完成计划：`docs/exec-plans/completed/2026-08-10-prototype-foundation.md`
-
-## 目录职责
+## Harness 目录
 
 ```text
-src/                    Vue 3 产品代码
-mock/                   Mock 数据、场景和接口处理
-src/**/*.spec.ts        与功能代码同位置的可执行验证
-docs/product-specs/     用户可见行为和业务规则
-docs/exec-plans/        跨会话执行计划
-docs/references/        外部来源与待核实项
-scripts/                标准启动、验证和数据重置入口
+AGENTS.md
+ARCHITECTURE.md
+docs/
+├── design-docs/
+│   ├── index.md
+│   ├── core-beliefs.md
+│   └── implementation-sequence.md
+├── exec-plans/
+│   ├── active/
+│   ├── completed/
+│   └── tech-debt-tracker.md
+├── generated/
+│   └── db-schema.md
+├── product-specs/
+│   ├── index.md
+│   └── 各业务领域规格.md
+├── references/
+│   ├── source-requirements.md
+│   ├── requirements-manifest.json
+│   └── requirements/
+├── DESIGN.md
+├── FRONTEND.md
+├── PLANS.md
+├── PRODUCT_SENSE.md
+├── QUALITY_SCORE.md
+├── RELIABILITY.md
+└── SECURITY.md
 ```
 
-不要从聊天记录恢复项目事实；聊天中的有效决策必须回写到上述仓库文件。
+目录中的文件按职责只有一个入口：业务事实进产品规格，设计理由进设计文档，执行现场进 active plan，外部材料进 references，生成物进 generated。聊天记录不作为项目事实来源。

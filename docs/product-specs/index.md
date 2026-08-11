@@ -1,21 +1,28 @@
-# 业务规格索引
+# 产品规格索引
 
-实现功能前必须打开对应规格；跨模块链路需同时阅读所有相关规格。
+这里保存系统当前应呈现的用户可见行为，是实现与验收的业务入口。实现变化与规格必须在同一次任务中更新。
 
-| 领域 | 规格 | 当前原型优先级 |
-|---|---|---|
-| 首页 | [dashboard.md](dashboard.md) | P0 |
-| 订单 | [orders.md](orders.md) | P0 |
-| 商品 | [products.md](products.md) | P0 |
-| 采购 | [procurement.md](procurement.md) | P1 |
-| 库存 | [inventory.md](inventory.md) | P0 |
-| 客户 | [customers.md](customers.md) | P0 |
-| 资金 | [finance.md](finance.md) | P0 |
-| 设置 | [settings.md](settings.md) | P1 |
+| 领域 | 规格 | 原型优先级 | 当前实现 |
+|---|---|---|---|
+| 首页 | [dashboard.md](dashboard.md) | P0（最后聚合） | 仅应用壳状态页 |
+| 订单 | [orders.md](orders.md) | P0 | 未开始 |
+| 商品 | [products.md](products.md) | P0 | 未开始 |
+| 采购 | [procurement.md](procurement.md) | P1 | 未开始 |
+| 库存 | [inventory.md](inventory.md) | P0 | 未开始 |
+| 客户 | [customers.md](customers.md) | P0（下一切片） | 未开始 |
+| 资金 | [finance.md](finance.md) | P0 | 未开始 |
+| 设置 | [settings.md](settings.md) | P1 | 未开始 |
 
-## 阅读规则
+## 规格使用规则
 
-- “页面范围”说明需要呈现什么，“业务规则”决定允许发生什么，“验收”决定何时完成。
-- 字段级实现以原始需求文档为上游；本规格没有列出的字段不得凭竞品补造为强制规则。
-- 状态流转、金额、库存、权限和跨单据关系发生变化时，必须在对应规则 ID 下补充说明和测试。
-- 商家模块与独立数据分析模块暂不建立规格，状态见 `feature_list.json`。
+- “页面范围”说明呈现什么，“业务规则”说明允许发生什么，“验收”说明何时完成。
+- 开始一个页面切片前，从 `docs/references/requirements/` 核对该切片的字段、控件、列、操作、权限和 loading/empty/success/error/retry 状态；确认后直接补入对应领域规格，不另建一套 UI 规格。
+- 产品规格未明确的字段或规则不得根据竞品、行业习惯或 AI 经验补造。缺口写入本文件的“已知规格缺口”，若影响当前实现，再写入 active plan 的开放决策。
+- 状态流转、金额、库存、权限和跨单据关系变化时，必须更新对应规则 ID、验收和测试。
+- 外部模拟与原始需求快照只是参考材料；进入本目录并被确认后，才成为当前产品行为。
+
+## 已知规格缺口
+
+- “商家”和独立“数据分析”只有总览名称，没有独立详细需求，暂不创建模块规格或实现。
+- 真实支付、消息、地图、企微、文件、AI 的供应商协议、错误码和安全要求未定义；原型只允许 fake adapter。
+- 个别跨模块时点或口径若在领域规格中仍标为“待确认”，必须在涉及它的 active plan 中阻塞对应行为，不得自行选择。

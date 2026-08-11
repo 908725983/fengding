@@ -22,15 +22,15 @@ const moduleInfo = computed(() => findBusinessModule(String(route.params.module)
       <span class="placeholder-panel__mark" aria-hidden="true">{{ moduleInfo.shortLabel }}</span>
       <div>
         <h2>规格已建立，功能尚未实现</h2>
-        <p>开始开发前，请从功能清单选择唯一的进行中功能，并阅读对应业务规格与 active plan。</p>
+        <p>开始开发前，请阅读对应业务规格，并按执行计划规则创建边界明确的 active plan。</p>
         <dl class="fact-list">
           <div>
             <dt>业务规格</dt>
             <dd><code>{{ moduleInfo.spec }}</code></dd>
           </div>
           <div>
-            <dt>功能状态</dt>
-            <dd><code>feature_list.json</code></dd>
+            <dt>当前质量</dt>
+            <dd><code>docs/QUALITY_SCORE.md</code></dd>
           </div>
           <div>
             <dt>验收入口</dt>
