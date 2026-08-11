@@ -2,9 +2,9 @@
 
 - 类型：business-feature
 - 功能：CUS-001
-- 当前阶段：implementation
-- 状态：active
-- 最近更新：2026-08-11
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-11
 
 ## 目标
 
@@ -41,7 +41,7 @@
 ## 风险与阻塞
 
 - 十二组核心缺口均已由用户确认并写回，当前无产品决策阻塞。
-- 当前风险转为实现完整性：Runtime/UI 尚未接入，error/slow/empty/permission-denied/partial-failure 尚未形成页面证据，不能把数据层通过当成功能完成。
+- 本切片验证已经收口；后续跨领域订单、价格、库存和资金规则不属于本计划，不得从客户页面推测实现。
 
 ## 进度日志
 
@@ -61,9 +61,16 @@
 - [x] 数据与 Service 检查点已提交：`84c1d70`。
 - [x] 完成 Pinia Runtime、normal/empty/error/slow/permission-denied 场景适配和客户列表首版；跨域指标明确显示未接入。
 - [x] Runtime 与列表合同测试加入后，全仓 6 个测试文件/17 条测试通过。
-- [ ] 当前步骤：提交 Runtime/列表检查点，然后实现客户详情、状态操作与新增/编辑表单。
-- [ ] 实现客户分类、标签、智能标签 UI。
-- [ ] 进入 verification，完成全部场景、黄金旅程、1280px、重置和干净启动验收。
+- [x] Runtime/列表检查点已提交：`e8e86ae`。
+- [x] 完成客户详情、状态操作、新增/编辑表单、客户分类、客户标签和智能标签 UI；新增、编辑、删除和 AI 决策均通过 Runtime/Service。
+- [x] 增加路由/UI/Service 三层权限：无权限角色只能留在客户列表权限提示，不能进入客户子路由或执行命令。
+- [x] 自动验证达到 10 个测试文件/23 条测试，覆盖 Service、Schema、Runtime、路由、权限和六类页面合同。
+- [x] 1280×720 浏览器验收：列表、详情、表单、分类、标签、智能标签可见且控制台无错误；normal/empty/error/slow/permission-denied 均通过。
+- [x] 黄金旅程：新增“演示黄金旅程客户”后生成 `CUS-000003`，进入详情并显示账期结算/30 天；AI 建议人工确认后才显示已确认。
+- [x] 截图证据：`docs/exec-plans/evidence/2026-08-11-cus001-list-1280.png`、`2026-08-11-cus001-form-1280.png`。
+- [x] 最终 `npm run verify` 通过：Harness、类型检查、10 个测试文件/23 条测试和生产构建全部成功。
+- [x] `npm run mock:reset` 后 baseline 与工作状态 SHA-256 均为 `E6393D8FC4B4123C12F471633412E45DC9D575BB6D7BDE24A3BDA846880FC5CE`。
+- [x] 干净启动 `/customers` 返回 HTTP 200 并完成停止；最终 UI/验收检查点已保存。
 
 ## 开放决策
 
@@ -84,4 +91,4 @@
 
 ## 中断恢复点
 
-全部产品决策已写回。数据/Service 检查点 `84c1d70` 已稳定；其后已新增 `runtime/customer-store.ts`、五种 Mock 场景运行适配、`views/CustomerListView.vue` 和路由，6 个测试文件/17 条测试通过。恢复时先运行 `npm run verify`；下一步提交当前 Runtime/列表节点，再实现详情、状态命令和客户表单。列表中的详情/编辑/新增按钮当前有意禁用，不能误称完成；分类、标签、智能标签仍无 UI。主要未提交修改：`mock/handlers/customer-handler.ts`、`src/app/router.ts`、`src/features/customers/runtime/`、`src/features/customers/views/`。
+本计划已完成，不再从这里恢复开发。数据/Service 检查点为 `84c1d70`，Runtime/列表检查点为 `e8e86ae`，最终 UI 与验收检查点见归档本身及对应 Git 提交。下一切片严格按 `docs/design-docs/implementation-sequence.md` 进入 `PRD-001`，开始前必须新建唯一 active plan，并重新执行规格提取、决策门和验证流程。

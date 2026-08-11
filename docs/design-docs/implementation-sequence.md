@@ -122,10 +122,12 @@
 
 ## 当前下一动作
 
-下一切片是 `CUS-001`，但当前字段准备度为 `source-only`。开始时必须：
+`CUS-001` 已完成并归档。下一切片是 `PRD-001` 商品、SKU 与多单位；当前字段准备度为 `source-only`。开始时必须：
 
-1. 创建 `docs/exec-plans/active/YYYY-MM-DD-customer-foundation.md`，阶段设为 `specification`。
-2. 阅读 `../product-specs/customers.md`。
-3. 阅读 `../references/requirements/06-客户模块.md §2.1、§2.4～§2.6`，并同时应用 `01-整体架构与首页.md §4～§5` 的全局交互与权限资料。
-4. 把完整字段与交互契约写入客户规格，提取过程中出现的新歧义先登记新的 `DEC-*`；集中请用户决定 `DEC-CUS-001`、`DEC-CUS-003` 及新发现的阻塞项。全部写回并验证后才把目录中的字段准备度改为 `ready`；若要先做不受影响部分，必须先在目录中正式拆成独立切片。
-5. 将 active plan 阶段改为 `implementation` 后才能开始客户业务代码。
+历史说明：`CUS-001` 开工前曾由 `DEC-CUS-001` 等决策门阻塞，均经人工确认并写回后才进入实现；该记录保留用于证明门禁没有被绕过。
+
+1. 创建 `docs/exec-plans/active/YYYY-MM-DD-product-foundation.md`，阶段设为 `specification`。
+2. 阅读 `../product-specs/products.md` 和 `../product-specs/index.md` 中 `PRD-001` 的来源、依赖、规则与决策门。
+3. 阅读 `../references/requirements/03-商品模块.md §2.1～§2.3 Tab 1`，并同时应用 `01-整体架构与首页.md §4～§5` 的全局交互与权限资料。
+4. 把商品、SKU、多单位、换算、状态、列表、详情、表单、Mock 和验收的完整契约写入商品规格；任何缺失或冲突事实先登记 `DEC-PRD-*`，不得猜测。
+5. 所有阻塞决策写回、字段准备度变为 `ready`、Harness 验证通过并把 active plan 阶段改为 `implementation` 后，才能开始商品业务代码。

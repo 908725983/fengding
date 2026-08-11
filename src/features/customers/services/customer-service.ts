@@ -119,7 +119,13 @@ export function createEmptyCustomerDraft(): CustomerDraft {
 }
 
 export function applyCategoryToDraft(draft: CustomerDraft, category: CustomerCategory): CustomerDraft {
-  const next = structuredClone(draft)
+  const next: CustomerDraft = {
+    ...draft,
+    attachments: draft.attachments.map((item) => ({ ...item })),
+    tagIds: [...draft.tagIds],
+    paymentMethods: [...draft.paymentMethods],
+    businessSettings: { ...draft.businessSettings },
+  }
   next.categoryId = category.id
   next.creditLimitCents = category.defaultCreditLimitCents
   if (category.defaultPaymentTermDays !== null) {
@@ -130,7 +136,7 @@ export function applyCategoryToDraft(draft: CustomerDraft, category: CustomerCat
 }
 
 export function changeSettlementMethod(draft: CustomerDraft, method: SettlementMethod): CustomerDraft {
-  return { ...structuredClone(draft), settlementMethod: method, paymentTermDays: method === 'terms' ? draft.paymentTermDays : null }
+  return { ...draft, settlementMethod: method, paymentTermDays: method === 'terms' ? draft.paymentTermDays : null }
 }
 
 export function getOrderEligibility(customer: Customer, exposureCents: number): CustomerOrderEligibility {
@@ -201,6 +207,9 @@ export function createCustomerService(dependencies: CustomerServiceDependencies)
   function createCustomer(actor: CustomerActor, input: CustomerDraft): Customer {
     assertWrite(actor)
     assertCustomerDraft(input)
+    if (input.status !== 'active' || input.frozenReason !== null) {
+      throw new CustomerDomainError('INVALID_TRANSITION', '后台新增客户必须使用默认启用状态')
+    }
     return repository.transact((state) => {
       validateReferences(state, input)
       let code = input.code?.trim() ?? ''
@@ -337,7 +346,14 @@ export function createCustomerService(dependencies: CustomerServiceDependencies)
     return repository.transact((state) => {
       let customerIds: string[]
       if (input.scope === 'specified') customerIds = [...new Set(input.customerIds ?? [])]
-      else if (input.scope === 'conditions') customerIds = listCustomers(actor, { ...input.conditions, page: 1, pageSize: 100 }).items.map((item) => item.id)
+      else if (input.scope === 'conditions') {
+        const firstPage = listCustomers(actor, { ...input.conditions, page: 1, pageSize: 100 })
+        if (firstPage.total > 1000) throw new CustomerDomainError('ANALYSIS_RANGE_INVALID', '立即分析客户数必须为 1～1000')
+        customerIds = firstPage.items.map((item) => item.id)
+        for (let page = 2; customerIds.length < firstPage.total; page += 1) {
+          customerIds.push(...listCustomers(actor, { ...input.conditions, page, pageSize: 100 }).items.map((item) => item.id))
+        }
+      }
       else customerIds = state.customers.map((item) => item.id)
       if (!customerIds.length || customerIds.length > 1000) throw new CustomerDomainError('ANALYSIS_RANGE_INVALID', '立即分析客户数必须为 1～1000')
       customerIds.forEach((id) => findCustomer(state, id))

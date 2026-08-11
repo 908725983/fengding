@@ -30,6 +30,12 @@ function validDraft(): CustomerDraft {
   }
 }
 
+function existingDraft(customerId: string, repository: InMemoryCustomerRepository): CustomerDraft {
+  const customer = repository.read().customers.find((item) => item.id === customerId)!
+  const { id: _id, enterpriseId: _enterpriseId, createdAt: _createdAt, updatedAt: _updatedAt, ...fields } = customer
+  return { ...fields, codeMode: 'manual', code: customer.code }
+}
+
 describe('CUS-001 customer service', () => {
   let repository: InMemoryCustomerRepository
   let sequence: number
@@ -67,6 +73,7 @@ describe('CUS-001 customer service', () => {
     const before = repository.read()
     expect(() => service.createCustomer(admin, duplicate)).toThrowError(CustomerDomainError)
     expect(repository.read()).toEqual(before)
+    expect(() => service.createCustomer(admin, { ...validDraft(), status: 'inactive' })).toThrowError(expect.objectContaining({ code: 'INVALID_TRANSITION' }))
   })
 
   it('filters a category with descendants and matches any selected tag', () => {
@@ -92,6 +99,15 @@ describe('CUS-001 customer service', () => {
     expect(() => service.changeCustomerStatus(admin, 'customer-1', 'pending')).toThrowError(expect.objectContaining({ code: 'INVALID_TRANSITION' }))
   })
 
+  it('allows profile edits in every status while protecting sensitive fields', () => {
+    service.changeCustomerStatus(admin, 'customer-1', 'frozen', '演示冻结')
+    const frozenDraft = { ...existingDraft('customer-1', repository), name: '演示冻结客户已编辑' }
+    expect(service.updateCustomer(admin, 'customer-1', frozenDraft).name).toBe('演示冻结客户已编辑')
+
+    const salesDraft = { ...existingDraft('customer-1', repository), bankAccount: '9999999999999999' }
+    expect(() => service.updateCustomer(salesperson, 'customer-1', salesDraft)).toThrowError(expect.objectContaining({ code: 'SENSITIVE_FIELD_FORBIDDEN' }))
+  })
+
   it('prevents referenced category deletion and category cycles', () => {
     expect(() => service.deleteCategory(admin, 'category-retail')).toThrowError(expect.objectContaining({ code: 'REFERENCE_CONFLICT' }))
     const root = repository.read().categories.find((item) => item.id === 'category-retail')!
@@ -110,6 +126,14 @@ describe('CUS-001 customer service', () => {
     expect(service.getCustomer(admin, 'customer-1').tagIds).toEqual(['tag-focus', 'tag-ai'])
     expect(service.listSuggestions(admin).find((item) => item.id === 'suggestion-1')?.status).toBe('confirmed')
     expect(() => service.resolveSuggestions(admin, ['suggestion-1'], 'confirm')).toThrowError(expect.objectContaining({ code: 'SUGGESTION_NOT_PENDING' }))
+  })
+
+  it('creates deterministic immediate-analysis suggestions and rejection has no tag side effect', () => {
+    const created = service.analyzeTags(admin, { scope: 'specified', customerIds: ['customer-2'] })
+    expect(created).toHaveLength(1)
+    expect(service.getCustomer(admin, 'customer-2').tagIds).toEqual([])
+    service.resolveSuggestions(admin, [created[0]!.id], 'reject')
+    expect(service.getCustomer(admin, 'customer-2').tagIds).toEqual([])
   })
 
   it('rejects unavailable transaction filtering instead of fabricating zero totals', () => {

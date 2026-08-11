@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
+import { RouterLink } from 'vue-router'
 import { useCustomerStore } from '../runtime/customer-store'
 import type { CustomerListQuery } from '../types'
 import type { CustomerScenarioName } from '../../../../mock/handlers/customer-handler'
@@ -66,15 +67,15 @@ onMounted(() => store.load())
             <option value="permission-denied">无权限</option>
           </select>
         </label>
-        <button class="button button--primary" type="button" disabled title="新增表单将在下一实现节点接入">新增客户</button>
+        <RouterLink class="button button--primary button-link" to="/customers/new">新增客户</RouterLink>
       </div>
     </header>
 
     <nav class="customer-tabs" aria-label="客户模块二级导航">
-      <span class="customer-tabs__item customer-tabs__item--active">客户列表</span>
-      <span class="customer-tabs__item">客户分类</span>
-      <span class="customer-tabs__item">客户标签</span>
-      <span class="customer-tabs__item">智能标签</span>
+      <RouterLink class="customer-tabs__item customer-tabs__item--active" to="/customers">客户列表</RouterLink>
+      <RouterLink class="customer-tabs__item" to="/customers/categories">客户分类</RouterLink>
+      <RouterLink class="customer-tabs__item" to="/customers/tags">客户标签</RouterLink>
+      <RouterLink class="customer-tabs__item" to="/customers/smart-tags">智能标签</RouterLink>
       <span class="customer-tabs__item customer-tabs__item--planned">其余功能 · 规划中</span>
     </nav>
 
@@ -110,7 +111,7 @@ onMounted(() => store.load())
       <strong>客户数据加载失败</strong><p>{{ error }}</p><button class="button" type="button" @click="store.load">重试</button>
     </div>
     <div v-else-if="loading" class="state-panel" aria-live="polite"><span class="spinner"></span><strong>正在加载客户数据…</strong></div>
-    <div v-else-if="isEmpty" class="state-panel"><strong>暂无客户数据</strong><p>当前筛选或模拟场景没有客户记录。</p><button class="button button--primary" type="button" disabled>新增客户</button></div>
+    <div v-else-if="isEmpty" class="state-panel"><strong>暂无客户数据</strong><p>当前筛选或模拟场景没有客户记录。</p><RouterLink class="button button--primary button-link" to="/customers/new">新增客户</RouterLink></div>
 
     <template v-else>
       <div class="table-meta"><strong>客户档案</strong><span>共 {{ result.total }} 条 · 默认按创建时间倒序</span></div>
@@ -120,14 +121,14 @@ onMounted(() => store.load())
           <tbody>
             <tr v-for="customer in result.items" :key="customer.id">
               <td class="mono">{{ customer.code }}</td>
-              <td><strong>{{ customer.name }}</strong></td>
+              <td><RouterLink class="customer-name-link" :to="`/customers/${customer.id}`">{{ customer.name }}</RouterLink></td>
               <td><span class="soft-tag">{{ customer.categoryName }}</span></td>
               <td>{{ customer.primaryContactName }}</td><td>{{ customer.primaryPhone }}</td>
               <td>{{ [customer.provinceCode, customer.cityCode, customer.districtCode].join(' / ') }}</td>
               <td>{{ customer.salespersonName }}</td>
               <td><span class="unavailable">未接入</span></td><td><span class="unavailable">未接入</span></td><td><span class="unavailable">未接入</span></td>
               <td><span class="customer-status" :class="`customer-status--${customer.status}`">{{ statusLabels[customer.status] }}</span></td>
-              <td><button class="table-action" type="button" disabled>详情</button><button class="table-action" type="button" disabled>编辑</button></td>
+              <td><RouterLink class="table-action" :to="`/customers/${customer.id}`">详情</RouterLink><RouterLink class="table-action" :to="`/customers/${customer.id}/edit`">编辑</RouterLink></td>
             </tr>
           </tbody>
         </table>
@@ -153,8 +154,10 @@ select, input { min-height: 36px; padding: 6px 10px; color: var(--color-text); b
 .button + .button { margin-left: 8px; }
 .button--primary { color: #fff; background: var(--color-primary); border-color: var(--color-primary); }
 .button:disabled { cursor: not-allowed; opacity: .55; }
+.button-link { display: inline-flex; align-items: center; text-decoration: none; }
 .customer-tabs { display: flex; gap: 24px; min-height: 44px; padding: 0 18px; background: #fff; border: 1px solid var(--color-border); border-bottom: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; }
 .customer-tabs__item { display: flex; align-items: center; color: var(--color-muted); }
+.customer-tabs__item { text-decoration: none; }
 .customer-tabs__item--active { color: var(--color-primary-strong); font-weight: 700; border-bottom: 2px solid var(--color-primary); }
 .customer-tabs__item--planned { margin-left: auto; font-size: 12px; }
 .filter-panel { padding: 16px 18px 12px; background: #fff; border: 1px solid var(--color-border); }
@@ -166,7 +169,8 @@ select, input { min-height: 36px; padding: 6px 10px; color: var(--color-text); b
 .tag-choice--selected { color: var(--color-primary-strong); background: var(--color-primary-soft); border-color: #9bd4d1; }
 .more-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border); }
 .filter-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; }
-.link-button, .table-action { padding: 0; color: var(--color-primary-strong); cursor: pointer; background: transparent; border: 0; }
+.link-button, .table-action, .customer-name-link { padding: 0; color: var(--color-primary-strong); cursor: pointer; background: transparent; border: 0; text-decoration: none; }
+.customer-name-link { font-weight: 700; }
 .table-action + .table-action { margin-left: 10px; }
 .table-action:disabled { color: #9aa4b1; cursor: not-allowed; }
 .state-panel { display: grid; min-height: 260px; place-items: center; align-content: center; gap: 8px; margin-top: 14px; padding: 30px; color: var(--color-muted); background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-md); text-align: center; }
