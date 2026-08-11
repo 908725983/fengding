@@ -8,9 +8,9 @@
 
 ## 生成内容
 
-- Mock schema 版本：2
+- Mock schema 版本：3
 - 默认场景：normal
-- 已登记功能数据：`CUS-001`
+- 已登记功能数据：`CUS-001`、`PRD-001`
 
 ### mock/schemas/customer-foundation.schema.json
 
@@ -54,6 +54,58 @@
     "categories": { "type": "array", "items": { "type": "object", "required": ["id", "code", "name", "status", "discountRatePercent"] } },
     "tags": { "type": "array", "items": { "type": "object", "required": ["id", "code", "name", "color", "type", "status"] } },
     "suggestions": { "type": "array", "items": { "type": "object", "required": ["id", "customerId", "tagId", "action", "status"] } },
+    "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+```
+
+### mock/schemas/product-foundation.schema.json
+
+- SHA-256：`55d043d5679393fe3cefcee8d3365f30d80ebb04c890b43c33814f2528a25a0a`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fengding://mock/PRD-001",
+  "title": "PRD-001 商品、SKU 与多单位 Mock 契约",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "nextProductSequence", "nextSkuSequence", "products", "categories", "brands", "units", "tags", "displayCategories", "changeLogs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "nextProductSequence": { "type": "integer", "minimum": 1 },
+    "nextSkuSequence": { "type": "integer", "minimum": 1 },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "enterpriseId", "code", "name", "categoryId", "baseUnitId", "productType", "sceneUnits", "skus", "status", "hasOrderReference", "deletedAt", "createdAt", "updatedAt"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^(SPU-[0-9]{6}|.+)$" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "productType": { "const": "normal" },
+          "status": { "enum": ["draft", "on-sale", "off-sale"] },
+          "skus": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "productId", "code", "specificationName", "specificationValue"],
+              "properties": {
+                "code": { "type": "string", "pattern": "^(SKU-[0-9]{6}|.+)$" },
+                "barcode": { "type": ["string", "null"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "categories": { "type": "array" },
+    "brands": { "type": "array" },
+    "units": { "type": "array" },
+    "tags": { "type": "array" },
+    "displayCategories": { "type": "array" },
     "changeLogs": { "type": "array" }
   },
   "additionalProperties": false

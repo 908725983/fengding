@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "scenario": "normal",
   "clock": "2026-08-10T09:00:00+08:00",
   "featureData": {
@@ -64,6 +64,89 @@
         {
           "id": "suggestion-1", "enterpriseId": "ent-demo", "customerId": "customer-1", "tagId": "tag-ai", "action": "add", "status": "pending",
           "createdAt": "2026-08-10T09:30:00+08:00", "resolvedAt": null
+        }
+      ],
+      "changeLogs": []
+    },
+    "PRD-001": {
+      "schemaVersion": 1,
+      "enterpriseId": "ent-demo",
+      "nextProductSequence": 4,
+      "nextSkuSequence": 5,
+      "categories": [
+        { "id": "product-category-food", "enterpriseId": "ent-demo", "code": "DEMO-FOOD", "name": "演示食品", "parentId": null, "status": "active" },
+        { "id": "product-category-drink", "enterpriseId": "ent-demo", "code": "DEMO-DRINK", "name": "演示饮品", "parentId": "product-category-food", "status": "active" },
+        { "id": "product-category-inactive", "enterpriseId": "ent-demo", "code": "DEMO-INACTIVE", "name": "演示停用分类", "parentId": null, "status": "inactive" }
+      ],
+      "brands": [
+        { "id": "brand-demo", "enterpriseId": "ent-demo", "code": "DEMO-BRAND", "name": "演示品牌", "status": "active" }
+      ],
+      "units": [
+        { "id": "unit-piece", "enterpriseId": "ent-demo", "code": "DEMO-PIECE", "name": "件", "type": "basic", "status": "active" },
+        { "id": "unit-bottle", "enterpriseId": "ent-demo", "code": "DEMO-BOTTLE", "name": "瓶", "type": "basic", "status": "active" },
+        { "id": "unit-box", "enterpriseId": "ent-demo", "code": "DEMO-BOX", "name": "箱", "type": "auxiliary", "status": "active" }
+      ],
+      "tags": [
+        { "id": "product-tag-featured", "enterpriseId": "ent-demo", "code": "DEMO-FEATURED", "name": "演示推荐", "status": "active" }
+      ],
+      "displayCategories": [
+        { "id": "display-category-demo", "enterpriseId": "ent-demo", "code": "DEMO-DISPLAY", "name": "演示展示分类", "status": "active" }
+      ],
+      "products": [
+        {
+          "id": "product-1", "enterpriseId": "ent-demo", "code": "SPU-000001", "name": "演示基础商品", "shortName": "演示商品",
+          "categoryId": "product-category-food", "baseUnitId": "unit-piece", "productType": "normal", "displayCategoryId": "display-category-demo",
+          "brandId": "brand-demo", "tagIds": ["product-tag-featured"],
+          "sceneUnits": {
+            "inventory": { "unitId": "unit-piece", "conversionRate": 1 }, "procurement": { "unitId": "unit-piece", "conversionRate": 1 },
+            "distribution": { "unitId": "unit-piece", "conversionRate": 1 }, "sales": { "unitId": "unit-piece", "conversionRate": 1 }
+          },
+          "weightKg": 0.5, "origin": "演示产地", "shelfLifeDays": 30, "minimumOrderQuantity": 1, "salesTaxRatePercent": 13,
+          "manageProductionDate": true, "freeShipping": false, "freightTemplateId": null, "freightUnitId": "unit-piece", "carouselImages": [],
+          "customAttributes": { "color": null, "grossWeight": null, "netWeight": null, "grossUnitPrice": null, "netUnitPrice": null, "supplier": null },
+          "description": { "version": 1, "blocks": [{ "type": "paragraph", "text": "明显虚构的演示商品。", "marks": [] }] },
+          "skus": [
+            { "id": "sku-1", "enterpriseId": "ent-demo", "productId": "product-1", "code": "SKU-000001", "shortName": null, "barcode": "DEMO-BAR-0001", "specificationName": "默认", "specificationValue": "默认规格", "mainImage": null, "basePurchasePriceCents": 800, "baseOrderPriceCents": 1200, "minimumSalePriceCents": 1000, "maximumSalePriceCents": 1800, "tierOnePriceCents": 1100, "tierTwoPriceCents": 1200, "storePriceCents": 1400, "terminalPriceCents": 1600 }
+          ],
+          "status": "on-sale", "hasOrderReference": true, "deletedAt": null,
+          "createdAt": "2026-08-10T10:00:00+08:00", "updatedAt": "2026-08-10T10:00:00+08:00"
+        },
+        {
+          "id": "product-2", "enterpriseId": "ent-demo", "code": "SPU-000002", "name": "演示多规格饮品", "shortName": "演示饮品",
+          "categoryId": "product-category-drink", "baseUnitId": "unit-bottle", "productType": "normal", "displayCategoryId": null,
+          "brandId": "brand-demo", "tagIds": [],
+          "sceneUnits": {
+            "inventory": { "unitId": "unit-bottle", "conversionRate": 1 }, "procurement": { "unitId": "unit-box", "conversionRate": 12 },
+            "distribution": { "unitId": "unit-box", "conversionRate": 12 }, "sales": { "unitId": "unit-bottle", "conversionRate": 1 }
+          },
+          "weightKg": 0.35, "origin": null, "shelfLifeDays": 180, "minimumOrderQuantity": 1, "salesTaxRatePercent": 13,
+          "manageProductionDate": true, "freeShipping": false, "freightTemplateId": null, "freightUnitId": "unit-bottle", "carouselImages": [],
+          "customAttributes": { "color": null, "grossWeight": null, "netWeight": null, "grossUnitPrice": null, "netUnitPrice": null, "supplier": null },
+          "description": { "version": 1, "blocks": [] },
+          "skus": [
+            { "id": "sku-2", "enterpriseId": "ent-demo", "productId": "product-2", "code": "SKU-000002", "shortName": "小瓶", "barcode": "DEMO-BAR-0002", "specificationName": "容量", "specificationValue": "300ml", "mainImage": null, "basePurchasePriceCents": 300, "baseOrderPriceCents": 500, "minimumSalePriceCents": 450, "maximumSalePriceCents": 800, "tierOnePriceCents": 480, "tierTwoPriceCents": 500, "storePriceCents": 600, "terminalPriceCents": 700 },
+            { "id": "sku-3", "enterpriseId": "ent-demo", "productId": "product-2", "code": "SKU-000003", "shortName": "大瓶", "barcode": "DEMO-BAR-0003", "specificationName": "容量", "specificationValue": "500ml", "mainImage": null, "basePurchasePriceCents": 500, "baseOrderPriceCents": 800, "minimumSalePriceCents": 700, "maximumSalePriceCents": 1200, "tierOnePriceCents": 760, "tierTwoPriceCents": 800, "storePriceCents": 900, "terminalPriceCents": 1000 }
+          ],
+          "status": "off-sale", "hasOrderReference": false, "deletedAt": null,
+          "createdAt": "2026-08-10T10:10:00+08:00", "updatedAt": "2026-08-10T10:10:00+08:00"
+        },
+        {
+          "id": "product-3", "enterpriseId": "ent-demo", "code": "SPU-000003", "name": "演示草稿商品", "shortName": null,
+          "categoryId": "product-category-food", "baseUnitId": "unit-piece", "productType": "normal", "displayCategoryId": null,
+          "brandId": null, "tagIds": [],
+          "sceneUnits": {
+            "inventory": { "unitId": "unit-piece", "conversionRate": 1 }, "procurement": { "unitId": "unit-piece", "conversionRate": 1 },
+            "distribution": { "unitId": "unit-piece", "conversionRate": 1 }, "sales": { "unitId": "unit-piece", "conversionRate": 1 }
+          },
+          "weightKg": null, "origin": null, "shelfLifeDays": null, "minimumOrderQuantity": null, "salesTaxRatePercent": null,
+          "manageProductionDate": false, "freeShipping": false, "freightTemplateId": null, "freightUnitId": "unit-piece", "carouselImages": [],
+          "customAttributes": { "color": null, "grossWeight": null, "netWeight": null, "grossUnitPrice": null, "netUnitPrice": null, "supplier": null },
+          "description": { "version": 1, "blocks": [] },
+          "skus": [
+            { "id": "sku-4", "enterpriseId": "ent-demo", "productId": "product-3", "code": "SKU-000004", "shortName": null, "barcode": null, "specificationName": "默认", "specificationValue": "默认规格", "mainImage": null, "basePurchasePriceCents": null, "baseOrderPriceCents": null, "minimumSalePriceCents": null, "maximumSalePriceCents": null, "tierOnePriceCents": null, "tierTwoPriceCents": null, "storePriceCents": null, "terminalPriceCents": null }
+          ],
+          "status": "draft", "hasOrderReference": false, "deletedAt": null,
+          "createdAt": "2026-08-10T10:20:00+08:00", "updatedAt": "2026-08-10T10:20:00+08:00"
         }
       ],
       "changeLogs": []
