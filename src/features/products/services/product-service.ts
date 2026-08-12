@@ -101,7 +101,7 @@ export function createEmptyProductDraft(): ProductDraft {
   return {
     codeMode: 'auto', code: null, name: '', shortName: null, categoryId: '', baseUnitId: '', productType: 'normal', displayCategoryId: null,
     brandId: null, tagIds: [], sceneUnits: { inventory: { ...blankScene }, procurement: { ...blankScene }, distribution: { ...blankScene }, sales: { ...blankScene } },
-    weightKg: null, origin: null, shelfLifeDays: null, minimumOrderQuantity: null, salesTaxRatePercent: null,
+    weightKg: null, origin: null, shelfLifeDays: null, minimumOrderQuantity: null, orderMultiple: 1, salesTaxRatePercent: null,
     manageProductionDate: false, freeShipping: false, freightTemplateId: null, freightUnitId: '', carouselImages: [],
     customAttributes: { color: null, grossWeight: null, netWeight: null, grossUnitPrice: null, netUnitPrice: null, supplier: null },
     description: emptyRichText(), skus: [createEmptySkuDraft()],

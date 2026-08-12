@@ -76,6 +76,7 @@
 | 2026-08-12 | `PRD-003` 完成验收 | `npm run verify` 通过：Harness、类型检查、29 个测试文件/96 条测试和生产构建；`mock:reset` 两次 SHA-256 一致 | 1280px 方案页无页面横向溢出；方案、规则、特殊授权、商品详情和表单路径通过，控制台无 warning/error | `PRD-003` 授权方案、时间规则、特殊覆盖和解析以 B 级完成；订单与商城仅消费公开解析结果，不在本切片伪造 |
 | 2026-08-12 | `PRD-004` 规格提取 | `npm run verify:harness` 通过：44 个功能切片、71 个决策门、8 份领域规格和8份需求快照；`git diff --check` 通过 | 对照商品原文 §4～§5、PRD-07/11/15/16，并核对客户、商品、授权、价格、订单和全局规范 | 完整 source-only 契约已形成；`DEC-PRD-031～041` 待确认，未新增业务代码或 fixture |
 | 2026-08-12 | `PRD-004` 决策写回 | `npm run verify:harness` 通过：45 个功能切片、71 个决策门、8 份领域规格和8份需求快照 | 用户确认 `DEC-PRD-031～041` 全部推荐方案；关联推荐独立登记为 `PRD-006` | `PRD-004` 达到 ready 并进入 implementation；尚无 PRD-004 业务代码 |
+| 2026-08-12 | `PRD-004` 领域核心 | `npm run verify` 通过：Harness、类型检查、32 个测试文件/108 条测试和生产构建 | 无页面变更；自动验证范围交并、渠道、授权/商品动态过滤、起订/倍数、多方案、模板加载、统计 unavailable 和权限 | 订货倍数及铺货/模板 Types、Schema、baseline、事务 Repository、Service passing；Runtime/UI 待实现 |
 
 ## 允许与禁止的结论
 

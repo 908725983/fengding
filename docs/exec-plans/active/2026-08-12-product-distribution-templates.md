@@ -52,7 +52,9 @@
 - [x] 逐项读取 §4～§5、规则及客户/订单依赖，形成完整字段与交互契约。
 - [x] 登记 `DEC-PRD-031～041` 十一项缺失或冲突，并给出推荐方案。
 - [x] 用户于 2026-08-12 确认十一项推荐方案；决策、最终契约、功能目录和顺序已写回，`PRD-004` 提升为 ready。
-- [ ] 当前步骤：建立商品订货倍数字段以及铺货/模板 Types、Schema、唯一 baseline、事务 Repository 和核心 Service；先以自动测试固定范围、时间、数量、过滤、幂等和权限规则。
+- [x] 商品新增订货倍数字段与校验；建立铺货/模板 Types、Schema、唯一 baseline、事务 Repository、跨域 Catalog provider 和核心 Service。
+- [x] 领域验证通过：32 个测试文件/108 条测试、类型检查、生产构建；范围、渠道、动态过滤、数量、多方案、统计 unavailable 与权限均有自动测试。
+- [ ] 当前步骤：建立 distribution Runtime/store，接入路由、商品工作区导航、方案列表/表单、模板列表/表单、解析预览和执行统计页面。
 
 ## 开放决策
 
@@ -72,4 +74,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation；规格检查点为 `a9d5a47`，`DEC-PRD-031～041` 已由用户全部确认并写回，`PRD-004` 为 ready。恢复时从商品订货倍数以及铺货/模板 Types、Schema、baseline、Repository、Service 开始；先完成领域测试和检查点，再接 Runtime/UI。`PRD-006` 不在本切片实现。
+当前处于 implementation；规格检查点 `a9d5a47`、决策检查点 `6a05263`。领域 Types/Schema/baseline/Repository/Service 已完成并通过 32 个测试文件/108 条测试、类型检查与构建；恢复时先提交领域检查点，再从 distribution Runtime/store 和页面接入继续。`PRD-006` 不在本切片实现。

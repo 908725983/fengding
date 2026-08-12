@@ -113,6 +113,7 @@ export interface Product {
   origin: string | null
   shelfLifeDays: number | null
   minimumOrderQuantity: number | null
+  orderMultiple: number
   salesTaxRatePercent: number | null
   manageProductionDate: boolean
   freeShipping: boolean
@@ -155,6 +156,7 @@ export interface ProductDraft {
   origin: string | null
   shelfLifeDays: number | null
   minimumOrderQuantity: number | null
+  orderMultiple: number
   salesTaxRatePercent: number | null
   manageProductionDate: boolean
   freeShipping: boolean

@@ -13,12 +13,13 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "enterpriseId", "code", "name", "categoryId", "baseUnitId", "productType", "sceneUnits", "skus", "status", "hasOrderReference", "deletedAt", "createdAt", "updatedAt"],
+        "required": ["id", "enterpriseId", "code", "name", "categoryId", "baseUnitId", "productType", "sceneUnits", "minimumOrderQuantity", "orderMultiple", "skus", "status", "hasOrderReference", "deletedAt", "createdAt", "updatedAt"],
         "properties": {
           "code": { "type": "string", "pattern": "^(SPU-[0-9]{6}|.+)$" },
           "name": { "type": "string", "minLength": 1, "maxLength": 80 },
           "productType": { "const": "normal" },
           "status": { "enum": ["draft", "on-sale", "off-sale"] },
+          "orderMultiple": { "type": "integer", "minimum": 1 },
           "skus": {
             "type": "array",
             "minItems": 1,

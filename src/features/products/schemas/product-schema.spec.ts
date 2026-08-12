@@ -16,4 +16,10 @@ describe('PRD-001 executable schemas', () => {
     const paths = validateProductDraft(draft).map((issue) => issue.path)
     expect(paths).toEqual(expect.arrayContaining(['name', 'categoryId', 'skus.0.baseOrderPriceCents', 'sceneUnits.procurement.conversionRate']))
   })
+
+  it('requires a positive integer order multiple', () => {
+    const draft = applyBaseUnit(createEmptyProductDraft(), 'unit-piece')
+    draft.orderMultiple = 0
+    expect(validateProductDraft(draft).map((issue) => issue.path)).toContain('orderMultiple')
+  })
 })

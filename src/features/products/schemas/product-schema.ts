@@ -116,6 +116,7 @@ export function validateProductDraft(draft: ProductDraft): ProductValidationIssu
   nonNegativeDecimal(issues, 'weightKg', draft.weightKg, 3)
   if (draft.shelfLifeDays !== null && (!Number.isInteger(draft.shelfLifeDays) || draft.shelfLifeDays < 0)) issues.push({ path: 'shelfLifeDays', message: '必须是非负整数天' })
   if (draft.minimumOrderQuantity !== null && (!Number.isInteger(draft.minimumOrderQuantity) || draft.minimumOrderQuantity < 0)) issues.push({ path: 'minimumOrderQuantity', message: '必须是非负整数' })
+  if (!Number.isInteger(draft.orderMultiple) || draft.orderMultiple < 1) issues.push({ path: 'orderMultiple', message: '必须是大于等于 1 的整数' })
   nonNegativeDecimal(issues, 'salesTaxRatePercent', draft.salesTaxRatePercent, 2)
   if (draft.salesTaxRatePercent !== null && draft.salesTaxRatePercent > 100) issues.push({ path: 'salesTaxRatePercent', message: '不能超过 100' })
   if (draft.carouselImages.length > 5) issues.push({ path: 'carouselImages', message: '最多 5 张' })

@@ -10,7 +10,7 @@
 
 - Mock schema 版本：4
 - 默认场景：normal
-- 已登记功能数据：`CUS-001`、`PRD-001`、`PRD-002`、`PRD-003`
+- 已登记功能数据：`CUS-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`
 
 ### mock/schemas/authorization-foundation.schema.json
 
@@ -84,6 +84,28 @@
 }
 ```
 
+### mock/schemas/distribution-foundation.schema.json
+
+- SHA-256：`f0bba9e33cba9c6803a7fd02a7f16cb8e68aa406b81413457d749d29f40a1eb5`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fengding://mock/PRD-004",
+  "title": "PRD-004 铺货方案与订单模板 Mock 契约",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "plans", "templates", "changeLogs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "plans": { "type": "array" },
+    "templates": { "type": "array" },
+    "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+```
+
 ### mock/schemas/price-foundation.schema.json
 
 - SHA-256：`e134e3720d0629fa665fc5e0b5b6332a9a9e8c80cfc0496534aeedc0a8b2c941`
@@ -123,7 +145,7 @@
 
 ### mock/schemas/product-foundation.schema.json
 
-- SHA-256：`55d043d5679393fe3cefcee8d3365f30d80ebb04c890b43c33814f2528a25a0a`
+- SHA-256：`97a9e5f1279049c582743a6ba55197f929079e51647d6a8a86f32f74228d06f7`
 
 ```json
 {
@@ -141,12 +163,13 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "enterpriseId", "code", "name", "categoryId", "baseUnitId", "productType", "sceneUnits", "skus", "status", "hasOrderReference", "deletedAt", "createdAt", "updatedAt"],
+        "required": ["id", "enterpriseId", "code", "name", "categoryId", "baseUnitId", "productType", "sceneUnits", "minimumOrderQuantity", "orderMultiple", "skus", "status", "hasOrderReference", "deletedAt", "createdAt", "updatedAt"],
         "properties": {
           "code": { "type": "string", "pattern": "^(SPU-[0-9]{6}|.+)$" },
           "name": { "type": "string", "minLength": 1, "maxLength": 80 },
           "productType": { "const": "normal" },
           "status": { "enum": ["draft", "on-sale", "off-sale"] },
+          "orderMultiple": { "type": "integer", "minimum": 1 },
           "skus": {
             "type": "array",
             "minItems": 1,

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fengding://mock/PRD-004",
+  "title": "PRD-004 铺货方案与订单模板 Mock 契约",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "plans", "templates", "changeLogs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "plans": { "type": "array" },
+    "templates": { "type": "array" },
+    "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}
