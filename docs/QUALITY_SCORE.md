@@ -1,7 +1,7 @@
 # 质量评分
 
 - 最近审计：2026-08-12
-- 当前阶段：`PRD-003` 商品授权处于 specification；完整契约已提取但仍为 `source-only`，必须先确认 `DEC-PRD-002、023～030`。
+- 当前阶段：`PRD-003` 商品授权已完成规格决策写回并进入 implementation；行为尚未实现，不能宣称功能完成。
 
 ## 评分标准
 
@@ -18,12 +18,12 @@
 |---|---:|---|
 | 工程基础 passing | 2 | `HNS-001`、`SHELL-001` 有完成计划和验证证据 |
 | 可进入规格提取的业务切片 | 42 | `CUS-001`、`PRD-001/002` 已完成；`PRD-003` 正在规格阶段，其余切片仍按目录状态推进 |
-| 已达到 ready 的业务切片 | 3 | `CUS-001`、`PRD-001` 已完成；`PRD-002` 的本切片阻塞决策已决定并写回 |
+| 已达到 ready 的业务切片 | 4 | `CUS-001`、`PRD-001/002` 已完成；`PRD-003` 阻塞决策已决定并写回，正在 implementation |
 | 因需求不足 blocked | 2 | `MER-001` 商家、`ANA-001` 独立数据分析 |
-| 已知人工决策门 | 60 | 新登记 `DEC-PRD-023～030`；`PRD-003` 共九组阻塞决策等待确认，其他切片决策按目录状态保持 |
-| 当前业务 active plan | 1 | `docs/exec-plans/active/2026-08-12-product-authorization.md`，阶段为 specification |
+| 已知人工决策门 | 60 | `DEC-PRD-002、023～030` 已于 2026-08-12 决定；其他切片决策按目录状态保持 |
+| 当前业务 active plan | 1 | `docs/exec-plans/active/2026-08-12-product-authorization.md`，阶段为 implementation |
 
-下一业务动作是确认或修改 `DEC-PRD-002、023～030` 的推荐方案；写回结论并达到 ready 前不得编码。
+下一业务动作是建立 `PRD-003` 授权领域模型、确定性 Repository、权限和解析 Service，并以规则测试固定已确认语义。
 
 ## 产品领域
 
