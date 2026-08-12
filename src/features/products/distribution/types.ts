@@ -85,6 +85,7 @@ export interface DistributionCustomerSnapshot {
 }
 
 export interface DistributionCustomerCategorySnapshot { id: EntityId; parentId: EntityId | null; name: string }
+export interface DistributionCustomerTagSnapshot { id: EntityId; name: string }
 
 export interface DistributionSkuSnapshot {
   skuId: EntityId
@@ -105,6 +106,7 @@ export interface DistributionSkuSnapshot {
 export interface DistributionCatalogProvider {
   listCustomers(): DistributionCustomerSnapshot[]
   listCustomerCategories(): DistributionCustomerCategorySnapshot[]
+  listCustomerTags(): DistributionCustomerTagSnapshot[]
   listSkus(): DistributionSkuSnapshot[]
   resolveAuthorization(customerId: EntityId, productId: EntityId, at: string): { orderable: boolean; reason: string }
 }
@@ -157,4 +159,4 @@ export interface SuggestionResult {
 }
 
 export interface DistributionStatisticsResult { status: 'unavailable'; message: string; items: never[] }
-export interface DistributionWorkspaceOptions { clock: string; customers: DistributionCustomerSnapshot[]; customerCategories: DistributionCustomerCategorySnapshot[]; skus: DistributionSkuSnapshot[] }
+export interface DistributionWorkspaceOptions { clock: string; customers: DistributionCustomerSnapshot[]; customerCategories: DistributionCustomerCategorySnapshot[]; customerTags: DistributionCustomerTagSnapshot[]; skus: DistributionSkuSnapshot[] }

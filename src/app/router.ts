@@ -23,6 +23,12 @@ import AuthorizationPlanFormView from '@/features/products/authorization/views/A
 import AuthorizationRuleListView from '@/features/products/authorization/views/AuthorizationRuleListView.vue'
 import AuthorizationRuleFormView from '@/features/products/authorization/views/AuthorizationRuleFormView.vue'
 import SpecialAuthorizationView from '@/features/products/authorization/views/SpecialAuthorizationView.vue'
+import DistributionPlanListView from '@/features/products/distribution/views/DistributionPlanListView.vue'
+import DistributionPlanFormView from '@/features/products/distribution/views/DistributionPlanFormView.vue'
+import OrderTemplateListView from '@/features/products/distribution/views/OrderTemplateListView.vue'
+import OrderTemplateFormView from '@/features/products/distribution/views/OrderTemplateFormView.vue'
+import DistributionPreviewView from '@/features/products/distribution/views/DistributionPreviewView.vue'
+import DistributionStatisticsView from '@/features/products/distribution/views/DistributionStatisticsView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -60,6 +66,14 @@ export const router = createRouter({
     { path: '/products/authorizations/rules/new', name: 'authorization-rule-new', component: AuthorizationRuleFormView },
     { path: '/products/authorizations/rules/:ruleId/edit', name: 'authorization-rule-edit', component: AuthorizationRuleFormView },
     { path: '/products/authorizations/specials', name: 'authorization-specials', component: SpecialAuthorizationView },
+    { path: '/products/distribution/plans', name: 'distribution-plans', component: DistributionPlanListView },
+    { path: '/products/distribution/plans/new', name: 'distribution-plan-new', component: DistributionPlanFormView },
+    { path: '/products/distribution/plans/:planId/edit', name: 'distribution-plan-edit', component: DistributionPlanFormView },
+    { path: '/products/order-templates', name: 'order-templates', component: OrderTemplateListView },
+    { path: '/products/order-templates/new', name: 'order-template-new', component: OrderTemplateFormView },
+    { path: '/products/order-templates/:templateId/edit', name: 'order-template-edit', component: OrderTemplateFormView },
+    { path: '/products/distribution/preview', name: 'distribution-preview', component: DistributionPreviewView },
+    { path: '/products/distribution/statistics', name: 'distribution-statistics', component: DistributionStatisticsView },
     { path: '/products/:productId/edit', name: 'product-edit', component: ProductFormView },
     { path: '/products/:productId', name: 'product-detail', component: ProductDetailView },
     { path: '/:module(orders|products|procurement|inventory|customers|finance|settings)', name: 'module', component: ModulePlaceholderView },

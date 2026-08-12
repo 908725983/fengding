@@ -1,0 +1,8 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'; import { storeToRefs } from 'pinia'; import DistributionSubnav from '../components/DistributionSubnav.vue'; import DistributionScenarioSelect from '../components/DistributionScenarioSelect.vue'; import { useDistributionStore, type DistributionRuntimeScenario } from '../runtime/distribution-store'
+const store=useDistributionStore(); const {statistics,loading,error,scenario}=storeToRefs(store); const exportError=ref<string|null>(null)
+function exportData(){exportError.value=null;try{store.exportStatistics()}catch(e){exportError.value=e instanceof Error?e.message:'导出失败'}}
+onMounted(()=>store.load('statistics'))
+</script>
+<template><section class="distribution-page"><header class="page-header"><div><p class="eyebrow">PRD-004 · 执行统计</p><h1>铺货执行统计</h1><p>目标粒度为“方案 × SKU”；已订货数量与客户数必须来自真实订单来源标记。</p></div><div class="tools"><DistributionScenarioSelect :model-value="scenario" @update:model-value="store.setScenario($event as DistributionRuntimeScenario)"/><button class="button" :disabled="statistics?.status==='unavailable'" @click="exportData">导出</button></div></header><DistributionSubnav/><p v-if="exportError" class="warning" role="alert">{{exportError}}</p><div v-if="error" class="state error"><strong>统计状态加载失败</strong><p>{{error}}</p><button class="button" @click="store.load('statistics')">重试</button></div><div v-else-if="loading" class="state">正在检查订单数据源…</div><div v-else class="statistics-card"><div class="unavailable"><strong>统计暂不可用</strong><p>{{statistics?.message}}</p><p>当前只实现铺货解析与来源键契约；待订单切片接入后再计算和导出，避免 fixture 冒充业务事实。</p></div></div></section></template>
+<style scoped>@import './distribution-views.css';</style>

@@ -28,6 +28,7 @@ export function createBaselineDistributionCatalog(): DistributionCatalogProvider
   return {
     listCustomers: () => structuredClone(customerBaseline.customers.map((item) => ({ id: item.id, code: item.code, name: item.name, status: item.status, provinceCode: item.provinceCode, cityCode: item.cityCode, districtCode: item.districtCode, categoryId: item.categoryId, tagIds: item.tagIds, canSelfOrder: item.businessSettings.canSelfOrder }))),
     listCustomerCategories: () => structuredClone(customerBaseline.categories.map((item) => ({ id: item.id, parentId: item.parentId, name: item.name }))),
+    listCustomerTags: () => structuredClone(customerBaseline.tags.map((item) => ({ id: item.id, name: item.name }))),
     listSkus: () => structuredClone(skus),
     resolveAuthorization: (customerId, productId, at) => { const result = authorization.service.resolveAuthorization({ role: 'salesperson', actorId: 'distribution-provider' }, customerId, productId, at); return { orderable: result.orderable, reason: result.reason } },
   }

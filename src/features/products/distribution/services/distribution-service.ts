@@ -86,7 +86,7 @@ export function createDistributionService(dependencies: DistributionServiceDepen
     if (skuIds.some((id) => !skus.some((item) => item.skuId === id && item.deletedAt === null))) throw new DistributionDomainError('INACTIVE_REFERENCE', 'SKU 不存在或已淘汰')
   }
 
-  function getWorkspaceOptions(actor: DistributionActor): DistributionWorkspaceOptions { assertConfigureRead(actor); return { clock: dependencies.now(), customers: catalog.listCustomers(), customerCategories: catalog.listCustomerCategories(), skus: catalog.listSkus() } }
+  function getWorkspaceOptions(actor: DistributionActor): DistributionWorkspaceOptions { assertConfigureRead(actor); return { clock: dependencies.now(), customers: catalog.listCustomers(), customerCategories: catalog.listCustomerCategories(), customerTags: catalog.listCustomerTags(), skus: catalog.listSkus() } }
   function listPlans(actor: DistributionActor, query: DistributionPlanQuery = {}): DistributionPage<DistributionPlanListItem> {
     assertConfigureRead(actor); const keyword = normalize(query.keyword ?? '')
     const items = repository.read().plans.filter((item) => (!query.status || item.status === query.status) && (!query.activeFrom || timestamp(item.endsAt) > timestamp(query.activeFrom)) && (!query.activeTo || timestamp(item.startsAt) < timestamp(query.activeTo)) && (!keyword || normalize(item.name).includes(keyword))).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id)).map(planItem)
