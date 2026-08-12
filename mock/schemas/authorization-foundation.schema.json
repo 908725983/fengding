@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mock/schemas/authorization-foundation.schema.json",
+  "title": "PRD-003 Product Authorization State",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "nextPlanSequence", "plans", "rules", "specials", "changeLogs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "nextPlanSequence": { "type": "integer", "minimum": 1 },
+    "plans": { "type": "array" },
+    "rules": { "type": "array" },
+    "specials": { "type": "array" },
+    "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}

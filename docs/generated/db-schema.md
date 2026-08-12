@@ -2,7 +2,7 @@
 
 - 来源：`mock/schemas/` 与 `mock/fixtures/baseline.json`
 - 生成方式：`npm run docs:generate`
-- 最近刷新：2026-08-11
+- 最近刷新：2026-08-12
 
 > 本文件由脚本生成，禁止手工编辑“生成内容”。当前原型没有数据库，本页描述的是已通过字段准备门的 Mock 契约，不是生产表结构。
 
@@ -10,7 +10,31 @@
 
 - Mock schema 版本：4
 - 默认场景：normal
-- 已登记功能数据：`CUS-001`、`PRD-001`、`PRD-002`
+- 已登记功能数据：`CUS-001`、`PRD-001`、`PRD-002`、`PRD-003`
+
+### mock/schemas/authorization-foundation.schema.json
+
+- SHA-256：`268d0c160737b356aff0a9cf8ff8d1724f924252ac9123dcce4541c57ea04566`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mock/schemas/authorization-foundation.schema.json",
+  "title": "PRD-003 Product Authorization State",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "nextPlanSequence", "plans", "rules", "specials", "changeLogs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "nextPlanSequence": { "type": "integer", "minimum": 1 },
+    "plans": { "type": "array" },
+    "rules": { "type": "array" },
+    "specials": { "type": "array" },
+    "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+```
 
 ### mock/schemas/customer-foundation.schema.json
 

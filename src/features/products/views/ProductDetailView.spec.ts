@@ -22,4 +22,18 @@ describe('PRD-001 product detail view', () => {
     expect(wrapper.text()).toContain('库存单位')
     expect(wrapper.text()).toContain('等级/客户价格 · PRD-002')
   })
+
+  it('renders authorization plans, specials and explainable resolution in authorization tab', async () => {
+    const router = createRouter({ history: createMemoryHistory(), routes: [
+      { path: '/products', component: { template: '<div />' } },
+      { path: '/products/:productId', component: ProductDetailView },
+      { path: '/products/:productId/edit', component: { template: '<div />' } },
+    ] })
+    await router.push('/products/product-1?tab=authorization'); await router.isReady(); vi.useFakeTimers()
+    const wrapper = mount(ProductDetailView, { global: { plugins: [createPinia(), router] } })
+    await vi.advanceTimersByTimeAsync(500); await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('授权方案')
+    expect(wrapper.text()).toContain('演示华东饮品授权')
+    expect(wrapper.text()).toContain('授权结果检查')
+  })
 })

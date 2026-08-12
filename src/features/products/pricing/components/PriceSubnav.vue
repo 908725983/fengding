@@ -10,6 +10,7 @@ const links = [
   { path: '/products/prices/history', label: '历史调价' },
   { path: '/products/prices/order-unit-prices', label: '单位价格' },
   { path: '/products/prices/strategies', label: '自动调价' },
+  { path: '/products/authorizations/plans', label: '商品授权' },
 ]
 const isActive = (path: string) => route.path === path || route.path.startsWith(`${path}/`)
 </script>

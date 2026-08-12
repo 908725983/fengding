@@ -7,7 +7,10 @@ export function canCurrentRoleAccessProducts(): boolean { return currentRole !==
 export function guardProductSubroute(path: string): true | string {
   const priceWriteRoute = /^\/products\/prices\/(level|purchase|customer)-adjustments\/(new|[^/]+\/edit)$/.test(path)
     || /^\/products\/prices\/(order-unit-prices|strategies)\/(new|[^/]+\/edit)$/.test(path)
+  const authorizationWriteRoute = /^\/products\/authorizations\/(plans|rules)\/(new|[^/]+\/edit)$/.test(path)
   if (priceWriteRoute && currentRole !== 'super-admin') return '/products/prices/level-adjustments?denied=1'
+  if (authorizationWriteRoute && currentRole !== 'super-admin') return '/products/authorizations/plans?denied=1'
+  if (path.startsWith('/products/authorizations/') && !['super-admin', 'sales-supervisor'].includes(currentRole)) return '/products?denied=1'
   if (!path.startsWith('/products/') || canCurrentRoleAccessProducts()) return true
   return '/products?denied=1'
 }

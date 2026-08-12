@@ -18,6 +18,11 @@ import PriceAdjustmentFormView from '@/features/products/pricing/views/PriceAdju
 import PriceAdjustmentDetailView from '@/features/products/pricing/views/PriceAdjustmentDetailView.vue'
 import UnitPriceView from '@/features/products/pricing/views/UnitPriceView.vue'
 import PriceStrategyView from '@/features/products/pricing/views/PriceStrategyView.vue'
+import AuthorizationPlanListView from '@/features/products/authorization/views/AuthorizationPlanListView.vue'
+import AuthorizationPlanFormView from '@/features/products/authorization/views/AuthorizationPlanFormView.vue'
+import AuthorizationRuleListView from '@/features/products/authorization/views/AuthorizationRuleListView.vue'
+import AuthorizationRuleFormView from '@/features/products/authorization/views/AuthorizationRuleFormView.vue'
+import SpecialAuthorizationView from '@/features/products/authorization/views/SpecialAuthorizationView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -48,6 +53,13 @@ export const router = createRouter({
     { path: '/products/prices/history', name: 'price-history', component: PriceHistoryView },
     { path: '/products/prices/order-unit-prices', name: 'price-unit-prices', component: UnitPriceView },
     { path: '/products/prices/strategies', name: 'price-strategies', component: PriceStrategyView },
+    { path: '/products/authorizations/plans', name: 'authorization-plans', component: AuthorizationPlanListView },
+    { path: '/products/authorizations/plans/new', name: 'authorization-plan-new', component: AuthorizationPlanFormView },
+    { path: '/products/authorizations/plans/:planId/edit', name: 'authorization-plan-edit', component: AuthorizationPlanFormView },
+    { path: '/products/authorizations/rules', name: 'authorization-rules', component: AuthorizationRuleListView },
+    { path: '/products/authorizations/rules/new', name: 'authorization-rule-new', component: AuthorizationRuleFormView },
+    { path: '/products/authorizations/rules/:ruleId/edit', name: 'authorization-rule-edit', component: AuthorizationRuleFormView },
+    { path: '/products/authorizations/specials', name: 'authorization-specials', component: SpecialAuthorizationView },
     { path: '/products/:productId/edit', name: 'product-edit', component: ProductFormView },
     { path: '/products/:productId', name: 'product-detail', component: ProductDetailView },
     { path: '/:module(orders|products|procurement|inventory|customers|finance|settings)', name: 'module', component: ModulePlaceholderView },

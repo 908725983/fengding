@@ -212,6 +212,43 @@
       "strategies": [
         { "id": "price-strategy-1", "enterpriseId": "ent-demo", "skuId": "sku-1", "unitId": "unit-piece", "targetField": "storePriceCents", "anchor": "base-order-price", "amplitudeType": "percent", "amplitude": 10, "enabled": true, "startsAt": "2026-08-10T10:30:00+08:00", "endsAt": null, "lastRunAt": null, "lastError": null }
       ]
+    },
+    "PRD-003": {
+      "schemaVersion": 1,
+      "enterpriseId": "ent-demo",
+      "nextPlanSequence": 3,
+      "plans": [
+        {
+          "id": "authorization-plan-1", "enterpriseId": "ent-demo", "code": "AUTH-000001", "name": "演示华东饮品授权", "status": "enabled",
+          "categoryIds": ["product-category-drink"], "brandIds": ["brand-demo"], "productIds": ["product-1"], "customerIds": ["customer-1"],
+          "createdAt": "2026-08-10T08:00:00+08:00", "updatedAt": "2026-08-10T08:00:00+08:00", "deletedAt": null
+        },
+        {
+          "id": "authorization-plan-2", "enterpriseId": "ent-demo", "code": "AUTH-000002", "name": "演示停用授权", "status": "disabled",
+          "categoryIds": [], "brandIds": [], "productIds": ["product-3"], "customerIds": ["customer-1"],
+          "createdAt": "2026-08-10T08:10:00+08:00", "updatedAt": "2026-08-10T08:10:00+08:00", "deletedAt": null
+        }
+      ],
+      "rules": [
+        {
+          "id": "authorization-rule-1", "enterpriseId": "ent-demo", "name": "演示工作日上午授权", "weekdays": [1, 2, 3, 4, 5],
+          "timeRanges": [{ "start": "08:00", "end": "12:00" }], "planId": "authorization-plan-1", "customerIds": ["customer-1"],
+          "createdAt": "2026-08-10T08:20:00+08:00", "updatedAt": "2026-08-10T08:20:00+08:00", "deletedAt": null
+        }
+      ],
+      "specials": [
+        {
+          "id": "authorization-special-1", "enterpriseId": "ent-demo", "customerId": "customer-1", "productId": "product-1", "type": "visible-only",
+          "startsAt": "2026-08-10T08:30:00+08:00", "endsAt": "2026-08-10T10:00:00+08:00", "note": "明显虚构的仅可见边界示例",
+          "createdAt": "2026-08-10T08:25:00+08:00", "updatedAt": "2026-08-10T08:25:00+08:00", "deletedAt": null
+        },
+        {
+          "id": "authorization-special-2", "enterpriseId": "ent-demo", "customerId": "customer-1", "productId": "product-2", "type": "prohibited",
+          "startsAt": "2026-08-10T09:00:00+08:00", "endsAt": null, "note": "明显虚构的禁止授权示例",
+          "createdAt": "2026-08-10T08:40:00+08:00", "updatedAt": "2026-08-10T08:40:00+08:00", "deletedAt": null
+        }
+      ],
+      "changeLogs": []
     }
   }
 }
