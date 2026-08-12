@@ -79,7 +79,7 @@ const domainSpecs = {
 const expectedDomainCounts = {
   首页: 1,
   订单: 6,
-  商品: 5,
+  商品: 6,
   采购: 5,
   库存: 6,
   客户: 10,
@@ -281,7 +281,7 @@ for (const cells of featureRows) {
   features.push({ id, domain, name, priority, source, sourceName, dependencies, rules, readiness })
 }
 
-if (features.length !== 44) failures.push(`功能目录应为 44 项（42 可进入规格提取 + 2 blocked），当前 ${features.length} 项`)
+if (features.length !== 45) failures.push(`功能目录应为 45 项（43 可进入规格提取 + 2 blocked），当前 ${features.length} 项`)
 for (const [domain, expectedCount] of Object.entries(expectedDomainCounts)) {
   const actualCount = features.filter((feature) => feature.domain === domain).length
   if (actualCount !== expectedCount) failures.push(`${domain} 功能切片应为 ${expectedCount} 项，当前 ${actualCount} 项`)
