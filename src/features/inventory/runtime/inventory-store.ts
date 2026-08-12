@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { createInventoryMockSession, type InventoryScenarioName } from '../../../../mock/handlers/inventory-handler'
 import { setCurrentInventoryRole } from './inventory-access'
-import type { InventoryActor, InventoryQuery, InventoryWorkspace, LocationDraft, LocationImportRow, WarehouseDraft } from '../types'
+import type { InventoryActor, InventoryQuery, InventoryThreshold, InventoryWorkspace, LocationDraft, LocationImportRow, WarehouseDraft } from '../types'
 
 const emptyWorkspace = (): InventoryWorkspace => ({ stocks: { items: [], total: 0, page: 1, pageSize: 30 }, batches: [], movements: [], warehouses: [], locations: [], catalogAvailable: true })
 
@@ -17,8 +17,10 @@ export const useInventoryStore = defineStore('inventory', () => {
   async function applyQuery(next: InventoryQuery): Promise<void> { query.value = { ...next, page: next.page ?? 1, pageSize: 30 }; await load() }
   async function saveWarehouse(draft: WarehouseDraft, id?: string): Promise<void> { saving.value = true; try { await session.run(() => session.service.saveWarehouse(actor.value, draft, id)); await load() } finally { saving.value = false } }
   async function saveLocation(draft: LocationDraft, id?: string): Promise<void> { saving.value = true; try { await session.run(() => session.service.saveLocation(actor.value, draft, id)); await load() } finally { saving.value = false } }
+  async function saveThreshold(value: InventoryThreshold): Promise<void> { saving.value = true; try { await session.run(() => session.service.saveThreshold(actor.value, value)); await load() } finally { saving.value = false } }
   async function importLocations(rows: LocationImportRow[]): Promise<void> { saving.value = true; try { await session.run(() => session.service.importLocations(actor.value, rows)); await load() } finally { saving.value = false } }
   function previewLocationImport(rows: LocationImportRow[]) { return session.service.previewLocationImport(actor.value, rows) }
   function exportStocks(selected: string[]): string { return session.service.exportStocksCsv(actor.value, query.value, selected) }
-  return { scenario, actor, query, workspace, loading, saving, error, canWrite, isEmpty, load, setScenario, setRole, applyQuery, saveWarehouse, saveLocation, importLocations, previewLocationImport, exportStocks }
+  function exportLocations(selected: string[]): string { return session.service.exportLocationsCsv(actor.value, selected) }
+  return { scenario, actor, query, workspace, loading, saving, error, canWrite, isEmpty, load, setScenario, setRole, applyQuery, saveWarehouse, saveLocation, saveThreshold, importLocations, previewLocationImport, exportStocks, exportLocations }
 })

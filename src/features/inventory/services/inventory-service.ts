@@ -178,5 +178,13 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
     assertWrite(actor); let rows = listStocks(actor, { ...query, page: 1 }).items; if (selected.length) rows = rows.filter((item) => selected.includes(`${item.warehouse.id}:${item.skuId}`)); const headers = ['warehouseCode', 'warehouseName', 'skuCode', 'productName', 'currentBaseQuantity', 'pendingOutbound', 'available', 'inTransit', 'status', 'costPerBaseUnitCents', 'amountCents']; const body = rows.map((row) => [row.warehouse.code, row.warehouse.name, row.sku?.skuCode ?? row.skuId, row.sku?.productName ?? '商品资料不可用', row.currentMilli / 1000, 'unavailable', 'unavailable', 'unavailable', row.status, row.costPerBaseUnitCents ?? '', row.amountCents ?? ''].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')); return `\uFEFF${[headers.join(','), ...body].join('\r\n')}`
   }
 
-  return { listStocks, listBatches, listMovements, getWorkspace, saveThreshold, saveWarehouse, saveLocation, previewLocationImport, importLocations, previewOutbound, confirmOutbound, confirmInbound, exportStocksCsv }
+  function exportLocationsCsv(actor: InventoryActor, selected: string[] = []): string {
+    assertWrite(actor); const state = deps.repository.read(); let locations = state.locations
+    if (selected.length) locations = locations.filter((item) => selected.includes(item.id))
+    const headers = ['warehouseCode', 'locationCode', 'locationName', 'status', 'note']
+    const body = locations.map((item) => { const warehouse = warehouseById(state, item.warehouseId); return [warehouse.code, item.code, item.name, item.status, item.note ?? ''].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',') })
+    return `\uFEFF${[headers.join(','), ...body].join('\r\n')}`
+  }
+
+  return { listStocks, listBatches, listMovements, getWorkspace, saveThreshold, saveWarehouse, saveLocation, previewLocationImport, importLocations, previewOutbound, confirmOutbound, confirmInbound, exportStocksCsv, exportLocationsCsv }
 }
