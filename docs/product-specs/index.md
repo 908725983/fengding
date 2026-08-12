@@ -28,6 +28,9 @@
 |---|---|---|---|
 | `HNS-001` | Harness 工程基线 | passing | `../exec-plans/completed/2026-08-10-prototype-foundation.md` |
 | `SHELL-001` | PC 管理后台应用壳 | passing | `../exec-plans/completed/2026-08-10-prototype-foundation.md` |
+| `CUS-001` | 客户档案、分类与标签 | passing | `../exec-plans/completed/2026-08-11-customer-foundation.md` |
+| `PRD-001` | 商品、SKU 与多单位 | passing | `../exec-plans/completed/2026-08-11-product-foundation.md` |
+| `PRD-002` | 价格体系与调价 | passing | `../exec-plans/completed/2026-08-11-price-foundation.md` |
 
 ## 功能切片目录
 
