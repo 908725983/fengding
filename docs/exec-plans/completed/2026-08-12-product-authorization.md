@@ -2,8 +2,9 @@
 
 - 类型：business-feature
 - 功能：PRD-003
-- 当前阶段：implementation
-- 状态：active
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-12
 - 最近更新：2026-08-12
 
 ## 目标
@@ -50,7 +51,12 @@
 - [x] 逐项读取授权原始章节和全局/客户依赖，形成页面、字段、状态、解析、权限、Mock 和验收契约。
 - [x] 将全部已发现缺失或冲突事实登记为 `DEC-PRD-002、023～030`，并给出逐项推荐方案及影响。
 - [x] 用户于 2026-08-12 明确要求 `PRD-003` 全部按推荐方案执行；九组结论已写回且功能准备度提升为 ready。
-- [ ] 当前步骤：建立授权领域 types/schema、确定性 baseline Repository、权限策略与无副作用解析 Service，并先用规则测试固定集合、时间和冲突语义。
+- [x] 建立 types/schema、唯一 baseline、事务 Repository、角色权限、CSV fake adapter 和无副作用授权解析 Service。
+- [x] 实现授权方案/规则/特殊授权工作区、商品详情授权 Tab、筛选、空/错/慢/无权限/部分失败/时间边界场景。
+- [x] 自动验证通过：`npm run verify` 为 29 个测试文件/96 条测试、类型检查、Harness 和生产构建全部通过。
+- [x] 浏览器验证通过：1280px 方案页无页面横向溢出，规则时段、特殊授权、商品详情解析和方案表单可见；控制台无 warning/error。
+- [x] `npm run mock:reset` 连续两次生成相同 SHA-256：`8A125392662336A9A51CD517C4FA8ACFCE8DB7713CC412B1542410E78A1550B7`。
+- [x] 在干净实现提交 `3d69120` 上执行 `./scripts/init.ps1`：Harness、类型检查、29 个测试文件/96 条测试和生产构建通过；质量证据已同步，计划可归档。
 
 ## 开放决策
 
@@ -68,4 +74,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation，规格检查点为 `efd1d4e`；用户已于 2026-08-12 确认全部推荐方案，`DEC-PRD-002、023～030` 已决定且 `PRD-003` 为 ready。本轮写回完成后先提交决策检查点。恢复时从“当前步骤”建立授权领域 types/schema、Repository、权限和解析 Service；先跑 `./scripts/init.ps1` 核对基线，再按 repository → service → store/composable → view 顺序实施，不得直接从页面读取 fixture。
+本计划已完成。检查点为规格 `efd1d4e`、决策 `a1b2f2e`、实现 `3d69120`；96 条测试、1280px 浏览器路径、控制台、Mock 双重置和最终 `./scripts/init.ps1` 均通过。恢复时无需继续 `PRD-003`；按 `docs/design-docs/implementation-sequence.md` 为下一切片 `PRD-004` 建立新的 specification active plan，不得提前把铺货/订单模板规则写入本切片。
