@@ -123,14 +123,14 @@
 
 ## 当前下一动作
 
-`CUS-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004` 已完成并归档。下一切片是阶段一尚未完成的 `INV-001` 库存查询、仓库、库位与批次，当前字段准备度为 `source-only`。开始时必须：
+`CUS-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`、`INV-001` 已完成并归档，阶段一结束。下一切片按阶段二顺序为 `ORD-001` 客户订单列表与详情，当前字段准备度为 `source-only`。开始时必须：
 
 历史说明：`CUS-001` 开工前曾由 `DEC-CUS-001` 等决策门阻塞，`PRD-001/002` 也均在推荐决策经人工确认并写回后才进入实现；该记录保留用于证明门禁没有被绕过。
 
-1. 创建 `docs/exec-plans/active/YYYY-MM-DD-inventory-foundation.md`，阶段设为 `specification`。
-2. 阅读 `../product-specs/inventory.md` 和 `../product-specs/index.md` 中 `INV-001` 的来源、依赖与 `INV-01/02/03/04/05/09/15`。
-3. 阅读 `../references/requirements/05-库存模块.md §2～§3`，并核对商品单位、订单待出库、采购在途及全局交互/权限资料。
-4. 把仓库、库位、批次、库存数量列、状态、筛选、明细、操作、Mock 和验收契约写入库存规格；库存口径、超储阈值或跨域数量未定义时建立人工决策，不得猜测。
-5. 本切片阻塞决策写回、字段准备度变为 `ready`、`PRD-001` 依赖 passing 且 Harness 通过后，才能进入 implementation。
+1. 创建 `docs/exec-plans/active/YYYY-MM-DD-order-foundation.md`，阶段设为 `specification`。
+2. 阅读 `../product-specs/orders.md` 和 `../product-specs/index.md` 中 `ORD-001` 的来源、依赖与 `ORD-14`。
+3. 阅读 `../references/requirements/02-订单模块.md §2.1、§2.3`，并核对客户、商品、价格、授权、库存及全局交互/权限资料；只读列表/详情不得提前实现新增、审核或出库副作用。
+4. 把订单列表、详情、筛选、字段、状态展示、操作边界、Mock 和验收契约写入订单规格；订单多状态口径、来源字段或敏感数据范围未定义时建立人工决策，不得猜测。
+5. 本切片阻塞决策写回、字段准备度变为 `ready`、`CUS-001/PRD-001` 依赖 passing 且 Harness 通过后，才能进入 implementation。
 
-`PRD-004` 已于 2026-08-12 完成并归档；`PRD-07` 关联商品推荐仍为 `PRD-006` source-only，补齐关系模型前不编造实现。`INV-001` 已有 `DEC-INV-002`，规格提取时仍需继续发现并登记其他缺失事实。
+`INV-001` 已于 2026-08-12 完成并归档；订单待出库与采购在途仍保持 `unavailable`，直到对应订单/采购切片提供明确 provider。`PRD-07` 关联商品推荐仍为 `PRD-006` source-only，补齐关系模型前不编造实现。

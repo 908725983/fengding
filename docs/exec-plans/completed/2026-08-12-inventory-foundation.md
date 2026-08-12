@@ -2,8 +2,9 @@
 
 - 类型：business-feature
 - 功能：INV-001
-- 当前阶段：implementation
-- 状态：active
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-12
 - 最近更新：2026-08-12
 
 ## 目标
@@ -54,7 +55,13 @@
 - [x] 登记 `DEC-INV-003～013` 十一项新增缺失/冲突，并把既有 `DEC-INV-001/002` 一并纳入本切片决策清单。
 - [x] 规格门禁和差异检查通过，纯规格检查点为 `e6d1724`。
 - [x] 用户于 2026-08-12 确认 `DEC-INV-001～013` 全部推荐方案；决策和最终契约已写回，`INV-001` 提升为 ready。
-- [ ] 当前步骤：建立库存 Types、Schema、唯一 baseline、事务 Repository、商品 Catalog provider 与核心 Service。
+- [x] 建立库存 Types、Schema、唯一 baseline、事务 Repository、商品 Catalog provider 与核心 Service；实现基本单位千分定点余额、成本金额和月初快照。
+- [x] 实现 FIFO 预览、过期拒绝、库存不足拒绝、带来源 requestId 的幂等入出库 command 与失败原子性。
+- [x] 实现库存列表/详情、批次、两类流水、仓库、库位七类路由，以及阈值、CSV 导入导出、引用保护和三层权限。
+- [x] `npm run verify` 通过：Harness、类型检查、40 个测试文件/140 条测试和生产构建；定向覆盖数量、日期、权限、事务、provider 失败及页面状态。
+- [x] 浏览器验收通过：1280×800 无页面级横向溢出，宽表仅内部滚动；临期/过期可见，销售主管成本/电话及写入口被遮蔽，财务跳出受保护路由，控制台无应用 warning/error。
+- [x] `npm run mock:reset` 后 baseline/work SHA-256 均为 `0F4C0E153088DAF679ACCC32C878DB0F0332ED5CEEFB0372BA1E3B75DAA63151`；干净启动 `/inventory/stocks` HTTP 200。
+- [x] 当前步骤：完成质量证据、总体顺序与产品目录写回，并归档本计划。
 
 ## 开放决策
 
@@ -78,4 +85,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation；规格检查点为 `e6d1724`，`DEC-INV-001～013` 已全部确认且 `INV-001` 为 `ready`。恢复时先核对本计划仍为唯一 active plan、Git 现场和最近一次验证结果；随后从 Types、Schema、baseline、Repository、Catalog provider 与 Service 继续，禁止提前实现 `INV-002～006` 或伪造订单/采购来源数量。
+`INV-001` 已完成，不再从本计划恢复开发。可独立回退检查点：规格 `e6d1724`、决策 `63cd586`、完整实现 `adb32a7`、浏览器验收缺口修复 `3dc0d86`。最终证据为 40 个测试文件/140 条测试、类型检查、构建、1280px、权限、控制台、Mock 重置和干净启动通过。下一切片按总体顺序为 `ORD-001`，需重新建立 specification active plan；不得把 `ORD-002～004/PUR-002/INV-002～006` 混入本切片。
