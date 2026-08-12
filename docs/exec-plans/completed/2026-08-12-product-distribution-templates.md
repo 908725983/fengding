@@ -2,8 +2,9 @@
 
 - 类型：business-feature
 - 功能：PRD-004
-- 当前阶段：implementation
-- 状态：active
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-12
 - 最近更新：2026-08-12
 
 ## 目标
@@ -54,7 +55,12 @@
 - [x] 用户于 2026-08-12 确认十一项推荐方案；决策、最终契约、功能目录和顺序已写回，`PRD-004` 提升为 ready。
 - [x] 商品新增订货倍数字段与校验；建立铺货/模板 Types、Schema、唯一 baseline、事务 Repository、跨域 Catalog provider 和核心 Service。
 - [x] 领域验证通过：32 个测试文件/108 条测试、类型检查、生产构建；范围、渠道、动态过滤、数量、多方案、统计 unavailable 与权限均有自动测试。
-- [ ] 当前步骤：建立 distribution Runtime/store，接入路由、商品工作区导航、方案列表/表单、模板列表/表单、解析预览和执行统计页面。
+- [x] 建立 distribution Runtime/store，接入商品工作区导航、路由、方案列表/表单、模板列表/表单、解析预览和执行统计页面。
+- [x] 自动验证通过：`npm run verify` 完成 Harness、类型检查、34 个测试文件/115 条测试和生产构建；Runtime/UI/路由权限新增 7 条测试，总计 PRD-004 定向 19 条通过。
+- [x] 浏览器验收通过：方案列表、方案表单、模板列表、解析预览、统计 unavailable 均正常；正常解析可解释 `special-visible-only` 拒绝，控制台无错误。
+- [x] 1280×800 验收：页面宽度 1280，无页面级横向溢出；宽表仅在自身容器滚动（容器 1054px、内容 1080px）。
+- [x] `npm run mock:reset` 后 baseline 与 `work/mock-state.json` SHA-256 均为 `995DE6E3A5F412C393CF63019254E70210DCA42F942BFD5A065649404058448F`；干净重启后 `/products/distribution/plans` HTTP 200。
+- [x] 当前步骤：完成质量证据、总体顺序与产品目录写回，并归档本计划。
 
 ## 开放决策
 
@@ -74,4 +80,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation；规格检查点 `a9d5a47`、决策检查点 `6a05263`。领域 Types/Schema/baseline/Repository/Service 已完成并通过 32 个测试文件/108 条测试、类型检查与构建；恢复时先提交领域检查点，再从 distribution Runtime/store 和页面接入继续。`PRD-006` 不在本切片实现。
+`PRD-004` 已完成。可回退检查点：规格 `a9d5a47`、决策 `6a05263`、领域核心 `df236cf`、Runtime/UI `f319508`。最终自动证据为 34 个测试文件/115 条测试、类型检查与构建通过；浏览器、1280px、Mock 重置和干净重启通过。`PRD-006` 未被混入本切片。下一切片按总体顺序为 `INV-001`，开工时新建唯一 specification active plan，不沿用本计划。
