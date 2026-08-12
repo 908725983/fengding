@@ -8,9 +8,9 @@
 
 ## 生成内容
 
-- Mock schema 版本：4
+- Mock schema 版本：5
 - 默认场景：normal
-- 已登记功能数据：`CUS-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`
+- 已登记功能数据：`CUS-001`、`INV-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`
 
 ### mock/schemas/authorization-foundation.schema.json
 
@@ -101,6 +101,27 @@
     "plans": { "type": "array" },
     "templates": { "type": "array" },
     "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+```
+
+### mock/schemas/inventory-foundation.schema.json
+
+- SHA-256：`792ac1d6368ed8604dd7b8cd215420e19f3692c721d130b14fc6c5b16c1883f0`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fengding://mock/INV-001",
+  "title": "INV-001 库存、仓库、库位与批次 Mock 契约",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "warehouses", "locations", "thresholds", "openingBalances", "batches", "balances", "movements", "changeLogs"],
+  "properties": {
+    "schemaVersion": { "const": 1 }, "enterpriseId": { "type": "string", "minLength": 1 },
+    "warehouses": { "type": "array" }, "locations": { "type": "array" }, "thresholds": { "type": "array" },
+    "openingBalances": { "type": "array" }, "batches": { "type": "array" }, "balances": { "type": "array" },
+    "movements": { "type": "array" }, "changeLogs": { "type": "array" }
   },
   "additionalProperties": false
 }

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fengding://mock/INV-001",
+  "title": "INV-001 库存、仓库、库位与批次 Mock 契约",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "warehouses", "locations", "thresholds", "openingBalances", "batches", "balances", "movements", "changeLogs"],
+  "properties": {
+    "schemaVersion": { "const": 1 }, "enterpriseId": { "type": "string", "minLength": 1 },
+    "warehouses": { "type": "array" }, "locations": { "type": "array" }, "thresholds": { "type": "array" },
+    "openingBalances": { "type": "array" }, "batches": { "type": "array" }, "balances": { "type": "array" },
+    "movements": { "type": "array" }, "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "scenario": "normal",
   "clock": "2026-08-10T09:00:00+08:00",
   "featureData": {
@@ -282,6 +282,53 @@
           "lines": [{ "skuId": "sku-1", "quantity": 1 }], "createdBy": "admin-demo",
           "createdAt": "2026-08-10T07:35:00+08:00", "updatedAt": "2026-08-10T07:35:00+08:00"
         }
+      ],
+      "changeLogs": []
+    },
+    "INV-001": {
+      "schemaVersion": 1,
+      "enterpriseId": "ent-demo",
+      "warehouses": [
+        { "id": "warehouse-main", "enterpriseId": "ent-demo", "code": "DEMO-WH-01", "name": "演示中心仓", "type": "physical", "status": "enabled", "saleProhibited": false, "contactName": "演示仓管", "phone": "000-0000-0101", "provinceCode": "DEMO-P", "cityCode": "DEMO-C", "districtCode": "DEMO-D", "address": "演示仓库地址一号（非真实地址）", "createdAt": "2026-08-01T08:00:00+08:00", "updatedAt": "2026-08-01T08:00:00+08:00" },
+        { "id": "warehouse-virtual", "enterpriseId": "ent-demo", "code": "DEMO-WH-02", "name": "演示虚拟禁售仓", "type": "virtual", "status": "enabled", "saleProhibited": true, "contactName": "演示管理员", "phone": "000-0000-0102", "provinceCode": null, "cityCode": null, "districtCode": null, "address": null, "createdAt": "2026-08-01T08:10:00+08:00", "updatedAt": "2026-08-01T08:10:00+08:00" }
+      ],
+      "locations": [
+        { "id": "location-main-a", "enterpriseId": "ent-demo", "warehouseId": "warehouse-main", "code": "DEMO-A-01", "name": "演示常温一区", "status": "enabled", "note": "明显虚构库位", "createdAt": "2026-08-01T08:20:00+08:00", "updatedAt": "2026-08-01T08:20:00+08:00" },
+        { "id": "location-main-b", "enterpriseId": "ent-demo", "warehouseId": "warehouse-main", "code": "DEMO-B-01", "name": "演示临期区", "status": "enabled", "note": "明显虚构库位", "createdAt": "2026-08-01T08:21:00+08:00", "updatedAt": "2026-08-01T08:21:00+08:00" },
+        { "id": "location-virtual-a", "enterpriseId": "ent-demo", "warehouseId": "warehouse-virtual", "code": "DEMO-V-01", "name": "演示虚拟库位", "status": "enabled", "note": null, "createdAt": "2026-08-01T08:22:00+08:00", "updatedAt": "2026-08-01T08:22:00+08:00" }
+      ],
+      "thresholds": [
+        { "warehouseId": "warehouse-main", "skuId": "sku-1", "safetyMinimumMilli": 10000, "maximumMilli": 30000 },
+        { "warehouseId": "warehouse-main", "skuId": "sku-2", "safetyMinimumMilli": 5000, "maximumMilli": null },
+        { "warehouseId": "warehouse-main", "skuId": "sku-4", "safetyMinimumMilli": 1000, "maximumMilli": null },
+        { "warehouseId": "warehouse-virtual", "skuId": "sku-3", "safetyMinimumMilli": 10000, "maximumMilli": 60000 }
+      ],
+      "openingBalances": [
+        { "month": "2026-08", "warehouseId": "warehouse-main", "skuId": "sku-1", "quantityMilli": 30000 },
+        { "month": "2026-08", "warehouseId": "warehouse-main", "skuId": "sku-2", "quantityMilli": 3000 },
+        { "month": "2026-08", "warehouseId": "warehouse-main", "skuId": "sku-4", "quantityMilli": 0 },
+        { "month": "2026-08", "warehouseId": "warehouse-virtual", "skuId": "sku-3", "quantityMilli": 35000 }
+      ],
+      "batches": [
+        { "id": "batch-sku1-expired", "enterpriseId": "ent-demo", "skuId": "sku-1", "batchNumber": "DEMO-BATCH-EXPIRED", "tracked": true, "productionDate": "2026-07-01", "expiresOn": "2026-07-31", "receivedAt": "2026-07-02T09:00:00+08:00", "costPerBaseUnitCents": 680 },
+        { "id": "batch-sku1-first", "enterpriseId": "ent-demo", "skuId": "sku-1", "batchNumber": "DEMO-BATCH-0720", "tracked": true, "productionDate": "2026-07-20", "expiresOn": "2026-08-19", "receivedAt": "2026-07-21T09:00:00+08:00", "costPerBaseUnitCents": 700 },
+        { "id": "batch-sku1-second", "enterpriseId": "ent-demo", "skuId": "sku-1", "batchNumber": "DEMO-BATCH-0801", "tracked": true, "productionDate": "2026-08-01", "expiresOn": "2026-08-31", "receivedAt": "2026-08-02T09:00:00+08:00", "costPerBaseUnitCents": 720 },
+        { "id": "batch-sku2-expired", "enterpriseId": "ent-demo", "skuId": "sku-2", "batchNumber": "DEMO-DRINK-EXPIRED", "tracked": true, "productionDate": "2025-12-01", "expiresOn": "2026-05-30", "receivedAt": "2025-12-02T09:00:00+08:00", "costPerBaseUnitCents": 250 },
+        { "id": "batch-sku3-active", "enterpriseId": "ent-demo", "skuId": "sku-3", "batchNumber": "DEMO-DRINK-ACTIVE", "tracked": true, "productionDate": "2026-08-01", "expiresOn": "2027-01-28", "receivedAt": "2026-08-03T09:00:00+08:00", "costPerBaseUnitCents": 420 }
+      ],
+      "balances": [
+        { "id": "balance-1", "enterpriseId": "ent-demo", "warehouseId": "warehouse-main", "locationId": "location-main-a", "skuId": "sku-1", "batchId": "batch-sku1-expired", "quantityMilli": 5000, "updatedAt": "2026-08-01T09:00:00+08:00" },
+        { "id": "balance-2", "enterpriseId": "ent-demo", "warehouseId": "warehouse-main", "locationId": "location-main-a", "skuId": "sku-1", "batchId": "batch-sku1-first", "quantityMilli": 8000, "updatedAt": "2026-08-01T09:10:00+08:00" },
+        { "id": "balance-3", "enterpriseId": "ent-demo", "warehouseId": "warehouse-main", "locationId": "location-main-b", "skuId": "sku-1", "batchId": "batch-sku1-second", "quantityMilli": 20000, "updatedAt": "2026-08-02T09:00:00+08:00" },
+        { "id": "balance-4", "enterpriseId": "ent-demo", "warehouseId": "warehouse-main", "locationId": "location-main-b", "skuId": "sku-2", "batchId": "batch-sku2-expired", "quantityMilli": 2000, "updatedAt": "2026-08-02T09:10:00+08:00" },
+        { "id": "balance-5", "enterpriseId": "ent-demo", "warehouseId": "warehouse-virtual", "locationId": "location-virtual-a", "skuId": "sku-3", "batchId": "batch-sku3-active", "quantityMilli": 40000, "updatedAt": "2026-08-03T09:00:00+08:00" }
+      ],
+      "movements": [
+        { "id": "movement-opening-1", "enterpriseId": "ent-demo", "requestId": "opening-demo-1", "sourceType": "opening", "sourceId": "source-opening-1", "direction": "inbound", "warehouseId": "warehouse-main", "locationId": "location-main-a", "skuId": "sku-1", "batchId": "batch-sku1-expired", "quantityMilli": 5000, "balanceAfterMilli": 5000, "costPerBaseUnitCents": 680, "operatorId": "admin-demo", "occurredAt": "2026-07-02T09:00:00+08:00" },
+        { "id": "movement-opening-2", "enterpriseId": "ent-demo", "requestId": "opening-demo-2", "sourceType": "opening", "sourceId": "source-opening-2", "direction": "inbound", "warehouseId": "warehouse-main", "locationId": "location-main-a", "skuId": "sku-1", "batchId": "batch-sku1-first", "quantityMilli": 8000, "balanceAfterMilli": 8000, "costPerBaseUnitCents": 700, "operatorId": "admin-demo", "occurredAt": "2026-07-21T09:00:00+08:00" },
+        { "id": "movement-opening-3", "enterpriseId": "ent-demo", "requestId": "opening-demo-3", "sourceType": "opening", "sourceId": "source-opening-3", "direction": "inbound", "warehouseId": "warehouse-main", "locationId": "location-main-b", "skuId": "sku-1", "batchId": "batch-sku1-second", "quantityMilli": 20000, "balanceAfterMilli": 20000, "costPerBaseUnitCents": 720, "operatorId": "admin-demo", "occurredAt": "2026-08-02T09:00:00+08:00" },
+        { "id": "movement-opening-4", "enterpriseId": "ent-demo", "requestId": "opening-demo-4", "sourceType": "opening", "sourceId": "source-opening-4", "direction": "inbound", "warehouseId": "warehouse-main", "locationId": "location-main-b", "skuId": "sku-2", "batchId": "batch-sku2-expired", "quantityMilli": 2000, "balanceAfterMilli": 2000, "costPerBaseUnitCents": 250, "operatorId": "admin-demo", "occurredAt": "2025-12-02T09:00:00+08:00" },
+        { "id": "movement-opening-5", "enterpriseId": "ent-demo", "requestId": "opening-demo-5", "sourceType": "opening", "sourceId": "source-opening-5", "direction": "inbound", "warehouseId": "warehouse-virtual", "locationId": "location-virtual-a", "skuId": "sku-3", "batchId": "batch-sku3-active", "quantityMilli": 40000, "balanceAfterMilli": 40000, "costPerBaseUnitCents": 420, "operatorId": "admin-demo", "occurredAt": "2026-08-03T09:00:00+08:00" }
       ],
       "changeLogs": []
     }

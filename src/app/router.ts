@@ -29,6 +29,15 @@ import OrderTemplateListView from '@/features/products/distribution/views/OrderT
 import OrderTemplateFormView from '@/features/products/distribution/views/OrderTemplateFormView.vue'
 import DistributionPreviewView from '@/features/products/distribution/views/DistributionPreviewView.vue'
 import DistributionStatisticsView from '@/features/products/distribution/views/DistributionStatisticsView.vue'
+import InventoryStockListView from '@/features/inventory/views/InventoryStockListView.vue'
+import InventoryStockDetailView from '@/features/inventory/views/InventoryStockDetailView.vue'
+import InventoryBatchListView from '@/features/inventory/views/InventoryBatchListView.vue'
+import InventoryMovementListView from '@/features/inventory/views/InventoryMovementListView.vue'
+import WarehouseListView from '@/features/inventory/views/WarehouseListView.vue'
+import WarehouseFormView from '@/features/inventory/views/WarehouseFormView.vue'
+import LocationListView from '@/features/inventory/views/LocationListView.vue'
+import LocationFormView from '@/features/inventory/views/LocationFormView.vue'
+import { guardInventorySubroute } from '@/features/inventory/runtime/inventory-access'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -76,6 +85,18 @@ export const router = createRouter({
     { path: '/products/distribution/statistics', name: 'distribution-statistics', component: DistributionStatisticsView },
     { path: '/products/:productId/edit', name: 'product-edit', component: ProductFormView },
     { path: '/products/:productId', name: 'product-detail', component: ProductDetailView },
+    { path: '/inventory', redirect: '/inventory/stocks' },
+    { path: '/inventory/stocks', name: 'inventory-stocks', component: InventoryStockListView },
+    { path: '/inventory/stocks/:warehouseId/:skuId', name: 'inventory-stock-detail', component: InventoryStockDetailView },
+    { path: '/inventory/batches', name: 'inventory-batches', component: InventoryBatchListView },
+    { path: '/inventory/movements', name: 'inventory-movements', component: InventoryMovementListView },
+    { path: '/inventory/batch-movements', name: 'inventory-batch-movements', component: InventoryMovementListView, props: { batchOnly: true } },
+    { path: '/inventory/warehouses', name: 'inventory-warehouses', component: WarehouseListView },
+    { path: '/inventory/warehouses/new', name: 'inventory-warehouse-new', component: WarehouseFormView },
+    { path: '/inventory/warehouses/:warehouseId/edit', name: 'inventory-warehouse-edit', component: WarehouseFormView },
+    { path: '/inventory/locations', name: 'inventory-locations', component: LocationListView },
+    { path: '/inventory/locations/new', name: 'inventory-location-new', component: LocationFormView },
+    { path: '/inventory/locations/:locationId/edit', name: 'inventory-location-edit', component: LocationFormView },
     { path: '/:module(orders|products|procurement|inventory|customers|finance|settings)', name: 'module', component: ModulePlaceholderView },
   ],
 })
@@ -83,5 +104,7 @@ export const router = createRouter({
 router.beforeEach((to) => {
   const customerResult = guardCustomerSubroute(to.path)
   if (customerResult !== true) return customerResult
-  return guardProductSubroute(to.path)
+  const productResult = guardProductSubroute(to.path)
+  if (productResult !== true) return productResult
+  return guardInventorySubroute(to.path)
 })

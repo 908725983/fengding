@@ -1,0 +1,3 @@
+import { beforeEach, describe, expect, it } from 'vitest'
+import { guardInventorySubroute, setCurrentInventoryRole } from './inventory-access'
+describe('inventory route access',()=>{beforeEach(()=>setCurrentInventoryRole('super-admin'));it('allows readers and blocks denied roles',()=>{setCurrentInventoryRole('sales-supervisor');expect(guardInventorySubroute('/inventory/stocks')).toBe(true);setCurrentInventoryRole('finance');expect(guardInventorySubroute('/inventory/stocks')).toContain('denied=1')});it('protects master-data write routes',()=>{setCurrentInventoryRole('sales-supervisor');expect(guardInventorySubroute('/inventory/warehouses/new')).toContain('denied=1');expect(guardInventorySubroute('/inventory/warehouses')).toBe(true)})})
