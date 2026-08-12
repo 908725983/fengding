@@ -100,6 +100,17 @@ describe('PRD-002 pricing service', () => {
     expect(session.repository.read().strategies[0]).toMatchObject({ lastRunAt: '2026-08-10T10:30:00+08:00', lastError: null })
   })
 
+  it('keeps a same-minute manual price and records the automatic strategy conflict', () => {
+    session.service.createAdjustment(admin, {
+      type: 'level', customerId: null, formulaAnchor: 'base-order', effectiveAt: '2026-08-10T10:30:00+08:00', note: null,
+      lines: [{ skuId: 'sku-1', unitId: 'unit-piece', changes: { storePriceCents: 1500 } }],
+    })
+    session.service.advanceClock(admin, '2026-08-10T10:30:00+08:00')
+    const state = session.repository.read()
+    expect(state.strategies[0]).toMatchObject({ lastRunAt: '2026-08-10T10:30:00+08:00', lastError: expect.stringContaining('同一生效分钟') })
+    expect(state.versions.find((item) => item.field === 'storePriceCents' && item.expiredAt === null)?.valueCents).toBe(1500)
+  })
+
   it('rejects inactive customers, off-sale products and malformed quantities', () => {
     expect(() => session.service.resolvePrice(admin, { customerId: 'customer-2', skuId: 'sku-1', unitId: 'unit-piece', quantity: 1 }))
       .toThrowError(expect.objectContaining({ code: 'CUSTOMER_NOT_ACTIVE' }))
@@ -113,5 +124,37 @@ describe('PRD-002 pricing service', () => {
     expect(applyPriceFormula(333, 'increase-percent', 50)).toBe(500)
     expect(applyPriceFormula(1000, 'decrease-fixed', 75)).toBe(925)
     expect(() => applyPriceFormula(100, 'decrease-percent', 150)).toThrowError(PricingDomainError)
+  })
+
+  it('provides only orderable SKUs and active customers to the form', () => {
+    expect(session.service.getFormOptions(admin)).toMatchObject({
+      clock: '2026-08-10T09:00:00+08:00',
+      skus: [{ skuId: 'sku-1' }],
+      customers: [{ customerId: 'customer-1', status: 'active' }],
+    })
+    expect(() => session.service.getFormOptions(salesperson)).toThrowError(expect.objectContaining({ code: 'PERMISSION_DENIED' }))
+  })
+
+  it('applies a selected field formula to the draft without persisting it', () => {
+    const before = session.repository.read()
+    const draft = futureLevelDraft()
+    draft.lines[0]!.changes = { tierOnePriceCents: 1080 }
+    const calculated = session.service.applyAdjustmentFormula(admin, { draft, field: 'tierOnePriceCents', mode: 'increase-percent', operand: 10 })
+    expect(calculated.lines[0]!.changes.tierOnePriceCents).toBe(1188)
+    expect(session.repository.read()).toEqual(before)
+    expect(() => session.service.applyAdjustmentFormula(admin, { draft, field: 'basePurchasePriceCents', mode: 'set', operand: 800 }))
+      .toThrowError(expect.objectContaining({ code: 'FORMULA_INVALID' }))
+  })
+
+  it('returns a complete effective matrix for form previews', () => {
+    const draft = futureLevelDraft()
+    const matrix = session.service.getDraftMatrix(admin, draft)[0]
+    expect(matrix).toMatchObject({ sku: { skuCode: 'SKU-000001' }, unitId: 'unit-piece' })
+    expect(matrix?.values).toMatchObject({ costPriceCents: 700, basePurchasePriceCents: 800, tierOnePriceCents: 1080, tierTwoPriceCents: 1150 })
+    expect(session.service.getDraftMatrix(salesperson, draft)[0]?.values).toMatchObject({
+      costPriceCents: null,
+      basePurchasePriceCents: null,
+      tierOnePriceCents: 1080,
+    })
   })
 })

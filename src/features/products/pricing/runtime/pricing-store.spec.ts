@@ -28,4 +28,19 @@ describe('PRD-002 pricing runtime scenarios', () => {
     expect(store.clock).toBe('2026-08-10T10:00:00+08:00')
     expect(store.adjustments.items[0]).toMatchObject({ status: 'effective' })
   })
+
+  it('creates, edits, advances and deletes through the asynchronous runtime boundary', async () => {
+    const store = usePricingStore()
+    let request = store.loadFormOptions(); await vi.advanceTimersByTimeAsync(120); await request
+    expect(store.formOptions.skus.map((item) => item.skuId)).toEqual(['sku-1'])
+    const draft = { type: 'level' as const, customerId: null, formulaAnchor: 'base-order' as const, effectiveAt: '2026-08-10T11:00:00+08:00', note: null,
+      lines: [{ skuId: 'sku-1', unitId: 'unit-piece', changes: { tierTwoPriceCents: 1150 } }] }
+    const createRequest = store.createAdjustment(draft); await vi.advanceTimersByTimeAsync(120); const created = await createRequest
+    const updateRequest = store.updateAdjustment(created.id, { ...draft, note: '已修改' }); await vi.advanceTimersByTimeAsync(120); expect((await updateRequest).note).toBe('已修改')
+    const clockRequest = store.advanceClock('2026-08-10T11:00:00+08:00'); await vi.advanceTimersByTimeAsync(240); await clockRequest
+    expect(store.clock).toBe('2026-08-10T11:00:00+08:00')
+    const secondCreate = store.createAdjustment({ ...draft, effectiveAt: '2026-08-10T12:00:00+08:00' }); await vi.advanceTimersByTimeAsync(120); const deletable = await secondCreate
+    const deleteRequest = store.deleteAdjustment(deletable.id); await vi.advanceTimersByTimeAsync(120); await deleteRequest
+    expect(store.selectedAdjustment).toBeNull()
+  })
 })

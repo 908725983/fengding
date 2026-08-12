@@ -4,11 +4,16 @@ import { createPricingMockSession, type PricingScenarioName } from '../../../../
 import { setCurrentProductRole } from '../../runtime/product-access'
 import type {
   AdjustmentType,
+  ApplyAdjustmentFormulaInput,
+  PriceAdjustment,
+  PriceAdjustmentDraft,
   PriceAdjustmentPage,
   PriceAdjustmentQuery,
   PriceHistoryPage,
   PriceHistoryQuery,
   PricingActor,
+  PricingFormOptions,
+  PricingMatrixRow,
   PricingSkuSnapshot,
 } from '../types'
 
@@ -26,10 +31,14 @@ export const usePricingStore = defineStore('product-pricing', () => {
   const historyQuery = ref<PriceHistoryQuery>({ page: 1, pageSize: 30 })
   const adjustments = ref<PriceAdjustmentPage>(emptyAdjustments())
   const history = ref<PriceHistoryPage>(emptyHistory())
+  const selectedAdjustment = ref<PriceAdjustment | null>(null)
+  const formOptions = ref<PricingFormOptions>({ clock: '', skus: [], customers: [], matrices: {} })
+  const draftMatrix = ref<PricingMatrixRow[]>([])
   const customerNames = ref<Record<string, string>>({})
   const skuSnapshots = ref<Record<string, PricingSkuSnapshot>>({})
   const clock = ref('')
   const loading = ref(false)
+  const saving = ref(false)
   const error = ref<string | null>(null)
   const referenceError = ref<string | null>(null)
   let session = createPricingMockSession('normal')
@@ -79,6 +88,62 @@ export const usePricingStore = defineStore('product-pricing', () => {
 
   async function reload(): Promise<void> { if (activeView.value === 'history') await loadHistory(); else await loadAdjustments(activeView.value) }
 
+  async function loadAdjustment(id: string): Promise<void> {
+    loading.value = true; error.value = null
+    try {
+      selectedAdjustment.value = await session.run(() => session.service.getAdjustment(actor.value, id))
+      if (selectedAdjustment.value.customerId) {
+        const customer = session.catalog.getCustomer(selectedAdjustment.value.customerId)
+        if (customer) customerNames.value[customer.customerId] = customer.customerName
+      }
+    }
+    catch (caught) { error.value = caught instanceof Error ? caught.message : '调价单详情加载失败'; selectedAdjustment.value = null }
+    finally { loading.value = false }
+  }
+
+  async function loadFormOptions(): Promise<void> {
+    loading.value = true; error.value = null; referenceError.value = null
+    try {
+      formOptions.value = await session.run(() => session.service.getFormOptions(actor.value))
+      clock.value = formOptions.value.clock
+      if (scenario.value === 'partial-failure') { formOptions.value = { ...formOptions.value, customers: [] }; referenceError.value = '原型模拟：客户资料加载失败，非客户调价仍可继续' }
+    } catch (caught) { error.value = caught instanceof Error ? caught.message : '价格表单资料加载失败' }
+    finally { loading.value = false }
+  }
+
+  async function previewDraft(draft: PriceAdjustmentDraft): Promise<PricingMatrixRow[]> {
+    draftMatrix.value = await session.run(() => session.service.getDraftMatrix(actor.value, JSON.parse(JSON.stringify(draft)) as PriceAdjustmentDraft))
+    return draftMatrix.value
+  }
+
+  async function calculateDraft(input: ApplyAdjustmentFormulaInput): Promise<PriceAdjustmentDraft> {
+    return session.run(() => session.service.applyAdjustmentFormula(actor.value, JSON.parse(JSON.stringify(input)) as ApplyAdjustmentFormulaInput))
+  }
+
+  async function createAdjustment(draft: PriceAdjustmentDraft): Promise<PriceAdjustment> {
+    saving.value = true
+    try { const item = await session.run(() => session.service.createAdjustment(actor.value, JSON.parse(JSON.stringify(draft)) as PriceAdjustmentDraft)); selectedAdjustment.value = item; return item }
+    finally { saving.value = false }
+  }
+
+  async function updateAdjustment(id: string, draft: PriceAdjustmentDraft): Promise<PriceAdjustment> {
+    saving.value = true
+    try { const item = await session.run(() => session.service.updateAdjustment(actor.value, id, JSON.parse(JSON.stringify(draft)) as PriceAdjustmentDraft)); selectedAdjustment.value = item; return item }
+    finally { saving.value = false }
+  }
+
+  async function deleteAdjustment(id: string): Promise<void> {
+    saving.value = true
+    try { await session.run(() => session.service.deleteAdjustment(actor.value, id)); selectedAdjustment.value = null }
+    finally { saving.value = false }
+  }
+
+  async function advanceClock(target: string): Promise<void> {
+    saving.value = true
+    try { await session.run(() => session.service.advanceClock(actor.value, target)); clock.value = session.service.getClock(actor.value); await reload() }
+    finally { saving.value = false }
+  }
+
   async function setScenario(next: PricingRuntimeScenario): Promise<void> {
     scenario.value = next
     actor.value = next === 'permission-denied' ? { role: 'finance', actorId: 'finance-demo' } : { role: 'super-admin', actorId: 'admin-demo' }
@@ -108,7 +173,9 @@ export const usePricingStore = defineStore('product-pricing', () => {
   function skuSnapshot(id: string): PricingSkuSnapshot | null { return skuSnapshots.value[id] ?? null }
 
   return {
-    scenario, actor, activeView, adjustmentQuery, historyQuery, adjustments, history, clock, loading, error, referenceError,
-    canWrite, isEmpty, loadAdjustments, loadHistory, reload, setScenario, applyAdjustmentQuery, applyHistoryQuery, setPage, customerName, skuSnapshot,
+    scenario, actor, activeView, adjustmentQuery, historyQuery, adjustments, history, selectedAdjustment, formOptions, draftMatrix,
+    clock, loading, saving, error, referenceError, canWrite, isEmpty,
+    loadAdjustments, loadHistory, loadAdjustment, loadFormOptions, previewDraft, calculateDraft, createAdjustment, updateAdjustment, deleteAdjustment,
+    advanceClock, reload, setScenario, applyAdjustmentQuery, applyHistoryQuery, setPage, customerName, skuSnapshot,
   }
 })

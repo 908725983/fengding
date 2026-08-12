@@ -9,11 +9,12 @@ const links = [
   { path: '/products/prices/customer-adjustments', label: '客户调价' },
   { path: '/products/prices/history', label: '历史调价' },
 ]
+const isActive = (path: string) => route.path === path || route.path.startsWith(`${path}/`)
 </script>
 
 <template>
   <nav class="price-subnav" aria-label="商品与价格子导航">
-    <RouterLink v-for="item in links" :key="item.path" :to="item.path" :class="{ active: route.path === item.path }">{{ item.label }}</RouterLink>
+    <RouterLink v-for="item in links" :key="item.path" :to="item.path" :class="{ active: isActive(item.path) }">{{ item.label }}</RouterLink>
     <span title="后续检查点实现">单位价格</span><span title="后续检查点实现">自动调价</span>
   </nav>
 </template>

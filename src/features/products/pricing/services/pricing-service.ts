@@ -2,6 +2,7 @@ import { assertPriceAdjustmentDraft, controlledSaleFields, validatePriceValues }
 import type { PricingRepository } from '../repositories/pricing-repository'
 import type {
   AdjustmentType,
+  ApplyAdjustmentFormulaInput,
   AutoPriceStrategy,
   EntityId,
   FormulaMode,
@@ -18,6 +19,8 @@ import type {
   PricingActor,
   PricingCatalogProvider,
   PricingFeatureState,
+  PricingFormOptions,
+  PricingMatrixRow,
   PricingSkuSnapshot,
   ResolvedPrice,
   SalePriceField,
@@ -63,6 +66,11 @@ function scopeOf(type: AdjustmentType): 'global' | 'customer' { return type === 
 function fieldEntries(changes: Partial<PriceValues>): Array<[PriceField, number | null]> { return Object.entries(changes) as Array<[PriceField, number | null]> }
 function decimals(value: number): number { return (String(value).split('.')[1] ?? '').length }
 function isSensitiveField(field: PriceField): boolean { return field === 'costPriceCents' || field === 'basePurchasePriceCents' }
+
+function priceValuesForActor(values: PriceValues, actor: PricingActor): PriceValues {
+  if (actor.role === 'super-admin') return values
+  return { ...values, costPriceCents: null, basePurchasePriceCents: null }
+}
 
 function adjustmentForActor(item: PriceAdjustment, actor: PricingActor): PriceAdjustment {
   const result = structuredClone(item)
@@ -241,6 +249,50 @@ export function createPricingService(dependencies: PricingServiceDependencies) {
     return adjustmentForActor(item, actor)
   }
 
+  function getFormOptions(actor: PricingActor): PricingFormOptions {
+    assertWrite(actor)
+    const state = repository.read()
+    const skus = catalog.listSkus().filter((item) => item.productStatus === 'on-sale')
+    return {
+      clock: state.clock,
+      skus,
+      customers: catalog.listCustomers().filter((item) => item.status === 'active'),
+      matrices: Object.fromEntries(skus.map((sku) => [sku.skuId, matrixAt(state, sku, sku.baseUnitId, state.clock)])),
+    }
+  }
+
+  function getDraftMatrix(actor: PricingActor, draft: PriceAdjustmentDraft): PricingMatrixRow[] {
+    assertRead(actor)
+    const state = repository.read()
+    return draft.lines.map((line) => {
+      const sku = catalog.getSku(line.skuId)
+      if (!sku) throw new PricingDomainError('NOT_FOUND', 'SKU 不存在')
+      const values = { ...matrixAt(state, sku, line.unitId, draft.effectiveAt, draft.customerId), ...line.changes }
+      return { sku, unitId: line.unitId, values: priceValuesForActor(values, actor) }
+    })
+  }
+
+  function applyAdjustmentFormula(actor: PricingActor, input: ApplyAdjustmentFormulaInput): PriceAdjustmentDraft {
+    assertWrite(actor); assertPriceAdjustmentDraft(input.draft)
+    const state = repository.read()
+    const selected = input.skuIds ? new Set(input.skuIds) : null
+    const draft = structuredClone(input.draft)
+    const allowed = input.draft.type === 'purchase'
+      ? new Set<PriceField>(['costPriceCents', 'basePurchasePriceCents'])
+      : new Set<PriceField>(['costPriceCents', 'baseOrderPriceCents', 'tierOnePriceCents', 'tierTwoPriceCents', 'storePriceCents', 'terminalPriceCents'])
+    if (!allowed.has(input.field)) throw new PricingDomainError('FORMULA_INVALID', '当前调价类型不能修改该价格字段')
+    draft.lines = draft.lines.map((line) => {
+      if (selected && !selected.has(line.skuId)) return line
+      const sku = catalog.getSku(line.skuId)
+      if (!sku) throw new PricingDomainError('NOT_FOUND', 'SKU 不存在')
+      const current = { ...matrixAt(state, sku, line.unitId, draft.effectiveAt, draft.customerId), ...line.changes }[input.field]
+      return { ...line, changes: { ...line.changes, [input.field]: applyPriceFormula(current, input.mode, input.operand) } }
+    })
+    assertPriceAdjustmentDraft(draft)
+    validateDraftAgainstCatalog(state, catalog, draft)
+    return draft
+  }
+
   function createAdjustment(actor: PricingActor, input: PriceAdjustmentDraft): PriceAdjustment {
     assertWrite(actor); assertPriceAdjustmentDraft(input)
     return repository.transact((state) => {
@@ -319,6 +371,7 @@ export function createPricingService(dependencies: PricingServiceDependencies) {
         const matrix = { ...matrixAt(state, sku, strategy.unitId, state.clock), [strategy.targetField]: value }
         const issues = validatePriceValues(matrix); if (issues.length) throw new PricingDomainError('FORMULA_INVALID', issues.map((item) => item.message).join('；'))
         const existing = globalVersionAt(state, strategy.skuId, strategy.unitId, strategy.targetField, state.clock)
+        if (existing && time(existing.effectiveAt) === time(state.clock)) throw new PricingDomainError('SCHEDULE_CONFLICT', '同一生效分钟已有手工或自动价格版本，本次自动调价已跳过')
         if (existing) existing.expiredAt = state.clock
         const versionId = dependencies.nextId('version')
         state.versions.push({ id: versionId, enterpriseId: state.enterpriseId, scope: 'strategy', customerId: null, adjustmentId: null, skuId: strategy.skuId,
@@ -383,5 +436,5 @@ export function createPricingService(dependencies: PricingServiceDependencies) {
   }
   function getClock(actor: PricingActor): string { assertRead(actor); return repository.read().clock }
 
-  return { listAdjustments, getAdjustment, createAdjustment, updateAdjustment, deleteAdjustment, saveUnitOverride, saveStrategy, advanceClock, resolvePrice, listHistory, getClock }
+  return { listAdjustments, getAdjustment, getFormOptions, getDraftMatrix, applyAdjustmentFormula, createAdjustment, updateAdjustment, deleteAdjustment, saveUnitOverride, saveStrategy, advanceClock, resolvePrice, listHistory, getClock }
 }

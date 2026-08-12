@@ -178,6 +178,29 @@ export interface PricingCustomerSnapshot {
 export interface PricingCatalogProvider {
   getSku(skuId: EntityId): PricingSkuSnapshot | null
   getCustomer(customerId: EntityId): PricingCustomerSnapshot | null
+  listSkus(): PricingSkuSnapshot[]
+  listCustomers(): PricingCustomerSnapshot[]
+}
+
+export interface PricingMatrixRow {
+  sku: PricingSkuSnapshot
+  unitId: EntityId
+  values: PriceValues
+}
+
+export interface PricingFormOptions {
+  clock: string
+  skus: PricingSkuSnapshot[]
+  customers: PricingCustomerSnapshot[]
+  matrices: Record<EntityId, PriceValues>
+}
+
+export interface ApplyAdjustmentFormulaInput {
+  draft: PriceAdjustmentDraft
+  field: PriceField
+  mode: FormulaMode
+  operand: number
+  skuIds?: EntityId[]
 }
 
 export interface ResolvedPrice {

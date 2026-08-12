@@ -16,27 +16,24 @@ const productBaseline = structuredClone(featureData['PRD-001']) as ProductFeatur
 const customerBaseline = structuredClone(featureData['CUS-001']) as CustomerFeatureState
 
 export function createBaselinePricingCatalog(): PricingCatalogProvider {
-  return {
-    getSku(skuId): PricingSkuSnapshot | null {
-      for (const product of productBaseline.products) {
-        const sku = product.skus.find((item) => item.id === skuId)
-        if (!sku) continue
+  const skuSnapshots = productBaseline.products.flatMap((product) => product.skus.map((sku): PricingSkuSnapshot => {
         const unitRates: Record<string, number> = { [product.baseUnitId]: 1 }
         for (const scene of Object.values(product.sceneUnits)) unitRates[scene.unitId] = scene.conversionRate
         const { basePurchasePriceCents, baseOrderPriceCents, minimumSalePriceCents, maximumSalePriceCents, tierOnePriceCents, tierTwoPriceCents, storePriceCents, terminalPriceCents } = sku
-        return { skuId, productId: product.id, productName: product.name, skuCode: sku.code,
+        return { skuId: sku.id, productId: product.id, productName: product.name, skuCode: sku.code,
           specification: `${sku.specificationName}：${sku.specificationValue}`, productStatus: product.status, baseUnitId: product.baseUnitId, unitRates,
           prices: { basePurchasePriceCents, baseOrderPriceCents, minimumSalePriceCents, maximumSalePriceCents, tierOnePriceCents, tierTwoPriceCents, storePriceCents, terminalPriceCents } }
-      }
-      return null
-    },
-    getCustomer(customerId): PricingCustomerSnapshot | null {
-      const customer = customerBaseline.customers.find((item) => item.id === customerId)
-      if (!customer) return null
+  }))
+  const customerSnapshots = customerBaseline.customers.map((customer): PricingCustomerSnapshot => {
       const categoryLineage: string[] = []; let categoryId: string | null = customer.categoryId
       while (categoryId) { categoryLineage.push(categoryId); categoryId = customerBaseline.categories.find((item) => item.id === categoryId)?.parentId ?? null }
-      return { customerId, customerName: customer.name, status: customer.status, categoryLineage }
-    },
+      return { customerId: customer.id, customerName: customer.name, status: customer.status, categoryLineage }
+  })
+  return {
+    getSku: (skuId) => structuredClone(skuSnapshots.find((item) => item.skuId === skuId) ?? null),
+    getCustomer: (customerId) => structuredClone(customerSnapshots.find((item) => item.customerId === customerId) ?? null),
+    listSkus: () => structuredClone(skuSnapshots),
+    listCustomers: () => structuredClone(customerSnapshots),
   }
 }
 
