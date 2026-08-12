@@ -11,5 +11,7 @@ describe('PRD-001 product route access', () => {
     expect(guardProductSubroute('/products/prices/level-adjustments/price-adjustment-level-1')).toBe(true)
     expect(guardProductSubroute('/products/prices/level-adjustments/new')).toBe('/products/prices/level-adjustments?denied=1')
     expect(guardProductSubroute('/products/prices/level-adjustments/price-adjustment-level-1/edit')).toBe('/products/prices/level-adjustments?denied=1')
+    expect(guardProductSubroute('/products/prices/order-unit-prices/new')).toBe('/products/prices/level-adjustments?denied=1')
+    expect(guardProductSubroute('/products/prices/strategies/price-strategy-1/edit')).toBe('/products/prices/level-adjustments?denied=1')
   })
 })

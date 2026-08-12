@@ -5,6 +5,7 @@ import { setCurrentProductRole } from '../../runtime/product-access'
 import type {
   AdjustmentType,
   ApplyAdjustmentFormulaInput,
+  AutoPriceStrategy,
   PriceAdjustment,
   PriceAdjustmentDraft,
   PriceAdjustmentPage,
@@ -15,10 +16,15 @@ import type {
   PricingFormOptions,
   PricingMatrixRow,
   PricingSkuSnapshot,
+  PricingUnitPriceRow,
+  PricingWorkspace,
+  PriceValues,
+  UnitPriceOverride,
 } from '../types'
+import type { SaveStrategyInput } from '../services/pricing-service'
 
 export type PricingRuntimeScenario = PricingScenarioName | 'partial-failure' | 'boundary'
-export type PricingRuntimeView = AdjustmentType | 'history'
+export type PricingRuntimeView = AdjustmentType | 'history' | 'unit-prices' | 'strategies'
 
 const emptyAdjustments = (): PriceAdjustmentPage => ({ items: [], total: 0, page: 1, pageSize: 30 })
 const emptyHistory = (): PriceHistoryPage => ({ items: [], total: 0, page: 1, pageSize: 30 })
@@ -34,6 +40,8 @@ export const usePricingStore = defineStore('product-pricing', () => {
   const selectedAdjustment = ref<PriceAdjustment | null>(null)
   const formOptions = ref<PricingFormOptions>({ clock: '', skus: [], customers: [], matrices: {} })
   const draftMatrix = ref<PricingMatrixRow[]>([])
+  const unitPrices = ref<PricingUnitPriceRow[]>([])
+  const strategies = ref<AutoPriceStrategy[]>([])
   const customerNames = ref<Record<string, string>>({})
   const skuSnapshots = ref<Record<string, PricingSkuSnapshot>>({})
   const clock = ref('')
@@ -44,7 +52,8 @@ export const usePricingStore = defineStore('product-pricing', () => {
   let session = createPricingMockSession('normal')
 
   const canWrite = computed(() => actor.value.role === 'super-admin')
-  const isEmpty = computed(() => !loading.value && !error.value && (activeView.value === 'history' ? history.value.total === 0 : adjustments.value.total === 0))
+  const isEmpty = computed(() => !loading.value && !error.value && (activeView.value === 'history' ? history.value.total === 0
+    : activeView.value === 'unit-prices' ? unitPrices.value.length === 0 : activeView.value === 'strategies' ? strategies.value.length === 0 : adjustments.value.total === 0))
 
   function collectReferences(): void {
     customerNames.value = {}
@@ -86,7 +95,21 @@ export const usePricingStore = defineStore('product-pricing', () => {
     } finally { loading.value = false }
   }
 
-  async function reload(): Promise<void> { if (activeView.value === 'history') await loadHistory(); else await loadAdjustments(activeView.value) }
+  async function reload(): Promise<void> {
+    if (activeView.value === 'history') await loadHistory()
+    else if (activeView.value === 'unit-prices' || activeView.value === 'strategies') await loadWorkspace(activeView.value)
+    else await loadAdjustments(activeView.value)
+  }
+
+  async function loadWorkspace(view: 'unit-prices' | 'strategies'): Promise<void> {
+    activeView.value = view; loading.value = true; error.value = null; referenceError.value = null
+    try {
+      const workspace: PricingWorkspace = await session.run(() => session.service.getPricingWorkspace(actor.value))
+      unitPrices.value = workspace.unitPrices; strategies.value = workspace.strategies; clock.value = workspace.clock
+    } catch (caught) {
+      error.value = caught instanceof Error ? caught.message : '价格工作台加载失败'; unitPrices.value = []; strategies.value = []
+    } finally { loading.value = false }
+  }
 
   async function loadAdjustment(id: string): Promise<void> {
     loading.value = true; error.value = null
@@ -138,6 +161,18 @@ export const usePricingStore = defineStore('product-pricing', () => {
     finally { saving.value = false }
   }
 
+  async function saveUnitOverride(skuId: string, unitId: string, prices: Partial<PriceValues>): Promise<UnitPriceOverride> {
+    saving.value = true
+    try { const item = await session.run(() => session.service.saveUnitOverride(actor.value, skuId, unitId, structuredClone(prices))); await loadWorkspace('unit-prices'); return item }
+    finally { saving.value = false }
+  }
+
+  async function saveStrategy(input: SaveStrategyInput): Promise<AutoPriceStrategy> {
+    saving.value = true
+    try { const item = await session.run(() => session.service.saveStrategy(actor.value, structuredClone(input))); await loadWorkspace('strategies'); return item }
+    finally { saving.value = false }
+  }
+
   async function advanceClock(target: string): Promise<void> {
     saving.value = true
     try { await session.run(() => session.service.advanceClock(actor.value, target)); clock.value = session.service.getClock(actor.value); await reload() }
@@ -166,6 +201,7 @@ export const usePricingStore = defineStore('product-pricing', () => {
 
   async function setPage(page: number): Promise<void> {
     if (activeView.value === 'history') { historyQuery.value = { ...historyQuery.value, page: Math.max(1, page) }; await loadHistory() }
+    else if (activeView.value === 'unit-prices' || activeView.value === 'strategies') await loadWorkspace(activeView.value)
     else { adjustmentQuery.value = { ...adjustmentQuery.value, page: Math.max(1, page) }; await loadAdjustments(activeView.value) }
   }
 
@@ -173,9 +209,9 @@ export const usePricingStore = defineStore('product-pricing', () => {
   function skuSnapshot(id: string): PricingSkuSnapshot | null { return skuSnapshots.value[id] ?? null }
 
   return {
-    scenario, actor, activeView, adjustmentQuery, historyQuery, adjustments, history, selectedAdjustment, formOptions, draftMatrix,
+    scenario, actor, activeView, adjustmentQuery, historyQuery, adjustments, history, selectedAdjustment, formOptions, draftMatrix, unitPrices, strategies,
     clock, loading, saving, error, referenceError, canWrite, isEmpty,
-    loadAdjustments, loadHistory, loadAdjustment, loadFormOptions, previewDraft, calculateDraft, createAdjustment, updateAdjustment, deleteAdjustment,
-    advanceClock, reload, setScenario, applyAdjustmentQuery, applyHistoryQuery, setPage, customerName, skuSnapshot,
+    loadAdjustments, loadHistory, loadWorkspace, loadAdjustment, loadFormOptions, previewDraft, calculateDraft, createAdjustment, updateAdjustment, deleteAdjustment,
+    saveUnitOverride, saveStrategy, advanceClock, reload, setScenario, applyAdjustmentQuery, applyHistoryQuery, setPage, customerName, skuSnapshot,
   }
 })

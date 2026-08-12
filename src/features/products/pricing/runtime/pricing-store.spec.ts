@@ -43,4 +43,16 @@ describe('PRD-002 pricing runtime scenarios', () => {
     const deleteRequest = store.deleteAdjustment(deletable.id); await vi.advanceTimersByTimeAsync(120); await deleteRequest
     expect(store.selectedAdjustment).toBeNull()
   })
+
+  it('loads and saves unit prices and strategies through the workspace boundary', async () => {
+    const store = usePricingStore()
+    let request = store.loadWorkspace('unit-prices'); await vi.advanceTimersByTimeAsync(120); await request
+    expect(store.unitPrices.some((item) => item.explicitOverride)).toBe(true)
+    const unitSave = store.saveUnitOverride('sku-1', 'unit-piece', { terminalPriceCents: 1550 }); await vi.advanceTimersByTimeAsync(240); await unitSave
+    expect(store.unitPrices.find((item) => item.sku.skuId === 'sku-1' && item.unitId === 'unit-piece')?.values.terminalPriceCents).toBe(1550)
+    const strategySave = store.saveStrategy({ skuId: 'sku-1', unitId: 'unit-piece', targetField: 'terminalPriceCents', anchor: 'base-order-price',
+      amplitudeType: 'percent', amplitude: 20, enabled: true, startsAt: '2026-08-10T11:00:00+08:00', endsAt: null })
+    await vi.advanceTimersByTimeAsync(240); const strategy = await strategySave
+    expect(store.strategies.some((item) => item.id === strategy.id)).toBe(true)
+  })
 })

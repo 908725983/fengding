@@ -16,12 +16,15 @@ const productBaseline = structuredClone(featureData['PRD-001']) as ProductFeatur
 const customerBaseline = structuredClone(featureData['CUS-001']) as CustomerFeatureState
 
 export function createBaselinePricingCatalog(): PricingCatalogProvider {
+  const unitNames = Object.fromEntries(productBaseline.units.map((unit) => [unit.id, unit.name]))
   const skuSnapshots = productBaseline.products.flatMap((product) => product.skus.map((sku): PricingSkuSnapshot => {
         const unitRates: Record<string, number> = { [product.baseUnitId]: 1 }
         for (const scene of Object.values(product.sceneUnits)) unitRates[scene.unitId] = scene.conversionRate
         const { basePurchasePriceCents, baseOrderPriceCents, minimumSalePriceCents, maximumSalePriceCents, tierOnePriceCents, tierTwoPriceCents, storePriceCents, terminalPriceCents } = sku
-        return { skuId: sku.id, productId: product.id, productName: product.name, skuCode: sku.code,
-          specification: `${sku.specificationName}：${sku.specificationValue}`, productStatus: product.status, baseUnitId: product.baseUnitId, unitRates,
+        return { skuId: sku.id, productId: product.id, productName: product.name, categoryId: product.categoryId,
+          categoryName: productBaseline.categories.find((item) => item.id === product.categoryId)?.name ?? product.categoryId,
+          skuCode: sku.code, barcode: sku.barcode,
+          specification: `${sku.specificationName}：${sku.specificationValue}`, productStatus: product.status, baseUnitId: product.baseUnitId, unitRates, unitNames,
           prices: { basePurchasePriceCents, baseOrderPriceCents, minimumSalePriceCents, maximumSalePriceCents, tierOnePriceCents, tierTwoPriceCents, storePriceCents, terminalPriceCents } }
   }))
   const customerSnapshots = customerBaseline.customers.map((customer): PricingCustomerSnapshot => {

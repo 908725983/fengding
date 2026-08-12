@@ -22,6 +22,8 @@ import type {
   PricingFormOptions,
   PricingMatrixRow,
   PricingSkuSnapshot,
+  PricingUnitPriceRow,
+  PricingWorkspace,
   ResolvedPrice,
   SalePriceField,
   StrategyAnchor,
@@ -120,9 +122,11 @@ function derivedValue(state: PricingFeatureState, sku: PricingSkuSnapshot, unitI
   const directGlobal = globalVersionAt(state, sku.skuId, unitId, field, at)
   const baseGlobal = unitId !== sku.baseUnitId ? globalVersionAt(state, sku.skuId, sku.baseUnitId, field, at) : null
   const override = state.unitOverrides.find((item) => item.skuId === sku.skuId && item.unitId === unitId)?.prices[field]
-  const candidate = directCustomer ?? baseCustomer ?? directGlobal ?? baseGlobal
-  if (candidate) return { value: candidate.valueCents === null ? null : Math.round(candidate.valueCents * (candidate.unitId === unitId ? 1 : rate)), referenceId: candidate.adjustmentId, converted: candidate.unitId !== unitId }
+  const customerCandidate = directCustomer ?? baseCustomer
+  if (customerCandidate) return { value: customerCandidate.valueCents === null ? null : Math.round(customerCandidate.valueCents * (customerCandidate.unitId === unitId ? 1 : rate)), referenceId: customerCandidate.adjustmentId, converted: customerCandidate.unitId !== unitId }
   if (override !== undefined) return { value: override, referenceId: null, converted: false }
+  if (directGlobal) return { value: directGlobal.valueCents, referenceId: directGlobal.adjustmentId, converted: false }
+  if (baseGlobal) return { value: baseGlobal.valueCents === null ? null : Math.round(baseGlobal.valueCents * rate), referenceId: baseGlobal.adjustmentId, converted: true }
   const base = baseValue(state, sku, field)
   return { value: base === null ? null : Math.round(base * rate), referenceId: null, converted: unitId !== sku.baseUnitId }
 }
@@ -139,6 +143,21 @@ function matrixAt(state: PricingFeatureState, sku: PricingSkuSnapshot, unitId: s
     minimumSalePriceCents: derivedValue(state, sku, unitId, 'minimumSalePriceCents', at, customerId).value,
     maximumSalePriceCents: derivedValue(state, sku, unitId, 'maximumSalePriceCents', at, customerId).value,
   }
+}
+
+function strategyAnchorValue(state: PricingFeatureState, sku: PricingSkuSnapshot, unitId: string, field: PriceField, at: string): number | null {
+  const rate = sku.unitRates[unitId]
+  if (!rate) throw new PricingDomainError('UNIT_UNAVAILABLE', '商品未配置该计量单位')
+  const directManual = versionAt(state, { scope: 'global', customerId: null, skuId: sku.skuId, unitId, field, at })
+  if (directManual) return directManual.valueCents
+  const override = state.unitOverrides.find((item) => item.skuId === sku.skuId && item.unitId === unitId)?.prices[field]
+  if (override !== undefined) return override
+  if (unitId !== sku.baseUnitId) {
+    const baseManual = versionAt(state, { scope: 'global', customerId: null, skuId: sku.skuId, unitId: sku.baseUnitId, field, at })
+    if (baseManual) return baseManual.valueCents === null ? null : Math.round(baseManual.valueCents * rate)
+  }
+  const base = baseValue(state, sku, field)
+  return base === null ? null : Math.round(base * rate)
 }
 
 function validateDraftAgainstCatalog(state: PricingFeatureState, catalog: PricingCatalogProvider, draft: PriceAdjustmentDraft): void {
@@ -261,6 +280,20 @@ export function createPricingService(dependencies: PricingServiceDependencies) {
     }
   }
 
+  function getPricingWorkspace(actor: PricingActor): PricingWorkspace {
+    assertRead(actor)
+    const state = repository.read()
+    const unitPrices: PricingUnitPriceRow[] = catalog.listSkus().flatMap((sku) => Object.entries(sku.unitRates).map(([unitId, conversionRate]) => ({
+      sku,
+      unitId,
+      unitName: sku.unitNames[unitId] ?? unitId,
+      conversionRate,
+      explicitOverride: state.unitOverrides.some((item) => item.skuId === sku.skuId && item.unitId === unitId),
+      values: priceValuesForActor(matrixAt(state, sku, unitId, state.clock), actor),
+    })))
+    return { clock: state.clock, unitPrices, strategies: actor.role === 'super-admin' ? structuredClone(state.strategies) : [] }
+  }
+
   function getDraftMatrix(actor: PricingActor, draft: PriceAdjustmentDraft): PricingMatrixRow[] {
     assertRead(actor)
     const state = repository.read()
@@ -334,9 +367,17 @@ export function createPricingService(dependencies: PricingServiceDependencies) {
       if (!sku.unitRates[unitId]) throw new PricingDomainError('UNIT_UNAVAILABLE', '商品未配置该计量单位')
       const nextMatrix = { ...matrixAt(state, sku, unitId, state.clock), ...prices }
       const issues = validatePriceValues(nextMatrix); if (issues.length) throw new PricingDomainError('FORMULA_INVALID', issues.map((item) => item.message).join('；'))
+      const previous = matrixAt(state, sku, unitId, state.clock)
       let item = state.unitOverrides.find((candidate) => candidate.skuId === skuId && candidate.unitId === unitId)
       if (item) Object.assign(item, { prices: structuredClone(prices), updatedBy: actor.actorId, updatedAt: state.clock })
       else { item = { id: dependencies.nextId('override'), enterpriseId: state.enterpriseId, skuId, unitId, prices: structuredClone(prices), updatedBy: actor.actorId, updatedAt: state.clock }; state.unitOverrides.push(item) }
+      for (const [field, value] of fieldEntries(prices)) {
+        if (previous[field] === value) continue
+        state.history.push({ id: dependencies.nextId('history'), enterpriseId: state.enterpriseId, scope: 'global', customerId: null,
+          adjustmentId: null, adjustmentNumber: `UNIT-${item.id}`, adjustmentType: 'unit-override', skuId, unitId, field,
+          previousValueCents: previous[field], valueCents: value, differenceCents: previous[field] === null || value === null ? null : value - previous[field]!,
+          effectiveAt: state.clock, expiredAt: null })
+      }
       return item
     })
   }
@@ -347,10 +388,10 @@ export function createPricingService(dependencies: PricingServiceDependencies) {
       const sku = catalog.getSku(input.skuId); if (!sku) throw new PricingDomainError('NOT_FOUND', 'SKU 不存在')
       if (!sku.unitRates[input.unitId]) throw new PricingDomainError('UNIT_UNAVAILABLE', '商品未配置该计量单位')
       if (!Number.isFinite(input.amplitude) || input.amplitude < 0) throw new PricingDomainError('FORMULA_INVALID', '调价幅度必须是非负数')
-      if (time(input.startsAt) < time(state.clock) || (input.endsAt && time(input.endsAt) <= time(input.startsAt))) throw new PricingDomainError('INVALID_EFFECTIVE_TIME', '策略起止时间无效')
+      const existing = input.id ? state.strategies.find((item) => item.id === input.id) : null
+      if ((time(input.startsAt) < time(state.clock) && (!existing || input.startsAt !== existing.startsAt)) || (input.endsAt && time(input.endsAt) <= time(input.startsAt))) throw new PricingDomainError('INVALID_EFFECTIVE_TIME', '策略起止时间无效')
       const duplicate = state.strategies.find((item) => item.id !== input.id && item.enabled && input.enabled && item.skuId === input.skuId && item.unitId === input.unitId && item.targetField === input.targetField)
       if (duplicate) throw new PricingDomainError('SCHEDULE_CONFLICT', '同一 SKU、单位和目标售价只能有一个启用策略')
-      const existing = input.id ? state.strategies.find((item) => item.id === input.id) : null
       if (input.id && !existing) throw new PricingDomainError('NOT_FOUND', '自动调价策略不存在')
       const item: AutoPriceStrategy = { ...structuredClone(input), id: existing?.id ?? dependencies.nextId('strategy'), enterpriseId: state.enterpriseId,
         lastRunAt: existing?.lastRunAt ?? null, lastError: null }
@@ -363,7 +404,7 @@ export function createPricingService(dependencies: PricingServiceDependencies) {
     for (const strategy of state.strategies.filter((item) => item.enabled && time(item.startsAt) <= time(state.clock) && (!item.endsAt || time(item.endsAt) > time(state.clock)) && item.lastRunAt !== state.clock)) {
       const sku = catalog.getSku(strategy.skuId)!
       const anchorField: PriceField = strategy.anchor === 'cost-price' ? 'costPriceCents' : strategy.anchor === 'base-purchase-price' ? 'basePurchasePriceCents' : 'baseOrderPriceCents'
-      const anchor = derivedValue(state, sku, strategy.unitId, anchorField, state.clock).value
+      const anchor = strategyAnchorValue(state, sku, strategy.unitId, anchorField, state.clock)
       try {
         const mode: FormulaMode = strategy.amplitudeType === 'percent' ? 'increase-percent' : 'increase-fixed'
         const value = applyPriceFormula(anchor, mode, strategy.amplitude)
@@ -436,5 +477,5 @@ export function createPricingService(dependencies: PricingServiceDependencies) {
   }
   function getClock(actor: PricingActor): string { assertRead(actor); return repository.read().clock }
 
-  return { listAdjustments, getAdjustment, getFormOptions, getDraftMatrix, applyAdjustmentFormula, createAdjustment, updateAdjustment, deleteAdjustment, saveUnitOverride, saveStrategy, advanceClock, resolvePrice, listHistory, getClock }
+  return { listAdjustments, getAdjustment, getFormOptions, getPricingWorkspace, getDraftMatrix, applyAdjustmentFormula, createAdjustment, updateAdjustment, deleteAdjustment, saveUnitOverride, saveStrategy, advanceClock, resolvePrice, listHistory, getClock }
 }

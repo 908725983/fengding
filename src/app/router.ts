@@ -16,6 +16,8 @@ import PriceAdjustmentListView from '@/features/products/pricing/views/PriceAdju
 import PriceHistoryView from '@/features/products/pricing/views/PriceHistoryView.vue'
 import PriceAdjustmentFormView from '@/features/products/pricing/views/PriceAdjustmentFormView.vue'
 import PriceAdjustmentDetailView from '@/features/products/pricing/views/PriceAdjustmentDetailView.vue'
+import UnitPriceView from '@/features/products/pricing/views/UnitPriceView.vue'
+import PriceStrategyView from '@/features/products/pricing/views/PriceStrategyView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -44,6 +46,8 @@ export const router = createRouter({
     { path: '/products/prices/customer-adjustments/:adjustmentId/edit', name: 'price-customer-edit', component: PriceAdjustmentFormView, props: { type: 'customer' } },
     { path: '/products/prices/customer-adjustments/:adjustmentId', name: 'price-customer-detail', component: PriceAdjustmentDetailView, props: { type: 'customer' } },
     { path: '/products/prices/history', name: 'price-history', component: PriceHistoryView },
+    { path: '/products/prices/order-unit-prices', name: 'price-unit-prices', component: UnitPriceView },
+    { path: '/products/prices/strategies', name: 'price-strategies', component: PriceStrategyView },
     { path: '/products/:productId/edit', name: 'product-edit', component: ProductFormView },
     { path: '/products/:productId', name: 'product-detail', component: ProductDetailView },
     { path: '/:module(orders|products|procurement|inventory|customers|finance|settings)', name: 'module', component: ModulePlaceholderView },

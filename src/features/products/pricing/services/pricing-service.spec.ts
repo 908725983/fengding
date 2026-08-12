@@ -157,4 +157,33 @@ describe('PRD-002 pricing service', () => {
       tierOnePriceCents: 1080,
     })
   })
+
+  it('uses an explicit sales-unit override before a converted base-unit version and writes history', () => {
+    const workspace = session.service.getPricingWorkspace(admin)
+    const box = workspace.unitPrices.find((item) => item.sku.skuId === 'sku-2' && item.unitId === 'unit-box')
+    expect(box).toMatchObject({ explicitOverride: true, conversionRate: 12, values: { baseOrderPriceCents: 5600 } })
+    const saved = session.service.saveUnitOverride(admin, 'sku-1', 'unit-piece', { terminalPriceCents: 1550 })
+    expect(saved.prices.terminalPriceCents).toBe(1550)
+    expect(session.service.getPricingWorkspace(admin).unitPrices.find((item) => item.sku.skuId === 'sku-1' && item.unitId === 'unit-piece')?.values.terminalPriceCents).toBe(1550)
+    expect(session.service.listHistory(admin, { adjustmentType: 'unit-override' }).items[0]).toMatchObject({
+      adjustmentNumber: `UNIT-${saved.id}`, previousValueCents: 1600, valueCents: 1550, differenceCents: -50,
+    })
+  })
+
+  it('allows an already-started strategy to be stopped without rewriting its start time', () => {
+    session.service.advanceClock(admin, '2026-08-10T10:30:00+08:00')
+    const current = session.repository.read().strategies[0]!
+    const stopped = session.service.saveStrategy(admin, { ...current, enabled: false })
+    expect(stopped).toMatchObject({ id: current.id, enabled: false, startsAt: current.startsAt })
+  })
+
+  it('does not chain one automatic strategy result into another strategy anchor', () => {
+    session.service.saveStrategy(admin, { skuId: 'sku-1', unitId: 'unit-piece', targetField: 'baseOrderPriceCents', anchor: 'cost-price',
+      amplitudeType: 'percent', amplitude: 50, enabled: true, startsAt: '2026-08-10T10:00:00+08:00', endsAt: null })
+    session.service.saveStrategy(admin, { skuId: 'sku-1', unitId: 'unit-piece', targetField: 'terminalPriceCents', anchor: 'base-order-price',
+      amplitudeType: 'percent', amplitude: 20, enabled: true, startsAt: '2026-08-10T10:00:00+08:00', endsAt: null })
+    session.service.advanceClock(admin, '2026-08-10T10:00:00+08:00')
+    const terminal = session.service.listHistory(admin, { adjustmentType: 'strategy' }).items.find((item) => item.field === 'terminalPriceCents')
+    expect(terminal?.valueCents).toBe(1440)
+  })
 })

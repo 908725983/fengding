@@ -160,12 +160,31 @@ export interface PricingSkuSnapshot {
   skuId: EntityId
   productId: EntityId
   productName: string
+  categoryId: EntityId
+  categoryName: string
   skuCode: string
+  barcode: string | null
   specification: string
   productStatus: ProductStatus
   baseUnitId: EntityId
   unitRates: Record<EntityId, number>
+  unitNames: Record<EntityId, string>
   prices: Omit<PriceValues, 'costPriceCents'>
+}
+
+export interface PricingUnitPriceRow {
+  sku: PricingSkuSnapshot
+  unitId: EntityId
+  unitName: string
+  conversionRate: number
+  explicitOverride: boolean
+  values: PriceValues
+}
+
+export interface PricingWorkspace {
+  clock: string
+  unitPrices: PricingUnitPriceRow[]
+  strategies: AutoPriceStrategy[]
 }
 
 export interface PricingCustomerSnapshot {
