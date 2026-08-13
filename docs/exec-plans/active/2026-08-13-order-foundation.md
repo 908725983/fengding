@@ -54,7 +54,10 @@
 - [x] 登记 `DEC-ORD-005～013`，并为既有 `DEC-ORD-001` 与新增决策形成一次性推荐方案。
 - [x] specification 机械校验通过：Harness 识别 45 个功能切片、91 个决策门、8 份领域规格和 8 份需求快照；`git diff --check` 通过，变更仅含 Harness 文档。
 - [x] 用户回复“ORD-001 全部按推荐方案执行”；十组决策按推荐结论写回，切片提升为 `ready` 并进入 implementation。
-- [ ] 当前步骤：运行决策写回 Harness 门禁，保存独立检查点；然后实现订单 Types、Schema、baseline、事务 Repository 与核心 Service。
+- [x] 决策写回 Harness 门禁通过并保存 Git 检查点 `80533d8`。
+- [x] 完成订单 Types、运行时 Schema、32 条 baseline、事务 Repository、组合查询、权限遮蔽、跨域不可用态、CSV 和幂等原子打印 Service；3 个订单测试文件/13 条测试通过。
+- [x] 全仓验证通过：Harness、类型检查、43/43 测试文件、153/153 测试、生产构建；Mock reset 后 baseline/work SHA-256 均为 `28652886C3447BFB4182BBE4CDE826AB1796CEF72B48B51DE639B5114232F34E`。
+- [ ] 当前步骤：保存领域核心检查点；随后实现订单 Runtime、路由、列表页面与六场景状态。
 
 ## 开放决策
 
@@ -86,4 +89,4 @@
 
 ## 中断恢复点
 
-当前进入 implementation，尚未修改订单业务代码或 Mock。完整契约已写入 `orders.md`，`DEC-ORD-001/005～013` 均为 `decided`，`ORD-001` 为 `ready`。恢复时先核对本计划仍为唯一 active plan、Git 现场和决策门禁；下一步运行 Harness 校验并保存决策写回检查点，然后实现订单 Types、Schema、baseline、事务 Repository 与核心 Service，不提前实现 `ORD-002～006`。
+当前处于 implementation。决策写回检查点为 `80533d8`；订单领域核心、baseline 与 13 条测试已完成，全仓 43/43 测试文件、153/153 测试及构建通过，Mock 哈希见进度日志。恢复时先保存“领域核心”独立检查点；随后实现订单 Runtime、路由、列表页面与 normal/empty/error/slow/permission-denied/partial-failure，不提前实现 `ORD-002～006`。

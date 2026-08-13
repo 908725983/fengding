@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fengding://mock/ORD-001",
+  "title": "ORD-001 客户订单列表与详情 Mock 契约",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "orders", "printRequests"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "orders": { "type": "array", "minItems": 31 },
+    "printRequests": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+

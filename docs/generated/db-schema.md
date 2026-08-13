@@ -2,15 +2,15 @@
 
 - 来源：`mock/schemas/` 与 `mock/fixtures/baseline.json`
 - 生成方式：`npm run docs:generate`
-- 最近刷新：2026-08-12
+- 最近刷新：2026-08-13
 
 > 本文件由脚本生成，禁止手工编辑“生成内容”。当前原型没有数据库，本页描述的是已通过字段准备门的 Mock 契约，不是生产表结构。
 
 ## 生成内容
 
-- Mock schema 版本：5
+- Mock schema 版本：6
 - 默认场景：normal
-- 已登记功能数据：`CUS-001`、`INV-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`
+- 已登记功能数据：`CUS-001`、`INV-001`、`ORD-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`
 
 ### mock/schemas/authorization-foundation.schema.json
 
@@ -122,6 +122,27 @@
     "warehouses": { "type": "array" }, "locations": { "type": "array" }, "thresholds": { "type": "array" },
     "openingBalances": { "type": "array" }, "batches": { "type": "array" }, "balances": { "type": "array" },
     "movements": { "type": "array" }, "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+```
+
+### mock/schemas/order-foundation.schema.json
+
+- SHA-256：`7b0fc68c1b79f7385e02ff6ce8100b2692db8a6733e96231d4bdfb44d6af2819`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fengding://mock/ORD-001",
+  "title": "ORD-001 客户订单列表与详情 Mock 契约",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "orders", "printRequests"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "orders": { "type": "array", "minItems": 31 },
+    "printRequests": { "type": "array" }
   },
   "additionalProperties": false
 }
