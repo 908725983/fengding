@@ -38,12 +38,17 @@ import WarehouseFormView from '@/features/inventory/views/WarehouseFormView.vue'
 import LocationListView from '@/features/inventory/views/LocationListView.vue'
 import LocationFormView from '@/features/inventory/views/LocationFormView.vue'
 import { guardInventorySubroute } from '@/features/inventory/runtime/inventory-access'
+import OrderListView from '@/features/orders/views/OrderListView.vue'
+import OrderDetailView from '@/features/orders/views/OrderDetailView.vue'
+import { guardOrderSubroute } from '@/features/orders/runtime/order-access'
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', redirect: '/dashboard' },
     { path: '/dashboard', name: 'dashboard', component: HarnessOverviewView },
+    { path: '/orders', name: 'order-list', component: OrderListView },
+    { path: '/orders/:orderId', name: 'order-detail', component: OrderDetailView },
     { path: '/customers', name: 'customer-list', component: CustomerListView },
     { path: '/customers/new', name: 'customer-new', component: CustomerFormView },
     { path: '/customers/categories', name: 'customer-categories', component: CustomerCategoryView },
@@ -102,6 +107,8 @@ export const router = createRouter({
 })
 
 router.beforeEach((to) => {
+  const orderResult = guardOrderSubroute(to.path)
+  if (orderResult !== true) return orderResult
   const customerResult = guardCustomerSubroute(to.path)
   if (customerResult !== true) return customerResult
   const productResult = guardProductSubroute(to.path)

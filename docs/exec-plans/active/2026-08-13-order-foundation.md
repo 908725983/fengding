@@ -57,7 +57,11 @@
 - [x] 决策写回 Harness 门禁通过并保存 Git 检查点 `80533d8`。
 - [x] 完成订单 Types、运行时 Schema、32 条 baseline、事务 Repository、组合查询、权限遮蔽、跨域不可用态、CSV 和幂等原子打印 Service；3 个订单测试文件/13 条测试通过。
 - [x] 全仓验证通过：Harness、类型检查、43/43 测试文件、153/153 测试、生产构建；Mock reset 后 baseline/work SHA-256 均为 `28652886C3447BFB4182BBE4CDE826AB1796CEF72B48B51DE639B5114232F34E`。
-- [ ] 当前步骤：保存领域核心检查点；随后实现订单 Runtime、路由、列表页面与六场景状态。
+- [x] 领域核心保存为 Git 检查点 `efb07b0`。
+- [x] 完成订单路由守卫、Pinia Store、列表、详情、四 Tab、六场景、角色切换、CSV、教程与打印预览；订单自动测试增至 6 个文件/21 条。
+- [x] 页面层全仓验证通过：Harness、类型检查、46/46 测试文件、161/161 测试和生产构建。
+- [x] 浏览器 1280×800 验收：列表/详情无页面级横向溢出，宽表内部滚动；筛选 URL 恢复、四 Tab unavailable、六场景、仓库/财务遮蔽、打印取消/确认计数、partial-failure 局部隔离均通过；控制台无 warning/error。截图：`docs/exec-plans/evidence/2026-08-13-ord001-list-1280.png`、`2026-08-13-ord001-detail-1280.png`。
+- [ ] 当前步骤：保存 Runtime/UI 检查点；进入 verification，运行最终全仓验证、Mock 重置、干净启动和文档/状态收尾。
 
 ## 开放决策
 
@@ -89,4 +93,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation。决策写回检查点为 `80533d8`；订单领域核心、baseline 与 13 条测试已完成，全仓 43/43 测试文件、153/153 测试及构建通过，Mock 哈希见进度日志。恢复时先保存“领域核心”独立检查点；随后实现订单 Runtime、路由、列表页面与 normal/empty/error/slow/permission-denied/partial-failure，不提前实现 `ORD-002～006`。
+当前处于 implementation 收尾。决策写回检查点 `80533d8`，领域核心检查点 `efb07b0`；Runtime/UI 与浏览器验收均已完成，待保存第三个检查点。恢复时先运行 `npm run verify` 与 Mock 重置哈希，执行干净启动 `/orders` HTTP 200，再更新质量事实、将 `ORD-001` 标记 passing 并归档计划；不得提前实现 `ORD-002～006`。

@@ -27,7 +27,6 @@ export function createOrderMockSession(scenarioName:OrderScenarioName='normal'){
   const repository=new InMemoryOrderRepository(state);let sequence=1
   const service=createOrderService({repository,customers:createOrderCustomerProvider(scenarioName==='partial-failure'),finance:createUnavailableOrderFinanceProvider(scenarioName==='partial-failure'),now:()=>baseline.clock,nextId:(kind)=>`${kind}-runtime-${sequence++}`})
   const definition=scenarios[scenarioName]
-  async function run<T>(operation:()=>T):Promise<T>{await new Promise((resolve)=>setTimeout(resolve,definition.latencyMs));if(scenarioName==='error')throw new OrderMockError('MOCK_INTERNAL_ERROR','原型模拟：订单服务暂时不可用');return operation()}
+  async function run<T>(operation:()=>T):Promise<T>{await new Promise((resolve)=>setTimeout(resolve,definition.latencyMs));if(scenarioName==='error')throw new OrderMockError('MOCK_INTERNAL_ERROR','原型模拟：订单服务暂时不可用');if(scenarioName==='permission-denied')throw new OrderMockError('PERMISSION_DENIED','原型模拟：当前会话没有订单查看权限');return operation()}
   return{scenarioName,repository,service,run}
 }
-
