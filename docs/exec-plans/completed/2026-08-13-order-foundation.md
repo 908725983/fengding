@@ -2,8 +2,9 @@
 
 - 类型：business-feature
 - 功能：ORD-001
-- 当前阶段：implementation
-- 状态：active
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-13
 - 最近更新：2026-08-13
 
 ## 目标
@@ -61,7 +62,11 @@
 - [x] 完成订单路由守卫、Pinia Store、列表、详情、四 Tab、六场景、角色切换、CSV、教程与打印预览；订单自动测试增至 6 个文件/21 条。
 - [x] 页面层全仓验证通过：Harness、类型检查、46/46 测试文件、161/161 测试和生产构建。
 - [x] 浏览器 1280×800 验收：列表/详情无页面级横向溢出，宽表内部滚动；筛选 URL 恢复、四 Tab unavailable、六场景、仓库/财务遮蔽、打印取消/确认计数、partial-failure 局部隔离均通过；控制台无 warning/error。截图：`docs/exec-plans/evidence/2026-08-13-ord001-list-1280.png`、`2026-08-13-ord001-detail-1280.png`。
-- [ ] 当前步骤：保存 Runtime/UI 检查点；进入 verification，运行最终全仓验证、Mock 重置、干净启动和文档/状态收尾。
+- [x] Runtime/UI 保存为 Git 检查点 `5c96588`，计划进入 verification。
+- [x] 最终 `npm run verify` 通过：Harness、类型检查、46/46 测试文件、161/161 测试和生产构建；仅保留既有 bundle 大小提示。
+- [x] `npm run mock:reset` 连续两次通过；baseline/work SHA-256 均为 `28652886C3447BFB4182BBE4CDE826AB1796CEF72B48B51DE639B5114232F34E`。
+- [x] 干净启动 `http://127.0.0.1:4180/orders` HTTP 200 且包含应用挂载点。
+- [x] 产品目录、总体顺序和质量评分已同步；`ORD-001` 标记 passing，下一切片为仍处于 source-only 的 `ORD-002`。
 
 ## 开放决策
 
@@ -93,4 +98,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation 收尾。决策写回检查点 `80533d8`，领域核心检查点 `efb07b0`；Runtime/UI 与浏览器验收均已完成，待保存第三个检查点。恢复时先运行 `npm run verify` 与 Mock 重置哈希，执行干净启动 `/orders` HTTP 200，再更新质量事实、将 `ORD-001` 标记 passing 并归档计划；不得提前实现 `ORD-002～006`。
+`ORD-001` 已完成。独立回退点依次为规格 `219d068`、决策写回 `80533d8`、领域核心 `efb07b0`、Runtime/UI `5c96588`；最终验证、Mock 哈希、1280px 截图、控制台和干净启动证据均在本计划及质量评分中。下一次恢复不得继续修改本计划；应按总体顺序为 `ORD-002` 新建 specification active plan，先处理其价格组合、库存预占和预收占用决策门，禁止把 `ORD-001` 的只读快照能力误当成建单/审核/出库已完成。

@@ -34,6 +34,7 @@
 | `PRD-003` | 商品授权 | passing | `../exec-plans/completed/2026-08-12-product-authorization.md` |
 | `PRD-004` | 铺货方案与订单模板 | passing | `../exec-plans/completed/2026-08-12-product-distribution-templates.md` |
 | `INV-001` | 库存查询、仓库、库位与批次 | passing | `../exec-plans/completed/2026-08-12-inventory-foundation.md` |
+| `ORD-001` | 客户订单列表与详情 | passing | `../exec-plans/completed/2026-08-13-order-foundation.md` |
 
 ## 功能切片目录
 
