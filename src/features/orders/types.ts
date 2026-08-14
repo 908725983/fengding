@@ -1,6 +1,6 @@
 export type EntityId = string
 export type OrderRole = 'super-admin' | 'sales-supervisor' | 'salesperson' | 'warehouse' | 'finance'
-export type OrderPermission = 'orders.create' | 'orders.edit' | 'orders.edit-price' | 'orders.add-gift' | 'orders.share' | 'orders.review' | 'orders.finance-review' | 'orders.return' | 'orders.cancel' | 'orders.outbound' | 'orders.void-outbound' | 'orders.ship' | 'orders.confirm-receipt' | 'orders.view-difference' | 'orders.confirm-difference' | 'orders.print-outbound'
+export type OrderPermission = 'orders.create' | 'orders.edit' | 'orders.edit-price' | 'orders.add-gift' | 'orders.share' | 'orders.review' | 'orders.finance-review' | 'orders.return' | 'orders.cancel' | 'orders.outbound' | 'orders.void-outbound' | 'orders.ship' | 'orders.confirm-receipt' | 'orders.view-difference' | 'orders.confirm-difference' | 'orders.print-outbound' | 'orders.view-return' | 'orders.create-return' | 'orders.edit-return' | 'orders.edit-return-price' | 'orders.review-return' | 'orders.void-return' | 'orders.print-return' | 'orders.export-return' | 'orders.confirm-return-receipt' | 'orders.void-return-receipt'
 export type OrderStatus = 'pending-order-review' | 'pending-finance-review' | 'approved' | 'outbound-in-progress' | 'outbound' | 'shipped' | 'completed' | 'canceled'
 export type SettlementMethod = 'cash' | 'monthly' | 'terms'
 export type DeliveryMethod = 'door-delivery' | 'logistics' | 'customer-pickup'
@@ -119,7 +119,54 @@ export interface OrderFeatureState {
   outbounds?: SalesOutbound[]; differences?: DifferenceDocument[]; shipments?: ShipmentRecord[]; receipts?: ReceiptRecord[]
   receivables?: OrderReceivableRecord[]; fulfillmentRequests?: OrderFulfillmentRequest[]
   nextOutboundSequenceByDate?: Record<string, number>; nextDifferenceSequenceByDate?: Record<string, number>
+  returns?: CustomerReturn[]; returnRequests?: CustomerReturnRequest[]; nextReturnSequenceByDate?: Record<string, number>
 }
+
+export type CustomerReturnType = 'whole' | 'partial'
+export type CustomerReturnSourceKind = 'customer-return' | 'short-shipment-refund'
+export type CustomerReturnStatus = 'pending-review' | 'returned' | 'approved' | 'completed' | 'cancelled'
+export type ReturnReceivingStatus = 'pending' | 'received'
+export type ReturnRefundStatus = 'not-created' | 'pending' | 'refunded' | 'rejected' | 'not-required'
+export type ReturnRefundPreference = 'original' | 'balance' | 'cash'
+export type CustomerReturnAction = 'created' | 'updated' | 'resubmitted' | 'approved' | 'returned' | 'cancelled' | 'received' | 'receipt-voided' | 'refund-created' | 'refunded' | 'refund-rejected'
+export interface CustomerReturnItem {
+  id: EntityId; orderLineId: EntityId; skuId: EntityId; skuCodeSnapshot: string; productNameSnapshot: string
+  specificationSnapshot: string; unitSnapshot: UnitSnapshot; lineKind: OrderLineKind
+  originalOrderQuantityMilli: number; effectiveOutboundQuantityMilli: number; reservedReturnQuantityMilli: number
+  returnQuantityMilli: number; originalDealUnitPriceCents: number; allocatedOrderDiscountCents: number
+  defaultReturnAmountCents: number; returnAmountCents: number
+}
+export interface CustomerReturnActivityLog { id: EntityId; action: CustomerReturnAction; actorSnapshot: NamedSnapshot & { role: OrderRole }; occurredAt: string; summary: string; reason: string | null; requestId: string }
+export interface ReturnInboundProjection {
+  sourceNo: string; movementIds: EntityId[]; warehouseId: EntityId; locationId: EntityId; receivedAt: string
+  receivedBy: NamedSnapshot; voidInfo: { reason: string; voidedAt: string; voidedBy: NamedSnapshot; reversalMovementIds: EntityId[] } | null
+}
+export interface ReturnRefundProjection {
+  adjustmentId: EntityId; refundId: EntityId | null; refundNo: string | null; requestedAmountCents: number
+  creditAmountCents: number; obligationAmountCents: number; refundedAmountCents: number; status: ReturnRefundStatus
+}
+export interface CustomerReturn {
+  id: EntityId; enterpriseId: EntityId; returnNo: string; sourceKind: CustomerReturnSourceKind
+  orderId: EntityId; orderNoSnapshot: string; customerSnapshot: CustomerSnapshot; salespersonSnapshot: NamedSnapshot
+  warehouseSnapshot: WarehouseSnapshot; returnType: CustomerReturnType; refundPreference: ReturnRefundPreference
+  reason: string; remark: string | null; priceAdjustmentReason: string | null; items: CustomerReturnItem[]
+  grossAmountCents: number; allocatedOrderDiscountCents: number; returnAmountCents: number
+  status: CustomerReturnStatus; receivingStatus: ReturnReceivingStatus; refundStatus: ReturnRefundStatus
+  inboundProjection: ReturnInboundProjection | null; refundProjection: ReturnRefundProjection | null
+  reviewRound: number; activityLogs: CustomerReturnActivityLog[]; createdAt: string; createdBy: NamedSnapshot
+  updatedAt: string; version: number
+}
+export interface CustomerReturnRequest { requestId: string; action: CustomerReturnAction; returnId: EntityId; appliedAt: string }
+export interface CustomerReturnLineDraft { orderLineId: EntityId; returnQuantityMilli: number; returnAmountCents?: number }
+export interface CustomerReturnDraft {
+  orderId: EntityId; warehouseId: EntityId; returnType: CustomerReturnType; refundPreference: ReturnRefundPreference
+  reason: string; remark: string | null; priceAdjustmentReason: string | null; lines: CustomerReturnLineDraft[]
+}
+export interface SaveCustomerReturnInput { requestId: string; returnId?: EntityId; expectedVersion?: number; draft: CustomerReturnDraft }
+export interface ReviewCustomerReturnInput { requestId: string; returnId: EntityId; expectedVersion: number; action: 'approve' | 'return'; reason?: string | null }
+export interface CancelCustomerReturnInput { requestId: string; returnId: EntityId; expectedVersion: number; reason: string }
+export interface CustomerReturnQuery { statuses?: CustomerReturnStatus[]; createdFrom?: string; createdTo?: string; orderNo?: string; keyword?: string; returnType?: CustomerReturnType; warehouseId?: EntityId; page?: number; pageSize?: 10 | 30 | 50 | 100 }
+export interface CustomerReturnListRow { value: CustomerReturn; canEdit: boolean; canReview: boolean; canCancel: boolean; amountsVisible: boolean }
 
 export interface OrderQuery {
   statuses?: OrderStatus[]; orderedFrom?: string; orderedTo?: string; keyword?: string; customerCategoryId?: EntityId

@@ -1,4 +1,5 @@
 import type { CustomerOrder, OrderDraft, OrderFeatureState, OrderQuery } from '../types'
+import { validateReturnState } from './order-return-schema'
 
 export interface OrderValidationIssue { path: string; message: string }
 export class OrderValidationError extends Error {
@@ -89,6 +90,7 @@ export function assertOrderFeatureState(state: OrderFeatureState): void {
   const fulfillmentRequestIds=(state.fulfillmentRequests??[]).map((item)=>item.requestId);if(new Set(fulfillmentRequestIds).size!==fulfillmentRequestIds.length)issues.push({path:'fulfillmentRequests.requestId',message:'必须唯一'});(state.fulfillmentRequests??[]).forEach((item,index)=>{required(issues,`fulfillmentRequests.${index}.requestId`,item.requestId,100);if(!item.targetIds.length)issues.push({path:`fulfillmentRequests.${index}.targetIds`,message:'不能为空'});if(!iso(item.appliedAt))issues.push({path:`fulfillmentRequests.${index}.appliedAt`,message:'时间无效'})})
   Object.entries(state.nextOrderSequenceByDate??{}).forEach(([day,value])=>{if(!/^\d{6}$/.test(day)||!Number.isSafeInteger(value)||value<1)issues.push({path:`nextOrderSequenceByDate.${day}`,message:'日期序列无效'})})
   Object.entries(state.nextOutboundSequenceByDate??{}).forEach(([day,value])=>{if(!/^\d{6}$/.test(day)||!Number.isSafeInteger(value)||value<1)issues.push({path:`nextOutboundSequenceByDate.${day}`,message:'日期序列无效'})});Object.entries(state.nextDifferenceSequenceByDate??{}).forEach(([day,value])=>{if(!/^\d{6}$/.test(day)||!Number.isSafeInteger(value)||value<1)issues.push({path:`nextDifferenceSequenceByDate.${day}`,message:'日期序列无效'})})
+  issues.push(...validateReturnState(state))
   if(issues.length) throw new OrderValidationError(issues)
 }
 

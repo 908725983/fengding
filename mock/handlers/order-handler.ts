@@ -14,6 +14,7 @@ import type {
 import { InMemoryOrderRepository } from '../../src/features/orders/repositories/order-repository'
 import { createOrderService } from '../../src/features/orders/services/order-service'
 import { createOrderFulfillmentService } from '../../src/features/orders/services/order-fulfillment-service'
+import { createOrderReturnService } from '../../src/features/orders/services/order-return-service'
 import { InMemoryInventoryRepository } from '../../src/features/inventory/repositories/inventory-repository'
 import { createInventoryService } from '../../src/features/inventory/services/inventory-service'
 import { createPricingMockSession } from './pricing-handler'
@@ -30,6 +31,7 @@ function upgradeOrderReviewBaseline(source:OrderFeatureState):OrderFeatureState{
   const state=structuredClone(source)
   state.reviewRequests=[]
   state.outbounds=[];state.differences=[];state.shipments=[];state.receipts=[];state.receivables=[];state.fulfillmentRequests=[];state.nextOutboundSequenceByDate={};state.nextDifferenceSequenceByDate={}
+  state.returns=[];state.returnRequests=[];state.nextReturnSequenceByDate={}
   state.orders.forEach((order)=>{order.reviewRound=1;order.reviewRecords=[];order.specialPrice??=false;order.specialPriceReason??=null;order.specialPriceEvidence??=[]})
   for(const id of ['order-009','order-010']){const order=state.orders.find((item)=>item.id===id);if(order){order.specialPrice=true;order.specialPriceReason='演示特价审批：客户专项价格申请（虚构数据）';order.specialPriceEvidence=[]}}
   for(const id of ['order-002','order-010']){const order=state.orders.find((item)=>item.id===id);if(order){const occurredAt=order.orderedAt;order.reviewRecords=[{id:`review-baseline-${id}`,round:1,stage:'order',outcome:'approved',actorSnapshot:{id:'sales-supervisor-demo',name:'演示销售主管',role:'sales-supervisor'},reason:null,fromStatus:'pending-order-review',toStatus:'pending-finance-review',specialPrice:order.specialPrice??false,releasedPrepaymentCents:0,occurredAt,requestId:`baseline-review-${id}`}];order.activityLogs.push({id:`activity-review-${id}`,action:'order.review-approved',actor:{id:'sales-supervisor-demo',name:'演示销售主管'},occurredAt,summary:'业务审核通过'})}}
@@ -61,7 +63,7 @@ const scenarios={normal:normalScenario,empty:emptyScenario,error:errorScenario,s
 export class OrderMockError extends Error{constructor(readonly code:string,message:string){super(message);this.name='OrderMockError'}}
 
 export function createOrderMockSession(scenarioName:OrderScenarioName='normal'){
-  const state=structuredClone(orderBaseline);if(scenarioName==='empty'){state.orders=[];state.printRequests=[];state.saveRequests=[];state.shares=[]}
+  const state=structuredClone(orderBaseline);if(scenarioName==='empty'){state.orders=[];state.printRequests=[];state.saveRequests=[];state.shares=[];state.returns=[];state.returnRequests=[];state.nextReturnSequenceByDate={}}
   const repository=new InMemoryOrderRepository(state);let sequence=1;let tokenSequence=1;let concurrentApplied=false
   // PRD-003 的基线在 10:00 结束“仅可见”覆盖；ORD-002 normal 从该边界后开始，保证存在一条真实可订黄金路径。
   const orderClock=scenarioName==='boundary'?'2026-08-10T09:59:00+08:00':'2026-08-10T10:00:00+08:00'
@@ -84,10 +86,11 @@ export function createOrderMockSession(scenarioName:OrderScenarioName='normal'){
   const fulfillment=createOrderFulfillmentService({repository,inventoryRepository,inventory,staff,now:()=>orderClock,nextId:(kind)=>`${kind}-runtime-${sequence++}`,inventoryGate:()=>seeding?'available':scenarioName==='partial-failure'?'unavailable':scenarioName==='boundary'?'locked':'available',financeGate:()=>seeding?'available':scenarioName==='partial-failure'?'unavailable':'available',financeReceivables})
   if(scenarioName!=='empty')seedFulfillmentBaseline(repository,fulfillment)
   seeding=false
+  const returns=createOrderReturnService({repository,now:()=>orderClock,nextId:(kind)=>`${kind}-runtime-${sequence++}`,actorName:(actor)=>staff.getStaff(actor.actorId)?.name??actor.actorId,getWarehouse:(id)=>{const value=inventoryRepository.read().warehouses.find((item)=>item.id===id);return value?{id:value.id,code:value.code,name:value.name,status:value.status}:null}})
   const definition=scenarios[scenarioName]
   async function run<T>(operation:()=>T):Promise<T>{await new Promise((resolve)=>setTimeout(resolve,definition.latencyMs));if(scenarioName==='error')throw new OrderMockError('MOCK_INTERNAL_ERROR','原型模拟：订单服务暂时不可用');if(scenarioName==='permission-denied')throw new OrderMockError('PERMISSION_DENIED','原型模拟：当前会话没有订单查看权限');return operation()}
   function simulateConcurrentEdit(orderId:string):void{if(scenarioName!=='concurrent'||concurrentApplied)return;repository.transact((current)=>{const order=current.orders.find((item)=>item.id===orderId);if(order)order.updatedAt='2026-08-10T10:01:00+08:00'});concurrentApplied=true}
-  return{scenarioName,repository,inventoryRepository,financeRepository,financeService,service,fulfillment,run,simulateConcurrentEdit}
+  return{scenarioName,repository,inventoryRepository,financeRepository,financeService,service,fulfillment,returns,run,simulateConcurrentEdit}
 }
 
 function seedFulfillmentBaseline(repository:InMemoryOrderRepository,fulfillment:ReturnType<typeof createOrderFulfillmentService>):void{
