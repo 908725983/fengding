@@ -18,7 +18,15 @@ import { createAuthorizationMockSession } from './authorization-handler'
 import { createDistributionMockSession, distributionBaseline } from './distribution-handler'
 
 const featureData=baseline.featureData as Record<string,unknown>
-export const orderBaseline=structuredClone(featureData['ORD-001']) as OrderFeatureState
+function upgradeOrderReviewBaseline(source:OrderFeatureState):OrderFeatureState{
+  const state=structuredClone(source)
+  state.reviewRequests=[]
+  state.orders.forEach((order)=>{order.reviewRound=1;order.reviewRecords=[];order.specialPrice??=false;order.specialPriceReason??=null;order.specialPriceEvidence??=[]})
+  for(const id of ['order-009','order-010']){const order=state.orders.find((item)=>item.id===id);if(order){order.specialPrice=true;order.specialPriceReason='演示特价审批：客户专项价格申请（虚构数据）';order.specialPriceEvidence=[]}}
+  for(const id of ['order-002','order-010']){const order=state.orders.find((item)=>item.id===id);if(order){const occurredAt=order.orderedAt;order.reviewRecords=[{id:`review-baseline-${id}`,round:1,stage:'order',outcome:'approved',actorSnapshot:{id:'sales-supervisor-demo',name:'演示销售主管',role:'sales-supervisor'},reason:null,fromStatus:'pending-order-review',toStatus:'pending-finance-review',specialPrice:order.specialPrice??false,releasedPrepaymentCents:0,occurredAt,requestId:`baseline-review-${id}`}];order.activityLogs.push({id:`activity-review-${id}`,action:'order.review-approved',actor:{id:'sales-supervisor-demo',name:'演示销售主管'},occurredAt,summary:'业务审核通过'})}}
+  return state
+}
+export const orderBaseline=upgradeOrderReviewBaseline(structuredClone(featureData['ORD-001']) as OrderFeatureState)
 const customerBaseline=structuredClone(featureData['CUS-001']) as CustomerFeatureState
 const productBaseline=structuredClone(featureData['PRD-001']) as ProductFeatureState
 const inventoryBaseline=structuredClone(featureData['INV-001']) as InventoryFeatureState
