@@ -30,6 +30,12 @@ describe('ORD-005 inventory/finance coordinator', () => {
     expect(session.repository.read()).toEqual(beforeOrder); expect(session.inventoryRepository.read()).toEqual(beforeInventory); expect(session.financeRepository.read()).toEqual(beforeFinance)
   })
 
+  it('does not write any repository when a required cross-domain provider is unavailable', () => {
+    const session = createOrderMockSession('partial-failure'); const value = approvedReturn(session); const beforeOrder = session.repository.read(); const beforeInventory = session.inventoryRepository.read(); const beforeFinance = session.financeRepository.read()
+    expect(() => session.returnCoordinator.confirmInbound(warehouse, { requestId: 'coord-provider-down', returnId: value.id, expectedVersion: value.version, locationId: 'location-main-a' })).toThrowError(expect.objectContaining({ code: 'DATA_PROVIDER_UNAVAILABLE' }))
+    expect(session.repository.read()).toEqual(beforeOrder); expect(session.inventoryRepository.read()).toEqual(beforeInventory); expect(session.financeRepository.read()).toEqual(beforeFinance)
+  })
+
   it('voids inbound and reverses the pending credit before payment, preserving immutable history', () => {
     const session = createOrderMockSession('normal'); let value = approvedReturn(session); const location = session.inventoryRepository.read().locations.find((item) => item.warehouseId === value.warehouseSnapshot.id && item.status === 'enabled')!
     value = session.returnCoordinator.confirmInbound(warehouse, { requestId: 'coord-inbound-void', returnId: value.id, expectedVersion: value.version, locationId: location.id })

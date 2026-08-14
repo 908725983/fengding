@@ -8,6 +8,8 @@ import OrderFormView from "./OrderFormView.vue";
 import OrderShareView from "./OrderShareView.vue";
 import OrderOutboundListView from "./OrderOutboundListView.vue";
 import OrderDifferenceListView from "./OrderDifferenceListView.vue";
+import OrderReturnListView from "./OrderReturnListView.vue";
+import FinanceRefundListView from "../../finance/views/FinanceRefundListView.vue";
 import { useOrderStore } from "../runtime/order-store";
 
 async function setup(component: typeof OrderListView, path = "/orders") {
@@ -20,10 +22,14 @@ async function setup(component: typeof OrderListView, path = "/orders") {
       { path: "/orders/new", component: OrderFormView },
       { path: "/orders/outbounds", component: OrderOutboundListView },
       { path: "/orders/differences", component: OrderDifferenceListView },
+      { path: "/orders/returns", component: OrderReturnListView },
+      { path: "/orders/returns/:returnId", component: OrderReturnListView },
       { path: "/orders/:orderId/edit", component: OrderFormView },
       { path: "/orders/:orderId", component: OrderDetailView },
       { path: "/finance/receivables/documents", component: OrderListView },
       { path: "/finance/receipts/new", component: OrderListView },
+      { path: "/finance/refunds", component: FinanceRefundListView },
+      { path: "/finance/:pathMatch(.*)*", component: OrderListView },
     ],
   });
   await router.push(path);
@@ -83,6 +89,7 @@ describe("order views", () => {
     expect(wrapper.text()).not.toContain("等待 FIN-001");
   });
   it("renders seeded outbound and difference workspaces",async()=>{const outbounds=await setup(OrderOutboundListView as typeof OrderListView,"/orders/outbounds");expect(outbounds.wrapper.text()).toContain("销售出库单");expect(outbounds.wrapper.text()).toContain("XSCK-260810-");outbounds.wrapper.unmount();const differences=await setup(OrderDifferenceListView as typeof OrderListView,"/orders/differences");expect(differences.wrapper.text()).toContain("差异单");expect(differences.wrapper.text()).toContain("CY-260810-")});
+  it("renders seeded customer returns and finance refund workspaces",async()=>{const returns=await setup(OrderReturnListView as typeof OrderListView,"/orders/returns");expect(returns.wrapper.text()).toContain("客户退单");expect(returns.wrapper.text()).toContain("共 6 张退单");expect(returns.wrapper.text()).toContain("待退款");returns.wrapper.unmount();const refunds=await setup(FinanceRefundListView as typeof OrderListView,"/finance/refunds");expect(refunds.wrapper.text()).toContain("客户退款");expect(refunds.wrapper.text()).toContain("待审核");expect(refunds.wrapper.text()).toContain("已退款")});
   it("opens a governed review dialog and renders special review evidence", async () => {
     const ordinary = await setup(OrderDetailView, "/orders/order-001");
     const approve=ordinary.wrapper.findAll("button").find((item)=>item.text()==="订单审核通过");

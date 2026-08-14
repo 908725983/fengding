@@ -69,7 +69,7 @@ export interface OrderSaveRequest { requestId: string; orderId: EntityId; savedA
 export interface OrderReviewRequest { requestId: string; action: OrderReviewAction; orderIds: EntityId[]; appliedAt: string }
 export type SalesOutboundStatus = 'confirmed' | 'voided'
 export type DifferenceStatus = 'pending-confirmation' | 'confirmed' | 'voided'
-export type DifferenceOutcome = 'reship' | 'ignore'
+export type DifferenceOutcome = 'reship' | 'ignore' | 'refund'
 export interface OutboundAllocationSnapshot {
   movementId: EntityId; balanceId: EntityId; batchId: EntityId; batchNumber: string; locationId: EntityId; locationName: string
   productionDate: string | null; expiresOn: string | null; quantityMilli: number
@@ -255,7 +255,7 @@ export interface OutboundLineInput { orderLineId: EntityId; quantity: number }
 export interface PreviewOrderOutboundInput { orderId: EntityId; warehouseId: EntityId; lines: OutboundLineInput[]; finishShort: boolean; reason?: string | null }
 export interface ConfirmOrderOutboundInput extends PreviewOrderOutboundInput { requestId: string; expectedUpdatedAt: string }
 export interface VoidSalesOutboundInput { requestId: string; outboundId: EntityId; expectedOrderUpdatedAt: string; reason: string }
-export interface ConfirmDifferenceInput { requestId: string; differenceId: EntityId; expectedOrderUpdatedAt: string; outcome: DifferenceOutcome | 'refund' }
+export interface ConfirmDifferenceInput { requestId: string; differenceId: EntityId; expectedOrderUpdatedAt: string; outcome: DifferenceOutcome }
 export interface ConfirmShipmentInput { requestId: string; orderId: EntityId; expectedUpdatedAt: string; logisticsCode?: string | null; remark?: string | null }
 export interface ConfirmReceiptInput { requestId: string; orderId: EntityId; expectedUpdatedAt: string; signedAt: string; signer: string; remark?: string | null }
 export interface PrintSalesOutboundsInput { requestId: string; items: Array<{ outboundId: EntityId; expectedVersion: number }> }

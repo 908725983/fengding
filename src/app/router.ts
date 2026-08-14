@@ -46,6 +46,9 @@ import OrderOutboundListView from '@/features/orders/views/OrderOutboundListView
 import OrderOutboundDetailView from '@/features/orders/views/OrderOutboundDetailView.vue'
 import OrderDifferenceListView from '@/features/orders/views/OrderDifferenceListView.vue'
 import OrderDifferenceDetailView from '@/features/orders/views/OrderDifferenceDetailView.vue'
+import OrderReturnListView from '@/features/orders/views/OrderReturnListView.vue'
+import OrderReturnFormView from '@/features/orders/views/OrderReturnFormView.vue'
+import OrderReturnDetailView from '@/features/orders/views/OrderReturnDetailView.vue'
 import { guardOrderSubroute } from '@/features/orders/runtime/order-access'
 import FinanceAccountListView from '@/features/finance/views/FinanceAccountListView.vue'
 import FinanceAccountSummaryView from '@/features/finance/views/FinanceAccountSummaryView.vue'
@@ -61,6 +64,8 @@ import FinanceReceiptDetailView from '@/features/finance/views/FinanceReceiptDet
 import FinanceWriteoffListView from '@/features/finance/views/FinanceWriteoffListView.vue'
 import FinanceWriteoffFormView from '@/features/finance/views/FinanceWriteoffFormView.vue'
 import FinanceWriteoffDetailView from '@/features/finance/views/FinanceWriteoffDetailView.vue'
+import FinanceRefundListView from '@/features/finance/views/FinanceRefundListView.vue'
+import FinanceRefundDetailView from '@/features/finance/views/FinanceRefundDetailView.vue'
 import { guardFinanceSubroute } from '@/features/finance/runtime/finance-access'
 
 export const router = createRouter({
@@ -75,6 +80,10 @@ export const router = createRouter({
     { path: '/orders/outbounds/:outboundId', name: 'order-outbound-detail', component: OrderOutboundDetailView },
     { path: '/orders/differences', name: 'order-differences', component: OrderDifferenceListView },
     { path: '/orders/differences/:differenceId', name: 'order-difference-detail', component: OrderDifferenceDetailView },
+    { path: '/orders/returns', name: 'order-returns', component: OrderReturnListView },
+    { path: '/orders/returns/new', name: 'order-return-new', component: OrderReturnFormView },
+    { path: '/orders/returns/:returnId/edit', name: 'order-return-edit', component: OrderReturnFormView },
+    { path: '/orders/returns/:returnId', name: 'order-return-detail', component: OrderReturnDetailView },
     { path: '/orders/:orderId/edit', name: 'order-edit', component: OrderFormView },
     { path: '/orders/:orderId', name: 'order-detail', component: OrderDetailView },
     { path: '/customers', name: 'customer-list', component: CustomerListView },
@@ -141,6 +150,8 @@ export const router = createRouter({
     { path: '/finance/writeoffs', name: 'finance-writeoffs', component: FinanceWriteoffListView },
     { path: '/finance/writeoffs/new', name: 'finance-writeoff-new', component: FinanceWriteoffFormView },
     { path: '/finance/writeoffs/:writeoffId', name: 'finance-writeoff-detail', component: FinanceWriteoffDetailView },
+    { path: '/finance/refunds', name: 'finance-refunds', component: FinanceRefundListView },
+    { path: '/finance/refunds/:refundId', name: 'finance-refund-detail', component: FinanceRefundDetailView },
     { path: '/finance/accounts', name: 'finance-accounts', component: FinanceAccountListView },
     { path: '/finance/accounts/new', name: 'finance-account-new', component: FinanceAccountFormView },
     { path: '/finance/accounts/:accountId/edit', name: 'finance-account-edit', component: FinanceAccountFormView },

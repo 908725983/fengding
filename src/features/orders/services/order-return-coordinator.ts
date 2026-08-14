@@ -10,6 +10,7 @@ export interface OrderReturnCoordinatorDependencies {
   orderRepository: OrderRepository; inventoryRepository: InventoryRepository; financeRepository: FinanceRepository
   inventory: ReturnType<typeof createInventoryService>; financeRefunds: ReturnType<typeof createFinanceRefundService>
   now: () => string; nextId: (kind: 'return-activity') => string; actorName: (actor: OrderActor) => string
+  inventoryGate: () => 'available' | 'unavailable'; financeGate: () => 'available' | 'unavailable'
 }
 export interface ConfirmReturnInboundInput { requestId: string; returnId: string; expectedVersion: number; locationId: string }
 export interface VoidReturnInboundInput { requestId: string; returnId: string; expectedVersion: number; reason: string }
@@ -40,6 +41,7 @@ export function createOrderReturnCoordinator(deps: OrderReturnCoordinatorDepende
   }
   function confirmInbound(actor: OrderActor, input: ConfirmReturnInboundInput): CustomerReturn {
     if (!canReceive(actor)) throw new OrderDomainError('PERMISSION_DENIED', '当前角色不可确认退货入库')
+    if (deps.inventoryGate() !== 'available' || deps.financeGate() !== 'available') throw new OrderDomainError('DATA_PROVIDER_UNAVAILABLE', '库存或资金服务不可用，退货入库未执行')
     const beforeOrder = deps.orderRepository.read(); const replay = (beforeOrder.returnRequests ?? []).find((item) => item.requestId === input.requestId); if (replay) return current(replay.returnId)
     const value = current(input.returnId); if (value.version !== input.expectedVersion) throw new OrderDomainError('CONFLICT', '退单已变化，请刷新'); if (value.status !== 'approved' || value.receivingStatus !== 'pending') throw new OrderDomainError('INVALID_STATE', '仅已审核待收货退单可确认入库')
     const beforeInventory = deps.inventoryRepository.read(); const beforeFinance = deps.financeRepository.read(); const at = deps.now()
@@ -51,6 +53,7 @@ export function createOrderReturnCoordinator(deps: OrderReturnCoordinatorDepende
   }
   function voidInbound(actor: OrderActor, input: VoidReturnInboundInput): CustomerReturn {
     if (!canVoid(actor)) throw new OrderDomainError('PERMISSION_DENIED', '当前角色不可作废退货入库'); const reason = input.reason.trim(); if (!reason || reason.length > 200) throw new OrderDomainError('INVALID_SELECTION', '作废原因须为1到200字')
+    if (deps.inventoryGate() !== 'available' || deps.financeGate() !== 'available') throw new OrderDomainError('DATA_PROVIDER_UNAVAILABLE', '库存或资金服务不可用，退货入库作废未执行')
     const beforeOrder = deps.orderRepository.read(); const replay = (beforeOrder.returnRequests ?? []).find((item) => item.requestId === input.requestId); if (replay) return current(replay.returnId)
     const value = current(input.returnId); if (value.version !== input.expectedVersion) throw new OrderDomainError('CONFLICT', '退单已变化，请刷新'); if (value.receivingStatus !== 'received' || !value.inboundProjection || value.inboundProjection.voidInfo) throw new OrderDomainError('INVALID_STATE', '当前退货入库不可作废'); if (value.refundStatus === 'refunded') throw new OrderDomainError('INVALID_STATE', '退款完成后禁止作废退货入库')
     const beforeInventory = deps.inventoryRepository.read(); const beforeFinance = deps.financeRepository.read(); const at = deps.now()
