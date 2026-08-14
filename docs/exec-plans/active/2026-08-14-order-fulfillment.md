@@ -58,7 +58,8 @@
 - [x] 在 `orders.md` 形成页面、列表、输入、持久化对象、状态、跨域事务、权限、Mock 和 7 项验收追踪；在 `finance.md` 固化应收领域拥有者与 fake adapter 边界。
 - [x] 登记 `DEC-ORD-032～040` 与 `DEC-FIN-005`，并把既有 `DEC-FIN-001` 纳入当前决策包；未修改业务代码或 fixture。
 - [x] `npm run verify:harness` 通过：45 个切片、119 个决策门、8 份领域规格和 8 份需求快照；`git diff --check` 通过，变更仅含 Harness 文档。
-- [ ] 当前步骤：建立 Git 规格检查点并等待用户确认 11 组推荐方案；确认前不得进入 implementation。
+- [x] 规格检查点已提交：`5fca40c`。
+- [ ] 当前步骤：等待用户确认 11 组推荐方案；确认前不得进入 implementation。
 
 ## 开放决策
 
@@ -96,4 +97,4 @@
 
 ## 中断恢复点
 
-当前处于 specification，开工基线、原始资料/公开契约审计和 Harness 文档验证均已完成；`ORD-004` 合同已写入 `orders.md`，资金边界已写入 `finance.md`，`DEC-ORD-032～040`、`DEC-FIN-001/005` 仍为 open。下一步只建立规格 Git 检查点并等待用户决定；用户确认并逐项写回前禁止修改 Types、Mock、Repository、Service、Store 或页面。
+当前处于 specification，开工基线、原始资料/公开契约审计和 Harness 文档验证均已完成；规格检查点为 `5fca40c`。`ORD-004` 合同已写入 `orders.md`，资金边界已写入 `finance.md`，`DEC-ORD-032～040`、`DEC-FIN-001/005` 仍为 open。下一步等待用户决定；用户确认并逐项写回前禁止修改 Types、Mock、Repository、Service、Store 或页面。
