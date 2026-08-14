@@ -1,7 +1,7 @@
 # 质量评分
 
 - 最近审计：2026-08-14
-- 当前阶段：`ORD-002` 正在 specification；字段与交互契约已提取，等待 17 项阻塞决策确认，尚未编写本切片业务代码。
+- 当前阶段：`ORD-002` 的 17 项阻塞决策已确认并进入 implementation；正在建立新增、修改与分享订单的领域核心。
 
 ## 评分标准
 
@@ -18,12 +18,12 @@
 |---|---:|---|
 | 工程基础 passing | 2 | `HNS-001`、`SHELL-001` 有完成计划和验证证据 |
 | 可进入规格提取的业务切片 | 43 | `PRD-006` 已从关联推荐独立登记；其余切片按目录状态推进 |
-| 已达到 ready 的业务切片 | 7 | `CUS-001`、`PRD-001/002/003/004`、`INV-001`、`ORD-001` 均已有 passing 证据 |
+| 已达到 ready 的业务切片 | 8 | `CUS-001`、`PRD-001/002/003/004`、`INV-001`、`ORD-001` 已 passing；`ORD-002` 已 ready、尚在实现 |
 | 因需求不足 blocked | 2 | `MER-001` 商家、`ANA-001` 独立数据分析 |
-| 已知人工决策门 | 105 | `ORD-002` 当前受 `DEC-PRD-001`、`DEC-ORD-002/004/014～027` 共 17 项 open 决策阻塞 |
-| 当前业务 active plan | 1 | `docs/exec-plans/active/2026-08-14-order-create-edit.md` 处于 specification |
+| 已知人工决策门 | 105 | `DEC-PRD-001`、`DEC-ORD-002/004/014～027` 已确认；其他 open 决策只阻塞各自后续切片 |
+| 当前业务 active plan | 1 | `docs/exec-plans/active/2026-08-14-order-create-edit.md` 处于 implementation |
 
-`ORD-001` 的 `DEC-ORD-001/005～013` 已全部实现并有验证证据；`ORD-002` 已完成 source-only 契约提取但未通过人工决策门，`PRD-006` 仍保持 source-only。
+`ORD-001` 的 `DEC-ORD-001/005～013` 已全部实现并有验证证据；`ORD-002` 已通过人工决策门进入实现，`PRD-006` 仍保持 source-only。
 
 ## 产品领域
 
