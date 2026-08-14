@@ -45,7 +45,7 @@ export class OrderMockError extends Error{constructor(readonly code:string,messa
 
 export function createOrderMockSession(scenarioName:OrderScenarioName='normal'){
   const state=structuredClone(orderBaseline);if(scenarioName==='empty'){state.orders=[];state.printRequests=[];state.saveRequests=[];state.shares=[]}
-  const repository=new InMemoryOrderRepository(state);let sequence=1;let tokenSequence=1
+  const repository=new InMemoryOrderRepository(state);let sequence=1;let tokenSequence=1;let concurrentApplied=false
   // PRD-003 的基线在 10:00 结束“仅可见”覆盖；ORD-002 normal 从该边界后开始，保证存在一条真实可订黄金路径。
   const orderClock=scenarioName==='boundary'?'2026-08-10T09:59:00+08:00':'2026-08-10T10:00:00+08:00'
   const pricing=createPricingMockSession('normal');const authorization=createAuthorizationMockSession('normal');const distribution=createDistributionMockSession('normal')
@@ -60,5 +60,6 @@ export function createOrderMockSession(scenarioName:OrderScenarioName='normal'){
   const service=createOrderService({repository,customers:createOrderCustomerProvider(partial),finance:createDeterministicOrderFinanceProvider(partial),catalog,prices,authorizations,warehouses,staff,templates,now:()=>orderClock,nextId:(kind)=>`${kind}-runtime-${sequence++}`,nextToken:()=>{const seed=hashOrderShareToken(`fengding-order-share-secret:${tokenSequence++}`);return`ord_share_${seed.slice(6)}_8f3c1d72a9b4e6f0`},hashToken:hashOrderShareToken,shareBaseUrl:'http://127.0.0.1:4173'})
   const definition=scenarios[scenarioName]
   async function run<T>(operation:()=>T):Promise<T>{await new Promise((resolve)=>setTimeout(resolve,definition.latencyMs));if(scenarioName==='error')throw new OrderMockError('MOCK_INTERNAL_ERROR','原型模拟：订单服务暂时不可用');if(scenarioName==='permission-denied')throw new OrderMockError('PERMISSION_DENIED','原型模拟：当前会话没有订单查看权限');return operation()}
-  return{scenarioName,repository,service,run}
+  function simulateConcurrentEdit(orderId:string):void{if(scenarioName!=='concurrent'||concurrentApplied)return;repository.transact((current)=>{const order=current.orders.find((item)=>item.id===orderId);if(order)order.updatedAt='2026-08-10T10:01:00+08:00'});concurrentApplied=true}
+  return{scenarioName,repository,service,run,simulateConcurrentEdit}
 }

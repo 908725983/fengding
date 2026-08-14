@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { businessModules, findBusinessModule } from '@/app/module-catalog'
 
 const route = useRoute()
+const isPublicShare = computed(() => route.path.startsWith('/share/orders/'))
 const currentModule = computed(() => {
   const key = route.path.split('/')[1] || 'dashboard'
   return findBusinessModule(key)
@@ -11,7 +12,8 @@ const currentModule = computed(() => {
 </script>
 
 <template>
-  <div class="app-shell">
+  <RouterView v-if="isPublicShare" />
+  <div v-else class="app-shell">
     <aside class="sidebar" aria-label="主导航">
       <div class="brand">
         <span class="brand__mark" aria-hidden="true">蜂</span>

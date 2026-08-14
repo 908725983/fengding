@@ -40,6 +40,8 @@ import LocationFormView from '@/features/inventory/views/LocationFormView.vue'
 import { guardInventorySubroute } from '@/features/inventory/runtime/inventory-access'
 import OrderListView from '@/features/orders/views/OrderListView.vue'
 import OrderDetailView from '@/features/orders/views/OrderDetailView.vue'
+import OrderFormView from '@/features/orders/views/OrderFormView.vue'
+import OrderShareView from '@/features/orders/views/OrderShareView.vue'
 import { guardOrderSubroute } from '@/features/orders/runtime/order-access'
 
 export const router = createRouter({
@@ -47,7 +49,10 @@ export const router = createRouter({
   routes: [
     { path: '/', redirect: '/dashboard' },
     { path: '/dashboard', name: 'dashboard', component: HarnessOverviewView },
+    { path: '/share/orders/:token', name: 'order-share', component: OrderShareView },
     { path: '/orders', name: 'order-list', component: OrderListView },
+    { path: '/orders/new', name: 'order-new', component: OrderFormView },
+    { path: '/orders/:orderId/edit', name: 'order-edit', component: OrderFormView },
     { path: '/orders/:orderId', name: 'order-detail', component: OrderDetailView },
     { path: '/customers', name: 'customer-list', component: CustomerListView },
     { path: '/customers/new', name: 'customer-new', component: CustomerFormView },
