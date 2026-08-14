@@ -2,8 +2,9 @@
 
 - 类型：business-feature
 - 功能：FIN-001
-- 当前阶段：implementation
-- 状态：active
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-14
 - 最近更新：2026-08-14
 
 ## 目标
@@ -60,7 +61,11 @@
 - [x] `npm run verify:harness` 通过：45 个功能切片、144 个决策门、8 份领域规格/需求快照；`git diff --check` 通过。
 - [x] 规格检查点 `fbaee7c` 不含业务代码或 fixture；用户确认“FIN-001 全部按推荐方案执行”。
 - [x] `DEC-FIN-004/017～030` 已逐项写回产品索引、资金规格和本计划，`FIN-001` 已达到 ready。
-- [ ] 当前步骤：实现 Types/Schema、canonical Finance 应收/收款/核销/预收、跨域事务和确定性 baseline。
+- [x] Finance Types/Schema、唯一应收事实源、收款/核销/预收账、账龄和确定性 baseline 已实现；领域检查点为 `706fe61`。
+- [x] 订单确认发货通过 Finance 公开边界原子形成应收，失败同时回滚订单与资金；订单“收款记录”只读资金投影，不保存可变余额。
+- [x] 客户/单据/商品/账龄应收、收款列表/新增/详情、核销列表/新增/详情及权限路由已实现；页面检查点为 `c51236d`。
+- [x] `npm run verify` 通过 54 个测试文件/242 项测试、类型检查和生产构建；`mock:reset` 后 baseline/work SHA-256 均为 `07E07EE977157DF4E047BAA40FEC07FE6E92AF5EC70BBF6FBF0B89ED5EFB64F3`。
+- [x] 浏览器复核应收四视图、部分收款、独立核销、订单投影和销售主管只读遮蔽；发现并修复 Vue reactive 客户快照无法克隆及取消核销来源重复问题。
 
 ## 开放决策
 
@@ -104,4 +109,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation，尚未新增 FIN-001 业务代码、页面或 fixture。规格检查点为 `fbaee7c`；用户已确认的 15 组方案已全部写回并使切片达到 ready。下一步从 Finance Types/Schema、canonical 应收/收款/核销/预收和确定性 baseline 开始，再修改 Order/Customer 公开 provider；不得直接让页面或订单修改 Finance Repository。
+`FIN-001` 已完成并准备归档。可回退检查点依次为：规格 `fbaee7c`、决策 `500cf68`、领域与跨域事务 `706fe61`、完整页面与联调 `c51236d`。最终验证为 54 个测试文件/242 项测试、Harness、类型检查、生产构建和 Mock 重置哈希通过。下一次继续应从总体顺序的 `ORD-005` 规格提取开始，新建独立 active plan；不得在本计划中提前实现退款。

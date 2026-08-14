@@ -38,6 +38,8 @@
 | `ORD-002` | 新增、修改与订单分享 | passing | `../exec-plans/completed/2026-08-14-order-create-edit.md` |
 | `ORD-003` | 订单审核与状态流转 | passing | `../exec-plans/completed/2026-08-14-order-review.md` |
 | `ORD-004` | 销售出库、发货与差异 | passing | `../exec-plans/completed/2026-08-14-order-fulfillment.md` |
+| `FIN-003` | 资金账户、银行与结转基础 | passing | `../exec-plans/completed/2026-08-14-finance-account-foundation.md` |
+| `FIN-001` | 客户应收、收款与核销 | passing | `../exec-plans/completed/2026-08-14-customer-receivables.md` |
 
 ## 功能切片目录
 
