@@ -2,8 +2,9 @@
 
 - 类型：business-feature
 - 功能：ORD-002
-- 当前阶段：implementation
-- 状态：active
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-14
 - 最近更新：2026-08-14
 
 ## 目标
@@ -58,7 +59,13 @@
 - [x] 领域核心已实现：Types、Schema、Repository 扩展、必需 Provider、定价/金额、预收占用、幂等保存、乐观锁、模板/粘贴/扫码与分享 Service；订单领域 23 项定向测试和类型检查通过。
 - [x] Runtime/UI 已实现：Store 纯数据边界、路由权限、新增/修改共用表单、模板/粘贴/扫码、金额预览、附件元数据、详情修改/分享、可扫描二维码和公开白名单页面；normal/boundary/concurrent 等 Mock 场景可达。
 - [x] 订单功能 6 个测试文件、39 项测试与类型检查通过；确认销售/赠品同 SKU+单位必须按行类型分行，否则黄金旅程无法同时表达两种金额语义，结论已同步 `orders.md`。
-- [ ] 当前步骤：提交 Runtime/UI 可回退检查点，完成全仓自动验证、浏览器、Mock 重置、构建和干净启动验收，归档计划并更新总体进度。
+- [x] Runtime/UI 可回退检查点已提交：`d2f2a22`。
+- [x] `npm run verify` 通过：Harness、类型检查、46 个测试文件/179 项测试和生产构建；后续浏览器修复又新增自动价格编辑回归，最终全仓验证见收尾提交。
+- [x] `npm run mock:reset` 后 baseline/work SHA-256 均为 `28652886C3447BFB4182BBE4CDE826AB1796CEF72B48B51DE639B5114232F34E`。
+- [x] 浏览器黄金旅程通过：1280px 新增销售+赠品、金额/预收核算、保存、修改数量/占用差额、同号详情、7天分享二维码；390px 公开页查看/确认无横向溢出且未输出电话、地址、信用/预收；控制台无 warning/error。
+- [x] 浏览器发现并修复 `datetime-local` 时区值空白、自动价格编辑误判人工特价两项问题，定向类型检查和 26 项 Service/Store 测试重跑通过。
+- [x] 停止 4173 端口进程后干净重启；`/orders` 恢复 32 条 baseline、显示新增入口且控制台无错误。
+- [x] 最终 `npm run verify` 通过：Harness、类型检查、46 个测试文件/180 项测试和生产构建；仅保留非阻塞 bundle 体积提示。
 
 ## 开放决策
 
@@ -73,4 +80,4 @@
 
 ## 中断恢复点
 
-恢复时先运行 `./scripts/init.ps1`，再读取本计划、`docs/product-specs/orders.md` 和 `docs/product-specs/index.md`。从“进度日志”唯一的“当前步骤”继续；当前处于 implementation，领域核心已经完成，继续 Runtime/UI，不重复实现或改写已通过的领域契约。
+本计划已完成，归档后不再作为恢复入口。下一次执行从 `docs/design-docs/implementation-sequence.md` 的 `ORD-003` 开始，新建唯一 specification active plan；不得重复实现 `ORD-002` 或提前进入 `ORD-004`。

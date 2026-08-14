@@ -66,12 +66,7 @@ async function template(id: string) {
   const result = await store.applyTemplate(id);
   templateMessage.value = `已加入 ${result.accepted.length} 行，过滤 ${result.rejected.length} 行${result.rejected.length ? `：${result.rejected.map((item) => item.message).join("；")}` : ""}`;
 }
-function normalizeTime() {
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(draft.value.requestedDeliveryAt))
-    draft.value.requestedDeliveryAt = `${draft.value.requestedDeliveryAt}:00+08:00`;
-}
 async function save(reset = false) {
-  normalizeTime();
   const order = await store.saveForm(`order-ui-${Date.now()}`);
   if (!order) return;
   if (reset) {
@@ -551,10 +546,7 @@ onMounted(() => store.initializeForm(orderId.value));
         ><button
           type="button"
           class="order-button"
-          @click="
-            normalizeTime();
-            store.previewForm();
-          "
+          @click="store.previewForm()"
         >
           核对金额</button
         ><button
