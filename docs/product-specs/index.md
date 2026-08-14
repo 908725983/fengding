@@ -40,6 +40,7 @@
 | `ORD-004` | 销售出库、发货与差异 | passing | `../exec-plans/completed/2026-08-14-order-fulfillment.md` |
 | `FIN-003` | 资金账户、银行与结转基础 | passing | `../exec-plans/completed/2026-08-14-finance-account-foundation.md` |
 | `FIN-001` | 客户应收、收款与核销 | passing | `../exec-plans/completed/2026-08-14-customer-receivables.md` |
+| `ORD-005` | 客户退单与退款 | passing | `../exec-plans/completed/2026-08-14-customer-return-refund.md` |
 
 ## 功能切片目录
 
