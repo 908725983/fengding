@@ -75,4 +75,24 @@ describe("order store", () => {
     expect(saved).toBeNull();
     expect(store.error).toContain("其他会话修改");
   });
+  it("runs single and batch review through the same service state machine", async () => {
+    const store = useOrderStore();
+    await store.setRole("sales-supervisor");
+    await store.loadDetail("order-001");
+    expect(store.detail?.reviewActions).toEqual(["approve-order","return-order","cancel-order"]);
+    expect(await store.reviewOrder("order-001","approve-order",store.detail!.order.updatedAt)).toBe(true);
+    expect(store.detail?.order.status).toBe("pending-finance-review");
+    const rows=store.result.items.filter((row)=>["order-009","order-017"].includes(row.order.id));
+    expect(await store.reviewOrders(rows.map((row)=>({orderId:row.order.id,expectedUpdatedAt:row.order.updatedAt})))).toBe(true);
+    expect(store.result.items.filter((row)=>["order-009","order-017"].includes(row.order.id)).every((row)=>row.order.status==="pending-finance-review")).toBe(true);
+  });
+  it("surfaces a concurrent review without changing the stale screen", async () => {
+    const store = useOrderStore();
+    await store.setScenario("concurrent");
+    await store.setRole("sales-supervisor");
+    await store.loadDetail("order-001");
+    expect(await store.reviewOrder("order-001","approve-order",store.detail!.order.updatedAt)).toBe(false);
+    expect(store.error).toContain("其他会话修改");
+    expect(store.detail?.order.status).toBe("pending-order-review");
+  });
 });

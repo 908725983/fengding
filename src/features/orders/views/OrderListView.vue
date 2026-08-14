@@ -4,7 +4,7 @@ import { storeToRefs } from "pinia";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import OrderScenarioBar from "../components/OrderScenarioBar.vue";
 import { useOrderStore } from "../runtime/order-store";
-import type { OrderQuery, OrderStatus, SettlementMethod } from "../types";
+import type { OrderListRow, OrderQuery, OrderReviewAction, OrderStatus, SettlementMethod } from "../types";
 import "./order-views.css";
 
 const store = useOrderStore();
@@ -15,6 +15,9 @@ const { result, loading, error, isEmpty, scenario, actor, canOutput, canManage }
 const showMore = ref(false);
 const selected = ref<string[]>([]);
 const printIds = ref<string[]>([]);
+const reviewTarget = ref<{ row: OrderListRow; action: OrderReviewAction } | null>(null);
+const batchReviewOpen = ref(false);
+const reviewReason = ref("");
 const message = ref("");
 const filters = reactive({
   status: String(route.query.status ?? ""),
@@ -48,6 +51,11 @@ const allSelected = computed(
     result.value.items.length > 0 &&
     result.value.items.every((row) => selected.value.includes(row.order.id)),
 );
+const selectedRows = computed(() => result.value.items.filter((row) => selected.value.includes(row.order.id)));
+const canBatchReview = computed(() => selectedRows.value.length > 0 && selectedRows.value.length <= 100 && selectedRows.value.every((row) => row.reviewActions.includes("approve-order")));
+const reviewLabels: Record<OrderReviewAction,string>={"approve-order":"订单审核通过","return-order":"退回待修改","approve-finance":"财务审核通过","return-finance":"财务退回","cancel-order":"取消订单"};
+const needsReason = (action:OrderReviewAction) => ["return-order","return-finance","cancel-order"].includes(action);
+function displayStatus(row:OrderListRow){const latest=row.order.reviewRecords?.at(-1);return row.order.status==='pending-order-review'&&latest?.outcome==='returned'&&latest.round===(row.order.reviewRound??1)?'待订单审核（已退回待修改）':statusLabels[row.order.status]}
 function isoDay(day: string, next = false) {
   if (!day) return undefined;
   const date = new Date(`${day}T00:00:00+08:00`);
@@ -148,13 +156,16 @@ async function confirmPrint() {
   message.value = `已确认打印 ${printIds.value.length} 张订单（原型模拟）`;
   printIds.value = [];
 }
+function openReview(row:OrderListRow,action:OrderReviewAction){reviewTarget.value={row,action};reviewReason.value=""}
+async function confirmReview(){if(!reviewTarget.value)return;const {row,action}=reviewTarget.value;const ok=await store.reviewOrder(row.order.id,action,row.order.updatedAt,reviewReason.value||null);if(ok){message.value=`${row.order.orderNo}：${reviewLabels[action]}`;selected.value=selected.value.filter((id)=>id!==row.order.id);reviewTarget.value=null;reviewReason.value=""}}
+async function confirmBatchReview(){const rows=selectedRows.value;if(!rows.length)return;const ok=await store.reviewOrders(rows.map((row)=>({orderId:row.order.id,expectedUpdatedAt:row.order.updatedAt})));if(ok){message.value=`已完成 ${rows.length} 张订单的业务审核，其中特价订单 ${rows.filter((row)=>row.order.specialPrice).length} 张`;selected.value=[];batchReviewOpen.value=false}}
 onMounted(() => store.applyQuery(buildQuery()));
 </script>
 <template>
   <section class="order-page">
     <header class="order-header">
       <div>
-        <p class="eyebrow">ORD-001 / ORD-002 · 客户订单</p>
+        <p class="eyebrow">ORD-001 / ORD-002 / ORD-003 · 客户订单</p>
         <h1>客户订单列表</h1>
         <p>订单历史快照可追溯；履约、资金和库荐未接入时明确标记。</p>
       </div>
@@ -265,6 +276,13 @@ onMounted(() => store.applyQuery(buildQuery()));
           ><button v-if="canOutput" class="order-button" @click="download">
             导出 CSV</button
           ><button
+            v-if="result.items.some((row) => row.reviewActions.includes('approve-order'))"
+            class="order-button primary"
+            :disabled="!canBatchReview"
+            :title="selected.length && !canBatchReview ? '批量审核要求选中项全部为待订单审核且不超过100条' : ''"
+            @click="batchReviewOpen = true"
+          >批量审核</button
+          ><button
             v-if="canOutput"
             class="order-button primary"
             :disabled="!selected.length"
@@ -313,8 +331,9 @@ onMounted(() => store.applyQuery(buildQuery()));
                 <span
                   class="order-status"
                   :class="`order-status-${row.order.status}`"
-                  >{{ statusLabels[row.order.status] }}</span
+                  >{{ displayStatus(row) }}</span
                 >
+                <small v-if="row.order.specialPrice">特价订单</small>
               </td>
               <td>
                 <RouterLink :to="`/orders/${row.order.id}`">{{
@@ -352,6 +371,7 @@ onMounted(() => store.applyQuery(buildQuery()));
               <td>
                 <RouterLink :to="`/orders/${row.order.id}`">详情</RouterLink>
                 <RouterLink v-if="canManage && row.order.status === 'pending-order-review'" class="order-row-link" :to="`/orders/${row.order.id}/edit`">修改</RouterLink>
+                <button v-for="action in row.reviewActions" :key="action" class="order-row-action" :class="{ danger: action === 'cancel-order' }" @click="openReview(row, action)">{{ reviewLabels[action] }}</button>
                 <button
                   v-if="canOutput"
                   class="order-button"
@@ -407,6 +427,25 @@ onMounted(() => store.applyQuery(buildQuery()));
             确认打印
           </button>
         </div>
+      </section>
+    </div>
+    <div v-if="reviewTarget" class="order-modal">
+      <section class="order-modal__card">
+        <h2>{{ reviewLabels[reviewTarget.action] }}</h2>
+        <p>{{ reviewTarget.row.order.orderNo }} · {{ reviewTarget.row.order.customerSnapshot.name }} · {{ money(reviewTarget.row.order.amounts.orderAmountCents) }}</p>
+        <p v-if="reviewTarget.row.order.specialPrice" class="order-notice">特价订单：{{ reviewTarget.row.order.specialPriceReason }}</p>
+        <label v-if="needsReason(reviewTarget.action)" class="order-review-reason">原因（必填，最多200字）<textarea v-model="reviewReason" maxlength="200" rows="3"></textarea></label>
+        <label v-else class="order-review-reason">审核备注（选填，最多200字）<textarea v-model="reviewReason" maxlength="200" rows="3"></textarea></label>
+        <p v-if="reviewTarget.action === 'cancel-order'" class="order-notice error">取消后不可恢复，将释放本单预收占用并撤销有效分享；不会改变库存。</p>
+        <div class="order-modal__actions"><button class="order-button" @click="reviewTarget = null">返回</button><button class="order-button" :class="reviewTarget.action === 'cancel-order' ? 'danger' : 'primary'" :disabled="store.saving || (needsReason(reviewTarget.action) && !reviewReason.trim())" @click="confirmReview">确认执行</button></div>
+      </section>
+    </div>
+    <div v-if="batchReviewOpen" class="order-modal">
+      <section class="order-modal__card">
+        <h2>批量订单审核</h2>
+        <p>即将整批审核 {{ selectedRows.length }} 张待订单审核订单，其中特价订单 {{ selectedRows.filter((row) => row.order.specialPrice).length }} 张。</p>
+        <p>任一订单状态或版本已变化时整批不生效，不会产生部分成功。</p>
+        <div class="order-modal__actions"><button class="order-button" @click="batchReviewOpen = false">取消</button><button class="order-button primary" :disabled="store.saving || !canBatchReview" @click="confirmBatchReview">确认整批审核</button></div>
       </section>
     </div>
   </section>

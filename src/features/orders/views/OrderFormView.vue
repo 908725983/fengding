@@ -470,9 +470,12 @@ onMounted(() => store.initializeForm(orderId.value));
               min="0"
               step="1" /></label
           ><label class="checkbox"
-            ><input v-model="draft.specialPrice" type="checkbox" /><span
+            ><input v-model="draft.specialPrice" type="checkbox" @change="!draft.specialPrice && (draft.specialPriceReason = null)" /><span
               >特价订单（越过售价上下限时必须勾选）</span
             ></label
+          ><label v-if="draft.specialPrice" class="wide"
+            ><span>特价申请原因 *（最多200字）</span
+            ><textarea v-model="draft.specialPriceReason" required maxlength="200" rows="2" placeholder="说明客户专项价格或其他特价原因"></textarea></label
           ><label class="wide"
             ><span>备注（最多500字）</span
             ><textarea
@@ -536,6 +539,7 @@ onMounted(() => store.initializeForm(orderId.value));
             >
           </div>
         </div>
+        <p v-if="draft.specialPrice" class="order-notice">特价审批将在业务审核后合并到财务审核；系统会保存当前价格边界和 {{ preview.specialPriceEvidence.length }} 条越界依据。</p>
         <p class="order-unavailable">{{ preview.warnings.join("；") }}</p>
       </section>
       <footer class="order-form-actions">

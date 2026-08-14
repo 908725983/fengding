@@ -9,6 +9,8 @@ import OrderShareView from "./OrderShareView.vue";
 import { useOrderStore } from "../runtime/order-store";
 
 async function setup(component: typeof OrderListView, path = "/orders") {
+  const pinia=createPinia();
+  setActivePinia(pinia);
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -21,11 +23,11 @@ async function setup(component: typeof OrderListView, path = "/orders") {
   await router.push(path);
   await router.isReady();
   const wrapper = mount(component, {
-    global: { plugins: [createPinia(), router] },
+    global: { plugins: [pinia, router] },
   });
   await new Promise((resolve) => setTimeout(resolve, 180));
   await flushPromises();
-  return { wrapper, router };
+  return { wrapper, router, store:useOrderStore() };
 }
 describe("order views", () => {
   beforeEach(() => setActivePinia(createPinia()));
@@ -35,6 +37,8 @@ describe("order views", () => {
     expect(wrapper.text()).toContain("共 32 条");
     expect(wrapper.findAll("tbody tr")).toHaveLength(30);
     expect(wrapper.text()).toContain("已审核（待出库）");
+    expect(wrapper.text()).toContain("批量审核");
+    expect(wrapper.text()).toContain("订单审核通过");
     expect(wrapper.text()).not.toContain("急 / 赠 / 退 / 锁");
   });
   it("renders detail snapshots, deterministic finance and unavailable inventory", async () => {
@@ -62,6 +66,18 @@ describe("order views", () => {
     await wrapper.findAll(".order-tabs button")[1]!.trigger("click");
     expect(wrapper.text()).toContain("出库发货记录由 ORD-004 提供");
     expect(wrapper.text()).toContain("不以空表或 0 冒充");
+  });
+  it("opens a governed review dialog and renders special review evidence", async () => {
+    const ordinary = await setup(OrderDetailView, "/orders/order-001");
+    const approve=ordinary.wrapper.findAll("button").find((item)=>item.text()==="订单审核通过");
+    expect(approve).toBeDefined();
+    await approve!.trigger("click");
+    expect(ordinary.wrapper.text()).toContain("审核备注（选填）");
+    ordinary.wrapper.unmount();
+    const special=await setup(OrderDetailView,"/orders/order-010");
+    expect(special.wrapper.text()).toContain("特价审批依据");
+    expect(special.wrapper.text()).toContain("演示特价审批");
+    expect(special.wrapper.text()).toContain("审核历史 · 第 1 轮");
   });
   it("renders a public share from the same runtime and keeps private fields out", async () => {
     const pinia = createPinia();

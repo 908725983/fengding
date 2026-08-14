@@ -5,7 +5,7 @@ import { RouterLink, useRoute } from "vue-router";
 import QRCode from "qrcode";
 import OrderScenarioBar from "../components/OrderScenarioBar.vue";
 import { useOrderStore } from "../runtime/order-store";
-import type { OrderProviderValue, OrderStatus } from "../types";
+import type { OrderProviderValue, OrderReviewAction, OrderStatus } from "../types";
 import "./order-views.css";
 
 const route = useRoute();
@@ -32,6 +32,8 @@ const sharePath = computed(() =>
     : "/orders",
 );
 const message = ref("");
+const reviewAction = ref<OrderReviewAction | null>(null);
+const reviewReason = ref("");
 const orderId = computed(() => String(route.params.orderId));
 const statusLabels: Record<OrderStatus, string> = {
   "pending-order-review": "待订单审核",
@@ -43,6 +45,9 @@ const statusLabels: Record<OrderStatus, string> = {
   completed: "已完成",
   canceled: "已取消",
 };
+const reviewLabels:Record<OrderReviewAction,string>={"approve-order":"订单审核通过","return-order":"退回待修改","approve-finance":"财务审核通过","return-finance":"财务退回","cancel-order":"取消订单"};
+const needsReason=(action:OrderReviewAction)=>["return-order","return-finance","cancel-order"].includes(action);
+const currentStatusLabel=computed(()=>{const order=detail.value?.order;if(!order)return'';const latest=order.reviewRecords?.at(-1);return order.status==='pending-order-review'&&latest?.outcome==='returned'&&latest.round===(order.reviewRound??1)?'待订单审核（已退回待修改）':statusLabels[order.status]});
 const money = (value: number | null) =>
   value === null ? "已遮蔽" : `¥${(value / 100).toFixed(2)}`;
 const quantity = (value: number) =>
@@ -100,6 +105,8 @@ async function copyShare() {
     message.value = "浏览器未授权复制，请手工复制分享链接";
   }
 }
+function openReview(action:OrderReviewAction){reviewAction.value=action;reviewReason.value=""}
+async function confirmReview(){if(!detail.value||!reviewAction.value)return;const action=reviewAction.value;const ok=await store.reviewOrder(detail.value.order.id,action,detail.value.order.updatedAt,reviewReason.value||null);if(ok){message.value=reviewLabels[action];reviewAction.value=null;reviewReason.value=""}}
 onMounted(() => store.loadDetail(orderId.value));
 </script>
 <template>
@@ -123,8 +130,9 @@ onMounted(() => store.loadDetail(orderId.value));
           <span
             class="order-status"
             :class="`order-status-${detail.order.status}`"
-            >{{ statusLabels[detail.order.status] }}</span
+            >{{ currentStatusLabel }}</span
           >
+          <span v-if="detail.order.specialPrice" class="order-special-badge">特价订单</span>
         </div>
         <div>
           <OrderScenarioBar
@@ -173,6 +181,7 @@ onMounted(() => store.loadDetail(orderId.value));
             >
               导出说明
             </button>
+            <button v-for="action in detail.reviewActions" :key="action" class="order-button" :class="action === 'cancel-order' ? 'danger' : 'primary'" :disabled="saving" @click="openReview(action)">{{ reviewLabels[action] }}</button>
           </div>
         </div>
       </header>
@@ -211,7 +220,7 @@ onMounted(() => store.loadDetail(orderId.value));
           <dl class="order-grid">
             <div>
               <dt>订单状态</dt>
-              <dd>{{ statusLabels[detail.order.status] }}</dd>
+              <dd>{{ currentStatusLabel }}</dd>
             </div>
             <div>
               <dt>客户</dt>
@@ -250,6 +259,21 @@ onMounted(() => store.loadDetail(orderId.value));
               </dd>
             </div>
           </dl>
+        </section>
+        <section v-if="detail.order.specialPrice" class="order-card order-special-card">
+          <h2>特价审批依据</h2>
+          <p><strong>申请原因：</strong>{{ detail.order.specialPriceReason ?? "价格依据已遮蔽" }}</p>
+          <div v-if="detail.order.specialPriceEvidence?.length" class="order-table-wrap">
+            <table class="order-table"><thead><tr><th>SKU</th><th>单位</th><th class="order-money">成交价</th><th class="order-money">最低 / 最高</th><th>越界方向</th></tr></thead><tbody><tr v-for="item in detail.order.specialPriceEvidence" :key="item.lineId"><td>{{ item.skuCodeSnapshot }}</td><td>{{ item.unitNameSnapshot }}</td><td class="order-money">{{ money(item.dealUnitPriceCents) }}</td><td class="order-money">{{ item.minimumSalePriceCents === null ? "—" : money(item.minimumSalePriceCents) }} / {{ item.maximumSalePriceCents === null ? "—" : money(item.maximumSalePriceCents) }}</td><td>{{ item.direction === "below-minimum" ? "低于最低售价" : "高于最高售价" }}</td></tr></tbody></table>
+          </div>
+          <p v-else class="order-unavailable">本单为人工标记特价，没有越界商品行；财务按申请原因强化确认。</p>
+        </section>
+        <section class="order-card">
+          <h2>审核历史 · 第 {{ detail.order.reviewRound ?? 1 }} 轮</h2>
+          <ol v-if="detail.order.reviewRecords?.length" class="order-review-history">
+            <li v-for="item in detail.order.reviewRecords" :key="item.id"><strong>第 {{ item.round }} 轮 · {{ item.stage === "order" ? "业务审核" : "财务审核" }} · {{ { approved:"通过", returned:"退回", canceled:"取消" }[item.outcome] }}</strong><span>{{ item.occurredAt.slice(0,16).replace("T"," ") }} · {{ item.actorSnapshot.name }}</span><p>{{ item.reason ?? "无备注" }}<template v-if="item.releasedPrepaymentCents"> · 已释放预收 {{ money(item.releasedPrepaymentCents) }}</template></p></li>
+          </ol>
+          <p v-else class="order-unavailable">尚无审核记录。</p>
         </section>
         <section class="order-card">
           <h2>客户财务实时数据</h2>
@@ -491,6 +515,16 @@ onMounted(() => store.loadDetail(orderId.value));
               确认打印
             </button>
           </div>
+        </section>
+      </div>
+      <div v-if="reviewAction" class="order-modal">
+        <section class="order-modal__card">
+          <h2>{{ reviewLabels[reviewAction] }}</h2>
+          <p>{{ detail.order.orderNo }} · {{ detail.order.customerSnapshot.name }} · {{ money(detail.order.amounts.orderAmountCents) }}</p>
+          <p v-if="detail.order.specialPrice" class="order-notice">特价申请：{{ detail.order.specialPriceReason }}；保存依据 {{ detail.order.specialPriceEvidence?.length ?? 0 }} 行。</p>
+          <label class="order-review-reason">{{ needsReason(reviewAction) ? "原因（必填）" : "审核备注（选填）" }}<textarea v-model="reviewReason" maxlength="200" rows="3"></textarea></label>
+          <p v-if="reviewAction === 'cancel-order'" class="order-notice error">取消不可恢复，将释放预收占用并撤销分享；库存不会变化。</p>
+          <div class="order-modal__actions"><button class="order-button" @click="reviewAction = null">返回</button><button class="order-button" :class="reviewAction === 'cancel-order' ? 'danger' : 'primary'" :disabled="saving || (needsReason(reviewAction) && !reviewReason.trim())" @click="confirmReview">确认执行</button></div>
         </section>
       </div>
       <div v-if="shareOpen && share" class="order-modal">
