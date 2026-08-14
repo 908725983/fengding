@@ -2,8 +2,9 @@
 
 - 类型：business-feature
 - 功能：FIN-003
-- 当前阶段：implementation
-- 状态：active
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-14
 - 最近更新：2026-08-14
 
 ## 目标
@@ -58,7 +59,10 @@
 - [x] `npm run verify:harness` 通过：45 个切片、130 个决策门、8 份领域规格和 8 份需求快照；`git diff --check` 通过。
 - [x] specification 检查点已提交：`5e53a7f`，可独立回退且不含业务代码/fixture。
 - [x] 用户确认“FIN-003 全部按推荐方案执行”；11 组结论已逐项写回资金规格、产品索引和本计划，`FIN-003` 提升为 `ready`。
-- [ ] 当前步骤：实现 Types/Schema、确定性 baseline、事务 Repository、账户/流水/结转/银行/支付模拟 Service 与自动测试；通过后建立领域检查点，再接 Runtime/UI。
+- [x] 实现 Types/Schema、确定性 baseline、事务 Repository、账户/流水/结转/银行/支付模拟 Service 与自动测试；领域检查点 `1589846`。
+- [x] 实现 Runtime/Store、六个资金页面、二级导航、路由与四层权限；Runtime/UI 检查点 `64351b4`。
+- [x] `npm run verify` 通过 Harness、类型检查、54 个测试文件/230 项测试和生产构建；Mock reset 的 baseline/work SHA-256 均为 `CF5F207897E10E2D82B7EA1DE4F8315B3F3508074CB9EB610E69206534EFD7AD`。
+- [x] 浏览器验收账户列表、账户明细正序、收支汇总、月结卡、银行资料与支付模拟；无应用控制台 warning/error，未产生第三方请求或虚假开通。
 
 ## 开放决策
 
@@ -94,4 +98,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation。规格检查点 `5e53a7f`、恢复记录 `db9ac73` 和 11 组用户决策写回均已完成；`FIN-003` 为 `ready`，尚未新增业务代码或 fixture。下一步从 Types/Schema、baseline 和事务 Repository 开始，先用自动测试证明整数分、逐笔余额、期初锁定、连续结转/反结转、幂等、并发、权限和账号遮蔽，再接 Runtime/UI。
+本计划已完成并归档，不再作为 active 恢复入口。可独立回退检查点为规格 `5e53a7f`、恢复记录 `db9ac73`、决策写回 `9cf842a`、领域核心 `1589846`、Runtime/UI `64351b4`；最终 Harness 写回由承载本文件的完成提交记录。下一次执行应按 `docs/design-docs/implementation-sequence.md` 为 `FIN-001` 新建唯一 specification active plan，先提取应收、收款和核销契约，不得直接修改 FIN-003 Repository 或提前生成退款能力。

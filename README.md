@@ -18,7 +18,7 @@
 - 当前质量：[docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md)
 - 执行计划规则：[docs/PLANS.md](docs/PLANS.md)
 
-当前有 43 个可进入规格提取的业务切片和 2 个因需求不足而 blocked 的模块。已有 10 个业务切片完成并留下 passing 证据；其余切片仍必须逐项经过规格、决策、实现和验收门禁。按总体顺序，下一切片是 `FIN-003` 资金账户、银行与结转基础。
+当前有 43 个可进入规格提取的业务切片和 2 个因需求不足而 blocked 的模块。已有 11 个业务切片完成并留下 passing 证据；其余切片仍必须逐项经过规格、决策、实现和验收门禁。按总体顺序，下一切片是 `FIN-001` 客户应收、收款与核销，开工时先建立 specification active plan，不直接生成页面。
 
 ## Harness 目录
 
