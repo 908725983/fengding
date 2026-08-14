@@ -205,3 +205,11 @@ baseline 只保存 `INV-001` 自有仓库、库位、余额、批次、阈值与
 ### INV-001 实现状态
 
 `INV-001` 已于 2026-08-12 完成：库存/详情/批次/流水/仓库/库位页面、基本单位定点余额、月初快照、成本只读快照、阈值、临期状态、FIFO 预览、幂等入出库 command、原子库位导入、CSV 导出、引用保护和三层权限均已有 Repository/Service/Runtime/UI 与自动证据。订单待出库和采购在途 provider 尚未实现，相关列及可用库存按契约显示 `unavailable`，没有以 0 伪造跨域事实；真实销售出库、采购入库和手工出入库页面仍分别属于 `ORD-004/PUR-002/INV-002`。证据见 `../exec-plans/completed/2026-08-12-inventory-foundation.md`。
+
+## ORD-005 客户退货入库集成契约（source-only）
+
+订单原文要求客户退单审核通过后手工创建类型为“退货”的其他入库单并关联退单号；库存流水类型明确包含“客户退单入库”。`ORD-005` 可以消费 INV-001 已有幂等入库 command，但不能直接改余额，也不能借此实现盘盈、赠品和其他入库的 `INV-002` 通用页面。
+
+退货入库命令至少需要 `requestId/sourceType=customer-return/sourceId/operatorId/occurredAt/warehouseId/locationId/skuId/quantityMilli/costPerBaseUnitCents` 以及追踪商品的批次、生产和有效期。成功必须追加不可变库存流水并向 Order 返回 movement 引用；Order 与 Inventory 写入必须原子，任何一行、仓库/库位、批次、版本或权限失败时全部不生效。
+
+原文未定义退货仓库候选、原批次还是新批次、成本来源、一次/部分收货和作废纠错，因此 `DEC-ORD-048`、`DEC-INV-014/015` 阻塞该命令用于真实退单。决策前，审核通过不能自动增加库存，Order 页面不能把未执行入库显示成“已收货”。
