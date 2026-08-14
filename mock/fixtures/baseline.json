@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "scenario": "normal",
   "clock": "2026-08-10T09:00:00+08:00",
   "featureData": {
@@ -332,6 +332,49 @@
         { "id": "movement-opening-5", "enterpriseId": "ent-demo", "requestId": "opening-demo-5", "sourceType": "opening", "sourceId": "source-opening-5", "direction": "inbound", "warehouseId": "warehouse-virtual", "locationId": "location-virtual-a", "skuId": "sku-3", "batchId": "batch-sku3-active", "quantityMilli": 40000, "balanceAfterMilli": 40000, "costPerBaseUnitCents": 420, "operatorId": "admin-demo", "occurredAt": "2026-08-03T09:00:00+08:00" }
       ],
       "changeLogs": []
+    },
+    "FIN-003": {
+      "schemaVersion": 1,
+      "enterpriseId": "ent-demo",
+      "version": 1,
+      "bookStartMonth": "2026-07",
+      "accounts": [
+        { "id": "account-cash", "enterpriseId": "ent-demo", "name": "现金账户", "type": "cash", "status": "enabled", "openingMonth": "2026-07", "openingBalanceCents": 100000, "createdAt": "2026-07-01T08:00:00+08:00", "updatedAt": "2026-07-01T08:00:00+08:00", "version": 1 },
+        { "id": "account-bank", "enterpriseId": "ent-demo", "name": "演示银行基本户", "type": "bank", "status": "enabled", "openingMonth": "2026-07", "openingBalanceCents": 500000, "createdAt": "2026-07-01T08:00:00+08:00", "updatedAt": "2026-07-01T08:00:00+08:00", "version": 1 },
+        { "id": "account-wechat", "enterpriseId": "ent-demo", "name": "微信收款账户", "type": "wechat", "status": "enabled", "openingMonth": "2026-07", "openingBalanceCents": 20000, "createdAt": "2026-07-01T08:00:00+08:00", "updatedAt": "2026-07-01T08:00:00+08:00", "version": 1 },
+        { "id": "account-alipay", "enterpriseId": "ent-demo", "name": "支付宝备用账户", "type": "alipay", "status": "disabled", "openingMonth": "2026-07", "openingBalanceCents": 10000, "createdAt": "2026-07-01T08:00:00+08:00", "updatedAt": "2026-07-01T08:00:00+08:00", "version": 1 }
+      ],
+      "movements": [
+        { "id": "finance-movement-001", "enterpriseId": "ent-demo", "accountId": "account-cash", "direction": "income", "kind": "prototype", "amountCents": 50000, "balanceAfterCents": 150000, "sourceId": "demo-fin-001", "sourceNoSnapshot": "DEMO-FIN-001", "counterpartySnapshot": "演示零售客户", "summary": "原型演示收款", "requestId": "seed-fin-001", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "occurredAt": "2026-07-05T10:00:00+08:00" },
+        { "id": "finance-movement-002", "enterpriseId": "ent-demo", "accountId": "account-cash", "direction": "expense", "kind": "prototype", "amountCents": 20000, "balanceAfterCents": 130000, "sourceId": "demo-fin-002", "sourceNoSnapshot": "DEMO-FIN-002", "counterpartySnapshot": "演示供应商", "summary": "原型演示付款", "requestId": "seed-fin-002", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "occurredAt": "2026-07-08T11:00:00+08:00" },
+        { "id": "finance-movement-003", "enterpriseId": "ent-demo", "accountId": "account-bank", "direction": "income", "kind": "prototype", "amountCents": 120000, "balanceAfterCents": 620000, "sourceId": "demo-fin-003", "sourceNoSnapshot": "DEMO-FIN-003", "counterpartySnapshot": "演示经销客户", "summary": "原型演示银行收款", "requestId": "seed-fin-003", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "occurredAt": "2026-07-06T14:00:00+08:00" },
+        { "id": "finance-movement-004", "enterpriseId": "ent-demo", "accountId": "account-bank", "direction": "expense", "kind": "prototype", "amountCents": 80000, "balanceAfterCents": 540000, "sourceId": "demo-fin-004", "sourceNoSnapshot": "DEMO-FIN-004", "counterpartySnapshot": "演示供应商", "summary": "原型演示银行付款", "requestId": "seed-fin-004", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "occurredAt": "2026-07-09T15:00:00+08:00" },
+        { "id": "finance-movement-005", "enterpriseId": "ent-demo", "accountId": "account-wechat", "direction": "income", "kind": "prototype", "amountCents": 30000, "balanceAfterCents": 50000, "sourceId": "demo-fin-005", "sourceNoSnapshot": "DEMO-FIN-005", "counterpartySnapshot": "演示门店客户", "summary": "原型演示微信收款", "requestId": "seed-fin-005", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "occurredAt": "2026-07-07T16:00:00+08:00" },
+        { "id": "finance-movement-006", "enterpriseId": "ent-demo", "accountId": "account-wechat", "direction": "expense", "kind": "prototype", "amountCents": 5000, "balanceAfterCents": 45000, "sourceId": "demo-fin-006", "sourceNoSnapshot": "DEMO-FIN-006", "counterpartySnapshot": "演示平台", "summary": "原型演示手续费", "requestId": "seed-fin-006", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "occurredAt": "2026-07-10T17:00:00+08:00" },
+        { "id": "finance-movement-007", "enterpriseId": "ent-demo", "accountId": "account-cash", "direction": "income", "kind": "prototype", "amountCents": 10000, "balanceAfterCents": 140000, "sourceId": "demo-fin-007", "sourceNoSnapshot": "DEMO-FIN-007", "counterpartySnapshot": "演示客户", "summary": "本月原型收款", "requestId": "seed-fin-007", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "occurredAt": "2026-08-03T10:00:00+08:00" },
+        { "id": "finance-movement-008", "enterpriseId": "ent-demo", "accountId": "account-cash", "direction": "expense", "kind": "prototype", "amountCents": 5000, "balanceAfterCents": 135000, "sourceId": "demo-fin-008", "sourceNoSnapshot": "DEMO-FIN-008", "counterpartySnapshot": "演示供应商", "summary": "本月原型付款", "requestId": "seed-fin-008", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "occurredAt": "2026-08-05T11:00:00+08:00" },
+        { "id": "finance-movement-009", "enterpriseId": "ent-demo", "accountId": "account-bank", "direction": "income", "kind": "prototype", "amountCents": 25000, "balanceAfterCents": 565000, "sourceId": "demo-fin-009", "sourceNoSnapshot": "DEMO-FIN-009", "counterpartySnapshot": "演示经销客户", "summary": "本月银行收款", "requestId": "seed-fin-009", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "occurredAt": "2026-08-06T14:00:00+08:00" }
+      ],
+      "periods": [
+        { "id": "finance-period-2026-07", "enterpriseId": "ent-demo", "month": "2026-07", "status": "closed", "snapshots": [
+          { "accountId": "account-cash", "openingBalanceCents": 100000, "incomeCents": 50000, "expenseCents": 20000, "closingBalanceCents": 130000 },
+          { "accountId": "account-bank", "openingBalanceCents": 500000, "incomeCents": 120000, "expenseCents": 80000, "closingBalanceCents": 540000 },
+          { "accountId": "account-wechat", "openingBalanceCents": 20000, "incomeCents": 30000, "expenseCents": 5000, "closingBalanceCents": 45000 },
+          { "accountId": "account-alipay", "openingBalanceCents": 10000, "incomeCents": 0, "expenseCents": 0, "closingBalanceCents": 10000 }
+        ], "closedAt": "2026-08-01T08:00:00+08:00", "closedBy": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "closeRequestId": "seed-close-2026-07", "reversedAt": null, "reversedBy": null, "reversalReason": null, "reverseRequestId": null, "version": 1 }
+      ],
+      "banks": [
+        { "id": "bank-profile-demo", "enterpriseId": "ent-demo", "accountId": "account-bank", "bankName": "演示商业银行", "accountName": "演示蜂订商贸有限公司", "bankAccount": "6222000000001234", "branchName": "演示支行", "accountKind": "corporate", "status": "enabled", "createdAt": "2026-07-01T08:10:00+08:00", "updatedAt": "2026-07-01T08:10:00+08:00", "version": 1 }
+      ],
+      "paymentChannels": [
+        { "id": "payment-channel-weiqifu", "enterpriseId": "ent-demo", "code": "weiqifu", "name": "微企付", "description": "原型展示通道，不会发起真实申请", "status": "unopened", "openedAt": null, "updatedAt": "2026-07-01T08:00:00+08:00", "version": 1 },
+        { "id": "payment-channel-unionpay", "enterpriseId": "ent-demo", "code": "unionpay", "name": "银联商务", "description": "原型展示通道，不会发起真实申请", "status": "unopened", "openedAt": null, "updatedAt": "2026-07-01T08:00:00+08:00", "version": 1 }
+      ],
+      "paymentApplications": [],
+      "requests": [],
+      "auditLogs": [
+        { "id": "finance-audit-close-july", "enterpriseId": "ent-demo", "action": "period.closed", "targetId": "finance-period-2026-07", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "detail": "结转 2026-07", "createdAt": "2026-08-01T08:00:00+08:00" }
+      ]
     }
   }
 }

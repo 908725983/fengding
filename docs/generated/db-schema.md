@@ -2,15 +2,15 @@
 
 - 来源：`mock/schemas/` 与 `mock/fixtures/baseline.json`
 - 生成方式：`npm run docs:generate`
-- 最近刷新：2026-08-13
+- 最近刷新：2026-08-14
 
 > 本文件由脚本生成，禁止手工编辑“生成内容”。当前原型没有数据库，本页描述的是已通过字段准备门的 Mock 契约，不是生产表结构。
 
 ## 生成内容
 
-- Mock schema 版本：6
+- Mock schema 版本：7
 - 默认场景：normal
-- 已登记功能数据：`CUS-001`、`INV-001`、`ORD-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`
+- 已登记功能数据：`CUS-001`、`FIN-003`、`INV-001`、`ORD-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`
 
 ### mock/schemas/authorization-foundation.schema.json
 
@@ -101,6 +101,35 @@
     "plans": { "type": "array" },
     "templates": { "type": "array" },
     "changeLogs": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+```
+
+### mock/schemas/finance-foundation.schema.json
+
+- SHA-256：`cba89cb6eb169f04da83a0428b47b3f339484893bc303ee9af5fe2063e4d8408`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "finance-foundation.schema.json",
+  "title": "FIN-003 资金账户基础数据",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "version", "bookStartMonth", "accounts", "movements", "periods", "banks", "paymentChannels", "paymentApplications", "requests", "auditLogs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "bookStartMonth": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+    "accounts": { "type": "array" },
+    "movements": { "type": "array" },
+    "periods": { "type": "array" },
+    "banks": { "type": "array" },
+    "paymentChannels": { "type": "array" },
+    "paymentApplications": { "type": "array" },
+    "requests": { "type": "array" },
+    "auditLogs": { "type": "array" }
   },
   "additionalProperties": false
 }
