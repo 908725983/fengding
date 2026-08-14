@@ -1,10 +1,11 @@
 import { describe,expect,it } from 'vitest'
 import { orderBaseline } from '../../../../mock/handlers/order-handler'
-import { assertOrderFeatureState, normalizeOrderQuery, OrderValidationError } from './order-schema'
+import { createEmptyOrderDraft } from '../services/order-service'
+import { assertOrderDraft, assertOrderFeatureState, normalizeOrderQuery, OrderValidationError } from './order-schema'
 
 describe('order schema',()=>{
   it('accepts the single baseline and all eight canonical states',()=>{expect(()=>assertOrderFeatureState(orderBaseline)).not.toThrow();expect(new Set(orderBaseline.orders.map((item)=>item.status)).size).toBe(8)})
   it('rejects broken money equation and invalid discount sign',()=>{const state=structuredClone(orderBaseline);state.orders[0]!.amounts.orderAmountCents+=1;expect(()=>assertOrderFeatureState(state)).toThrow(OrderValidationError);const other=structuredClone(orderBaseline);other.orders[0]!.amounts.productDiscountCents=1;other.orders[0]!.amounts.orderAmountCents+=1;expect(()=>assertOrderFeatureState(other)).toThrow(OrderValidationError)})
   it('normalizes pagination and rejects invalid ranges',()=>{expect(normalizeOrderQuery({keyword:' demo '})).toMatchObject({keyword:'demo',page:1,pageSize:30});expect(()=>normalizeOrderQuery({amountMinCents:100,amountMaxCents:99})).toThrow(OrderValidationError);expect(()=>normalizeOrderQuery({pageSize:20 as 30})).toThrow(OrderValidationError)})
+  it('rejects incomplete drafts, duplicate lines and unsafe attachments',()=>{const draft=createEmptyOrderDraft('2026-08-10T09:00:00+08:00','staff-demo-1');expect(()=>assertOrderDraft(draft)).toThrow(OrderValidationError);Object.assign(draft,{customerId:'customer-1',warehouseId:'warehouse-main',deliveryMethod:'logistics',shipping:{recipient:'收货人',phone:'000',province:'省',city:'市',district:'区',address:'地址'}});draft.lines=[{skuId:'sku-1',unitId:'unit-piece',quantity:1,lineKind:'sale',manualDealUnitPriceCents:null,reason:null,sourceKeys:[]},{skuId:'sku-1',unitId:'unit-piece',quantity:1,lineKind:'sale',manualDealUnitPriceCents:null,reason:null,sourceKeys:[]}];draft.attachments=[{id:'file-1',name:'unsafe.exe',mediaType:'application/pdf',sizeBytes:5*1024*1024+1}];expect(()=>assertOrderDraft(draft)).toThrowError(expect.objectContaining({issues:expect.arrayContaining([expect.objectContaining({path:'lines.1'}),expect.objectContaining({path:'attachments.0.sizeBytes'})])}))})
 })
-

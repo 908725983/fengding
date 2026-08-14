@@ -54,8 +54,9 @@
 - [x] specification 机械校验和 `git diff --check` 通过；变更只包含规格、决策、计划和质量文档，没有业务代码或 Mock 数据。
 - [x] 规格检查点已提交：`2ab924d`。
 - [x] 用户确认 `DEC-PRD-001`、`DEC-ORD-002/004/014～027` 全部推荐方案；逐项写回并将 `ORD-002` 提升为 `ready`。
-- [ ] 当前步骤：通过决策写回门禁并提交决策检查点，然后实现 Types、Schema、Repository、Provider 契约与领域 Service。
-- [ ] 实现领域核心、页面与 Mock，并分别保存可回退检查点。
+- [x] 决策写回检查点已提交：`33fdbfb`。
+- [x] 领域核心已实现：Types、Schema、Repository 扩展、必需 Provider、定价/金额、预收占用、幂等保存、乐观锁、模板/粘贴/扫码与分享 Service；订单领域 23 项定向测试和类型检查通过。
+- [ ] 当前步骤：实现 Runtime/Store、路由、新增/修改页面、分享公开页和 Mock 场景，并保存第二个可回退检查点。
 - [ ] 完成自动、浏览器、Mock 重置、构建和干净启动验收，归档计划并更新总体进度。
 
 ## 开放决策
@@ -71,4 +72,4 @@
 
 ## 中断恢复点
 
-恢复时先运行 `./scripts/init.ps1`，再读取本计划、`docs/product-specs/orders.md` 和 `docs/product-specs/index.md`。从“进度日志”唯一的“当前步骤”继续；当前处于 specification，禁止写入 `src/features/orders/**`、Mock baseline 或 handler 业务实现。
+恢复时先运行 `./scripts/init.ps1`，再读取本计划、`docs/product-specs/orders.md` 和 `docs/product-specs/index.md`。从“进度日志”唯一的“当前步骤”继续；当前处于 implementation，领域核心已经完成，继续 Runtime/UI，不重复实现或改写已通过的领域契约。
