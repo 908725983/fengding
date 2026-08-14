@@ -56,6 +56,7 @@
 - [x] 已在 `finance.md` 形成页面、列表、表单边界、持久化对象、余额/期间计算、权限、八类 Mock 和 7 项验收追踪。
 - [x] `DEC-FIN-006～016` 已登记到产品索引和本计划；11 组决策保持 open，未修改业务代码或 fixture。
 - [x] `npm run verify:harness` 通过：45 个切片、130 个决策门、8 份领域规格和 8 份需求快照；`git diff --check` 通过。
+- [x] specification 检查点已提交：`5e53a7f`，可独立回退且不含业务代码/fixture。
 - [ ] 当前步骤：等待用户确认 `DEC-FIN-006～016` 推荐方案；确认后逐项写回结论、将 `FIN-003` 提升为 `ready`，再进入 implementation。
 
 ## 开放决策
@@ -92,4 +93,4 @@
 
 ## 中断恢复点
 
-当前处于 specification。基线、原始资料审计、完整 source-only 字段契约、`DEC-FIN-006～016` 决策包和 Harness 校验均已完成；尚未修改业务代码或 fixture。下一步只等待用户确认推荐方案；确认后必须把每项明确结论和日期逐项写回 `finance.md`、产品索引与本计划，将 `FIN-003` 提升为 `ready`，再开始 Types/Schema。若用户没有确认，保持本恢复点且禁止编码。
+当前处于 specification。基线、原始资料审计、完整 source-only 字段契约、`DEC-FIN-006～016` 决策包和 Harness 校验均已完成，规格检查点为 `5e53a7f`；尚未修改业务代码或 fixture。下一步只等待用户确认推荐方案；确认后必须把每项明确结论和日期逐项写回 `finance.md`、产品索引与本计划，将 `FIN-003` 提升为 `ready`，再开始 Types/Schema。若用户没有确认，保持本恢复点且禁止编码。
