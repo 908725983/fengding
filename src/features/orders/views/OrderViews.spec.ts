@@ -6,6 +6,8 @@ import OrderListView from "./OrderListView.vue";
 import OrderDetailView from "./OrderDetailView.vue";
 import OrderFormView from "./OrderFormView.vue";
 import OrderShareView from "./OrderShareView.vue";
+import OrderOutboundListView from "./OrderOutboundListView.vue";
+import OrderDifferenceListView from "./OrderDifferenceListView.vue";
 import { useOrderStore } from "../runtime/order-store";
 
 async function setup(component: typeof OrderListView, path = "/orders") {
@@ -16,6 +18,8 @@ async function setup(component: typeof OrderListView, path = "/orders") {
     routes: [
       { path: "/orders", component: OrderListView },
       { path: "/orders/new", component: OrderFormView },
+      { path: "/orders/outbounds", component: OrderOutboundListView },
+      { path: "/orders/differences", component: OrderDifferenceListView },
       { path: "/orders/:orderId/edit", component: OrderFormView },
       { path: "/orders/:orderId", component: OrderDetailView },
     ],
@@ -61,12 +65,14 @@ describe("order views", () => {
       wrapper.find('button[title*="ORD-004"]').attributes("disabled"),
     ).toBeDefined();
   });
-  it("shows future tabs as explicit unavailable states", async () => {
+  it("renders ORD-004 fulfillment instead of the former unavailable placeholder", async () => {
     const { wrapper } = await setup(OrderDetailView, "/orders/order-001");
     await wrapper.findAll(".order-tabs button")[1]!.trigger("click");
-    expect(wrapper.text()).toContain("出库发货记录由 ORD-004 提供");
-    expect(wrapper.text()).toContain("不以空表或 0 冒充");
+    expect(wrapper.text()).toContain("待出库与履约动作");
+    expect(wrapper.text()).toContain("销售出库记录");
+    expect(wrapper.text()).toContain("尚无出库记录");
   });
+  it("renders seeded outbound and difference workspaces",async()=>{const outbounds=await setup(OrderOutboundListView as typeof OrderListView,"/orders/outbounds");expect(outbounds.wrapper.text()).toContain("销售出库单");expect(outbounds.wrapper.text()).toContain("XSCK-260810-");outbounds.wrapper.unmount();const differences=await setup(OrderDifferenceListView as typeof OrderListView,"/orders/differences");expect(differences.wrapper.text()).toContain("差异单");expect(differences.wrapper.text()).toContain("CY-260810-")});
   it("opens a governed review dialog and renders special review evidence", async () => {
     const ordinary = await setup(OrderDetailView, "/orders/order-001");
     const approve=ordinary.wrapper.findAll("button").find((item)=>item.text()==="订单审核通过");

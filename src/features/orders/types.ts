@@ -215,5 +215,5 @@ export interface OutboundPreviewLine extends SalesOutboundLine { availableMilli:
 export interface OrderOutboundPreview { orderId: EntityId; warehouse: WarehouseSnapshot; lines: OutboundPreviewLine[]; differenceLines: DifferenceLine[]; documentAmountCents: number }
 export interface OrderFulfillmentDetail {
   order: VisibleOrder; outbounds: SalesOutbound[]; differences: DifferenceDocument[]; shipment: ShipmentRecord | null
-  receipt: ReceiptRecord | null; receivable: OrderReceivableRecord | null; permissions: OrderPermission[]
+  receipt: ReceiptRecord | null; receivable: OrderReceivableRecord | null; permissions: OrderPermission[]; warehouses: WarehouseSnapshot[]
 }

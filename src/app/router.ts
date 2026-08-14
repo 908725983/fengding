@@ -42,6 +42,10 @@ import OrderListView from '@/features/orders/views/OrderListView.vue'
 import OrderDetailView from '@/features/orders/views/OrderDetailView.vue'
 import OrderFormView from '@/features/orders/views/OrderFormView.vue'
 import OrderShareView from '@/features/orders/views/OrderShareView.vue'
+import OrderOutboundListView from '@/features/orders/views/OrderOutboundListView.vue'
+import OrderOutboundDetailView from '@/features/orders/views/OrderOutboundDetailView.vue'
+import OrderDifferenceListView from '@/features/orders/views/OrderDifferenceListView.vue'
+import OrderDifferenceDetailView from '@/features/orders/views/OrderDifferenceDetailView.vue'
 import { guardOrderSubroute } from '@/features/orders/runtime/order-access'
 
 export const router = createRouter({
@@ -52,6 +56,10 @@ export const router = createRouter({
     { path: '/share/orders/:token', name: 'order-share', component: OrderShareView },
     { path: '/orders', name: 'order-list', component: OrderListView },
     { path: '/orders/new', name: 'order-new', component: OrderFormView },
+    { path: '/orders/outbounds', name: 'order-outbounds', component: OrderOutboundListView },
+    { path: '/orders/outbounds/:outboundId', name: 'order-outbound-detail', component: OrderOutboundDetailView },
+    { path: '/orders/differences', name: 'order-differences', component: OrderDifferenceListView },
+    { path: '/orders/differences/:differenceId', name: 'order-difference-detail', component: OrderDifferenceDetailView },
     { path: '/orders/:orderId/edit', name: 'order-edit', component: OrderFormView },
     { path: '/orders/:orderId', name: 'order-detail', component: OrderDetailView },
     { path: '/customers', name: 'customer-list', component: CustomerListView },

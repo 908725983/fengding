@@ -95,4 +95,5 @@ describe("order store", () => {
     expect(store.error).toContain("其他会话修改");
     expect(store.detail?.order.status).toBe("pending-order-review");
   });
+  it("runs outbound, shipment and receipt through one recoverable store session",async()=>{const store=useOrderStore();await store.setRole('warehouse');await store.loadFulfillment('order-003');const line=store.fulfillmentDetail!.order.lines[0]!;const input={orderId:'order-003',warehouseId:'warehouse-main',lines:[{orderLineId:line.id,quantity:line.quantityMilli/line.unitSnapshot.conversionRateMilli}],finishShort:false};expect(await store.previewFulfillment(input)).toBe(true);expect(store.outboundPreview?.lines[0]?.allocations.length).toBeGreaterThan(0);expect(await store.confirmFulfillment(input)).toBe(true);expect(store.fulfillmentDetail?.order.status).toBe('outbound');expect(await store.shipOrder({orderId:'order-003',logisticsCode:'MOCK-STORE-003'})).toBe(true);expect(store.fulfillmentDetail?.receivable).toBeNull();expect(await store.receiveOrder({orderId:'order-003',signedAt:'2026-08-10T10:00:00+08:00',signer:'演示签收人'})).toBe(true);expect(store.fulfillmentDetail?.order.status).toBe('completed')});
 });

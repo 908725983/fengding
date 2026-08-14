@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import OrderScenarioBar from "../components/OrderScenarioBar.vue";
+import OrderFulfillmentSubnav from "../components/OrderFulfillmentSubnav.vue";
 import { useOrderStore } from "../runtime/order-store";
 import type { OrderListRow, OrderQuery, OrderReviewAction, OrderStatus, SettlementMethod } from "../types";
 import "./order-views.css";
@@ -165,15 +166,16 @@ onMounted(() => store.applyQuery(buildQuery()));
   <section class="order-page">
     <header class="order-header">
       <div>
-        <p class="eyebrow">ORD-001 / ORD-002 / ORD-003 · 客户订单</p>
+        <p class="eyebrow">ORD-001～ORD-004 · 客户订单与履约</p>
         <h1>客户订单列表</h1>
-        <p>订单历史快照可追溯；履约、资金和库荐未接入时明确标记。</p>
+        <p>订单、FIFO 出库、差异、发货和签收可追溯；后续能力明确标记。</p>
       </div>
       <div class="order-header-tools">
         <OrderScenarioBar :scenario="scenario" :role="actor.role" @scenario="store.setScenario" @role="store.setRole" />
         <RouterLink v-if="canManage" class="order-button primary" to="/orders/new">新增订单</RouterLink>
       </div>
     </header>
+    <OrderFulfillmentSubnav />
     <form class="order-panel order-filter" @submit.prevent="search">
       <label
         >订单状态<select v-model="filters.status">
@@ -370,6 +372,8 @@ onMounted(() => store.applyQuery(buildQuery()));
               </td>
               <td>
                 <RouterLink :to="`/orders/${row.order.id}`">详情</RouterLink>
+                <RouterLink v-if="['approved','outbound-in-progress','outbound'].includes(row.order.status)" class="order-row-link" :to="`/orders/${row.order.id}?tab=fulfillment`">{{ row.order.status==='approved'?'出库':row.order.status==='outbound-in-progress'?'继续出库':'发货' }}</RouterLink>
+                <RouterLink v-if="row.order.status==='shipped'" class="order-row-link" :to="`/orders/${row.order.id}?tab=receipt`">签收</RouterLink>
                 <RouterLink v-if="canManage && row.order.status === 'pending-order-review'" class="order-row-link" :to="`/orders/${row.order.id}/edit`">修改</RouterLink>
                 <button v-for="action in row.reviewActions" :key="action" class="order-row-action" :class="{ danger: action === 'cancel-order' }" @click="openReview(row, action)">{{ reviewLabels[action] }}</button>
                 <button
