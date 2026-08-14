@@ -1,7 +1,7 @@
 # 质量评分
 
-- 最近审计：2026-08-13
-- 当前阶段：`ORD-001` 已完成验收并归档；下一切片为 `ORD-002`，尚未开始规格提取。
+- 最近审计：2026-08-14
+- 当前阶段：`ORD-002` 正在 specification；字段与交互契约已提取，等待 17 项阻塞决策确认，尚未编写本切片业务代码。
 
 ## 评分标准
 
@@ -20,10 +20,10 @@
 | 可进入规格提取的业务切片 | 43 | `PRD-006` 已从关联推荐独立登记；其余切片按目录状态推进 |
 | 已达到 ready 的业务切片 | 7 | `CUS-001`、`PRD-001/002/003/004`、`INV-001`、`ORD-001` 均已有 passing 证据 |
 | 因需求不足 blocked | 2 | `MER-001` 商家、`ANA-001` 独立数据分析 |
-| 已知人工决策门 | 91 | `DEC-ORD-001/005～013` 已确认；其余 open 决策继续只阻塞各自切片 |
-| 当前业务 active plan | 0 | `ORD-001` 已归档；`ORD-002` 尚未建立 specification 计划 |
+| 已知人工决策门 | 105 | `ORD-002` 当前受 `DEC-PRD-001`、`DEC-ORD-002/004/014～027` 共 17 项 open 决策阻塞 |
+| 当前业务 active plan | 1 | `docs/exec-plans/active/2026-08-14-order-create-edit.md` 处于 specification |
 
-`ORD-001` 的 `DEC-ORD-001/005～013` 已全部实现并有验证证据；`ORD-002` 与 `PRD-006` 保持 source-only。
+`ORD-001` 的 `DEC-ORD-001/005～013` 已全部实现并有验证证据；`ORD-002` 已完成 source-only 契约提取但未通过人工决策门，`PRD-006` 仍保持 source-only。
 
 ## 产品领域
 
@@ -80,6 +80,7 @@
 | 2026-08-12 | `PRD-004` 完成验收 | `npm run verify` 通过：Harness、类型检查、34 个测试文件/115 条测试和生产构建；重置后 baseline/work SHA-256 一致 | 方案/模板列表与表单、无副作用预览、统计 unavailable、控制台无错误；1280×800 无页面级溢出；干净重启页面 HTTP 200 | `PRD-004` 以 B 级完成归档；订单来源统计保持 unavailable，关联推荐保持 `PRD-006` source-only，未伪造跨切片事实 |
 | 2026-08-12 | `INV-001` 完成验收 | `npm run verify` 通过：Harness、类型检查、40 个测试文件/140 条测试和生产构建；baseline/work SHA-256 均为 `0F4C0E153088DAF679ACCC32C878DB0F0332ED5CEEFB0372BA1E3B75DAA63151` | 库存/详情/批次/流水/仓库/库位、阈值、CSV 与角色边界通过；1280×800 无页面级溢出、宽表内部滚动、控制台无应用错误；干净启动 `/inventory/stocks` HTTP 200 | `INV-001` 以 B 级完成归档；待出库/可用/在途保持 unavailable，真实业务页面未被伪造 |
 | 2026-08-13 | `ORD-001` 完成验收 | `npm run verify` 通过：Harness、类型检查、46 个测试文件/161 条测试和生产构建；两次 reset 的 baseline/work SHA-256 均为 `28652886C3447BFB4182BBE4CDE826AB1796CEF72B48B51DE639B5114232F34E` | 1280×800 列表/详情无页面溢出、宽表内部滚动；筛选 URL、四 Tab、六场景、角色遮蔽、打印取消/确认计数、partial-failure 隔离和控制台通过；干净启动 `/orders` HTTP 200；截图在 evidence | `ORD-001` 以 B 级完成归档；新增/审核/出库/收款及库荐保持后续切片或 unavailable |
+| 2026-08-14 | `ORD-002` 规格提取 | 开工 `./scripts/init.ps1` 通过 46/46 测试文件、161/161 测试、类型检查和构建；规格完成后 `npm run verify:harness` 通过 45 个切片、105 个决策门，`git diff --check` 通过 | 对照订单原文 §2.2、§2.5，并核对客户、价格、授权、模板、库存、资金、设置和全局权限 | 字段、操作、计算、Mock 与验收形成 source-only 契约；17 项产品决策仍 open，未新增业务代码或 fixture |
 
 ## 允许与禁止的结论
 
