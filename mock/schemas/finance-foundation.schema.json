@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "finance-foundation.schema.json",
-  "title": "FIN-003 资金账户基础数据",
+  "title": "FIN-001/003 客户应收与资金账户基础数据",
   "type": "object",
-  "required": ["schemaVersion", "enterpriseId", "version", "bookStartMonth", "accounts", "movements", "periods", "banks", "paymentChannels", "paymentApplications", "requests", "auditLogs"],
+  "required": ["schemaVersion", "enterpriseId", "version", "bookStartMonth", "accounts", "movements", "periods", "banks", "paymentChannels", "paymentApplications", "receivables", "customerReceipts", "receiptWriteoffs", "prepaymentLedger", "dailySequences", "requests", "auditLogs"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "enterpriseId": { "type": "string", "minLength": 1 },
@@ -15,6 +15,11 @@
     "banks": { "type": "array" },
     "paymentChannels": { "type": "array" },
     "paymentApplications": { "type": "array" },
+    "receivables": { "type": "array" },
+    "customerReceipts": { "type": "array" },
+    "receiptWriteoffs": { "type": "array" },
+    "prepaymentLedger": { "type": "array" },
+    "dailySequences": { "type": "array" },
     "requests": { "type": "array" },
     "auditLogs": { "type": "array" }
   },

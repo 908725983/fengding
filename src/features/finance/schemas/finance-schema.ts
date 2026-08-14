@@ -11,7 +11,10 @@ const accountTypes = new Set(['cash', 'bank', 'wechat', 'alipay'])
 const entityStatuses = new Set(['enabled', 'disabled'])
 const directions = new Set(['income', 'expense'])
 const kinds = new Set(['receipt', 'payment', 'transfer-in', 'transfer-out', 'refund', 'other-income', 'other-expense', 'prototype'])
-const requestKinds = new Set(['account-save', 'movement-post', 'period-close', 'period-reverse', 'bank-save', 'payment-apply'])
+const requestKinds = new Set([
+  'account-save', 'movement-post', 'period-close', 'period-reverse', 'bank-save', 'payment-apply',
+  'receivable-create', 'receipt-create', 'receipt-void', 'writeoff-create', 'writeoff-cancel',
+])
 
 function required(issues: FinanceValidationIssue[], path: string, value: unknown, max = 100): void {
   if (typeof value !== 'string' || !value.trim()) issues.push({ path, message: '不能为空' })
@@ -54,7 +57,7 @@ export function assertFinanceFeatureState(state: FinanceFeatureState): void {
   required(issues, 'enterpriseId', state.enterpriseId)
   if (!Number.isSafeInteger(state.version) || state.version < 1) issues.push({ path: 'version', message: '必须是正整数' })
   if (!monthPattern.test(state.bookStartMonth)) issues.push({ path: 'bookStartMonth', message: '必须为 YYYY-MM' })
-  for (const collection of [state.accounts, state.movements, state.periods, state.banks, state.paymentChannels, state.paymentApplications, state.auditLogs]) {
+  for (const collection of [state.accounts, state.movements, state.periods, state.banks, state.paymentChannels, state.paymentApplications, state.receivables, state.customerReceipts, state.receiptWriteoffs, state.prepaymentLedger, state.auditLogs]) {
     unique(issues, 'entity.id', collection.map((item) => item.id))
     if (collection.some((item) => item.enterpriseId !== state.enterpriseId)) issues.push({ path: 'enterpriseId', message: '实体企业不一致' })
   }
@@ -66,7 +69,7 @@ export function assertFinanceFeatureState(state: FinanceFeatureState): void {
     iso(issues, `accounts.${account.id}.createdAt`, account.createdAt); iso(issues, `accounts.${account.id}.updatedAt`, account.updatedAt)
   }
   const running = new Map(state.accounts.map((item) => [item.id, item.openingBalanceCents]))
-  const sortedMovements = [...state.movements].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt) || a.id.localeCompare(b.id))
+  const sortedMovements = [...state.movements].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt))
   for (const movement of sortedMovements) {
     if (!accountIds.has(movement.accountId)) issues.push({ path: `movements.${movement.id}.accountId`, message: '账户不存在' })
     if (!directions.has(movement.direction)) issues.push({ path: `movements.${movement.id}.direction`, message: '方向无效' })
@@ -99,6 +102,68 @@ export function assertFinanceFeatureState(state: FinanceFeatureState): void {
     if (!Number.isSafeInteger(bank.version) || bank.version < 1) issues.push({ path: `banks.${bank.id}.version`, message: '必须是正整数' })
   }
   unique(issues, 'paymentChannels.code', state.paymentChannels.map((item) => item.code)); unique(issues, 'requests.requestId', state.requests.map((item) => item.requestId))
+  unique(issues, 'receivables.receivableNo', state.receivables.map((item) => item.receivableNo))
+  unique(issues, 'receivables.orderId', state.receivables.map((item) => item.orderId))
+  unique(issues, 'receipts.receiptNo', state.customerReceipts.map((item) => item.receiptNo))
+  unique(issues, 'writeoffs.writeoffNo', state.receiptWriteoffs.map((item) => item.writeoffNo))
+  unique(issues, 'dailySequences.date', state.dailySequences.map((item) => item.date))
+  const receivableIds = new Set(state.receivables.map((item) => item.id))
+  const receiptIds = new Set(state.customerReceipts.map((item) => item.id))
+  const prepaymentIds = new Set(state.prepaymentLedger.filter((item) => item.amountDeltaCents > 0).map((item) => item.sourceId))
+  for (const receivable of state.receivables) {
+    required(issues, `receivables.${receivable.id}.receivableNo`, receivable.receivableNo)
+    required(issues, `receivables.${receivable.id}.orderId`, receivable.orderId)
+    required(issues, `receivables.${receivable.id}.customerId`, receivable.customerSnapshot.id)
+    money(issues, `receivables.${receivable.id}.goodsAmountCents`, receivable.goodsAmountCents)
+    money(issues, `receivables.${receivable.id}.freightCents`, receivable.freightCents)
+    money(issues, `receivables.${receivable.id}.amountCents`, receivable.amountCents, true)
+    if (receivable.goodsAmountCents + receivable.freightCents !== receivable.amountCents) issues.push({ path: `receivables.${receivable.id}.amountCents`, message: '必须等于订货金额与运费之和' })
+    if (!['cash', 'monthly', 'terms'].includes(receivable.settlementMethod)) issues.push({ path: `receivables.${receivable.id}.settlementMethod`, message: '结算方式无效' })
+    if (receivable.settlementMethod === 'terms' && (!Number.isSafeInteger(receivable.paymentTermDays) || receivable.paymentTermDays! < 1 || receivable.paymentTermDays! > 365)) issues.push({ path: `receivables.${receivable.id}.paymentTermDays`, message: '账期必须为 1～365 天' })
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(receivable.dueDate)) issues.push({ path: `receivables.${receivable.id}.dueDate`, message: '必须为 YYYY-MM-DD' })
+    iso(issues, `receivables.${receivable.id}.occurredAt`, receivable.occurredAt)
+    unique(issues, `receivables.${receivable.id}.items`, receivable.items.map((item) => item.orderLineId))
+    for (const item of receivable.items) {
+      money(issues, `receivables.${receivable.id}.items.quantityMilli`, item.quantityMilli, true)
+      money(issues, `receivables.${receivable.id}.items.unitPriceCents`, item.unitPriceCents)
+      money(issues, `receivables.${receivable.id}.items.subtotalCents`, item.subtotalCents)
+    }
+  }
+  for (const receipt of state.customerReceipts) {
+    required(issues, `customerReceipts.${receipt.id}.receiptNo`, receipt.receiptNo)
+    money(issues, `customerReceipts.${receipt.id}.amountCents`, receipt.amountCents, true)
+    iso(issues, `customerReceipts.${receipt.id}.occurredAt`, receipt.occurredAt)
+    if (!['cash', 'bank', 'wechat', 'alipay', 'balance'].includes(receipt.method)) issues.push({ path: `customerReceipts.${receipt.id}.method`, message: '收款方式无效' })
+    if (receipt.method === 'balance' ? receipt.accountId !== null || receipt.movementId !== null : !receipt.accountId || !receipt.movementId) issues.push({ path: `customerReceipts.${receipt.id}.accountId`, message: '账户与收款方式不一致' })
+    if (receipt.status === 'void' && !receipt.voidInfo) issues.push({ path: `customerReceipts.${receipt.id}.voidInfo`, message: '作废审计不能为空' })
+    if (receipt.attachment && (receipt.attachment.sizeBytes < 1 || receipt.attachment.sizeBytes > 5 * 1024 * 1024 || !['application/pdf', 'image/jpeg', 'image/png'].includes(receipt.attachment.mimeType))) issues.push({ path: `customerReceipts.${receipt.id}.attachment`, message: '附件元数据无效' })
+  }
+  const allocationIds: string[] = []
+  for (const writeoff of state.receiptWriteoffs) {
+    required(issues, `receiptWriteoffs.${writeoff.id}.writeoffNo`, writeoff.writeoffNo)
+    iso(issues, `receiptWriteoffs.${writeoff.id}.occurredAt`, writeoff.occurredAt)
+    if (!writeoff.allocations.length) issues.push({ path: `receiptWriteoffs.${writeoff.id}.allocations`, message: '至少需要一条分配' })
+    let cash = 0; let discount = 0
+    for (const allocation of writeoff.allocations) {
+      allocationIds.push(allocation.id); money(issues, `allocations.${allocation.id}.cashCents`, allocation.cashCents); money(issues, `allocations.${allocation.id}.discountCents`, allocation.discountCents)
+      if (allocation.cashCents + allocation.discountCents <= 0) issues.push({ path: `allocations.${allocation.id}`, message: '核销金额必须为正' })
+      if (!receivableIds.has(allocation.receivableId)) issues.push({ path: `allocations.${allocation.id}.receivableId`, message: '应收不存在' })
+      if (allocation.sourceKind === 'receipt' && !receiptIds.has(allocation.sourceId)) issues.push({ path: `allocations.${allocation.id}.sourceId`, message: '收款来源不存在' })
+      if (allocation.sourceKind === 'prepayment' && !prepaymentIds.has(allocation.sourceId)) issues.push({ path: `allocations.${allocation.id}.sourceId`, message: '预收来源不存在' })
+      cash += allocation.cashCents; discount += allocation.discountCents
+    }
+    if (cash !== writeoff.cashCents || discount !== writeoff.discountCents || cash + discount !== writeoff.amountCents) issues.push({ path: `receiptWriteoffs.${writeoff.id}.amountCents`, message: '核销汇总与分配不一致' })
+    if (writeoff.status === 'cancelled' && !writeoff.cancelInfo) issues.push({ path: `receiptWriteoffs.${writeoff.id}.cancelInfo`, message: '取消审计不能为空' })
+  }
+  unique(issues, 'writeoffs.allocations.id', allocationIds)
+  for (const entry of state.prepaymentLedger) {
+    required(issues, `prepaymentLedger.${entry.id}.customerId`, entry.customerId)
+    if (!Number.isSafeInteger(entry.amountDeltaCents) || entry.amountDeltaCents === 0) issues.push({ path: `prepaymentLedger.${entry.id}.amountDeltaCents`, message: '必须为非零整数分' })
+    iso(issues, `prepaymentLedger.${entry.id}.occurredAt`, entry.occurredAt)
+  }
+  for (const sequence of state.dailySequences) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sequence.date) || [sequence.receivable, sequence.receipt, sequence.writeoff].some((value) => !Number.isSafeInteger(value) || value < 1)) issues.push({ path: `dailySequences.${sequence.date}`, message: '日序列无效' })
+  }
   for (const request of state.requests) { required(issues, 'requests.requestId', request.requestId); if (!requestKinds.has(request.kind)) issues.push({ path: `requests.${request.requestId}.kind`, message: '请求类型无效' }) }
   if (issues.length) throw new FinanceValidationError(issues)
 }

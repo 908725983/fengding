@@ -371,6 +371,11 @@
         { "id": "payment-channel-unionpay", "enterpriseId": "ent-demo", "code": "unionpay", "name": "银联商务", "description": "原型展示通道，不会发起真实申请", "status": "unopened", "openedAt": null, "updatedAt": "2026-07-01T08:00:00+08:00", "version": 1 }
       ],
       "paymentApplications": [],
+      "receivables": [],
+      "customerReceipts": [],
+      "receiptWriteoffs": [],
+      "prepaymentLedger": [],
+      "dailySequences": [],
       "requests": [],
       "auditLogs": [
         { "id": "finance-audit-close-july", "enterpriseId": "ent-demo", "action": "period.closed", "targetId": "finance-period-2026-07", "operatorSnapshot": { "id": "finance-demo", "name": "演示财务", "role": "finance" }, "detail": "结转 2026-07", "createdAt": "2026-08-01T08:00:00+08:00" }

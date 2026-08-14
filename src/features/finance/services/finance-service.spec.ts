@@ -107,4 +107,70 @@ describe('finance service', () => {
     expect(() => session.service.listBanks(finance)).toThrowError(FinanceDomainError)
     expect(session.service.listAccounts(finance)).toHaveLength(4)
   })
+
+  it('derives receivable, customer summary and aging amounts only from active writeoffs', () => {
+    const { service } = setup(); const documents = service.listReceivableDocuments(finance)
+    expect(documents.map((item) => [item.orderId, item.status, item.outstandingCents])).toEqual([
+      ['order-022', 'open', 2600], ['order-007', 'partial', 1000], ['order-006', 'settled', 0],
+    ])
+    const customer = service.listCustomerReceivables(finance).find((item) => item.customer.id === 'customer-1')!
+    expect(customer).toMatchObject({ receivableCents: 5000, receivedCents: 1400, outstandingCents: 3600, lastReceiptDate: '2026-08-06T14:00:00+08:00' })
+    const aging = service.listReceivableAging(finance).find((item) => item.customer.id === 'customer-1')!
+    expect(aging.outstandingCents).toBe(3600); expect(aging.bucket0To30Cents).toBe(3600)
+  })
+
+  it('masks customer phone for read-only supervisors and preserves the same mask in CSV', () => {
+    const { service } = setup(); const row = service.listReceivableDocuments(supervisor)[0]!
+    expect(row.customerSnapshot.phone).toMatch(/^\d{3}\*{4}\d{4}$/)
+    expect(service.exportReceivables(supervisor)).toContain(row.customerSnapshot.phone)
+    expect(service.listReceivableDocuments(finance)[0]!.customerSnapshot.phone).not.toContain('****')
+  })
+
+  it('creates an order receivable idempotently with the confirmed terms due date', () => {
+    const { service, repository } = setup(); const source = financeBaseline.receivables[0]!
+    const input = { requestId: 'request-new-receivable', orderId: 'order-new', orderNo: 'CA-DEMO-NEW', customerSnapshot: source.customerSnapshot, items: source.items, goodsAmountCents: 1000, freightCents: 100, amountCents: 1100, settlementMethod: 'terms' as const, paymentTermDays: 30, occurredAt: '2026-08-10T08:30:00+08:00', operator: { id: 'warehouse-demo', name: '演示仓库员', role: 'warehouse' as const } }
+    const first = service.createOrderReceivable(input); const replayed = service.createOrderReceivable(input)
+    expect(first.receivableNo).toBe('YS-260810-00001'); expect(first.dueDate).toBe('2026-09-09'); expect(replayed.id).toBe(first.id)
+    expect(repository.read().receivables.filter((item) => item.orderId === 'order-new')).toHaveLength(1)
+  })
+
+  it('confirms a cash receipt and an immediate discount writeoff in one transaction', () => {
+    const { service, repository } = setup(); const customer = financeBaseline.receivables.find((item) => item.orderId === 'order-022')!.customerSnapshot
+    const result = service.createReceipt(finance, { requestId: 'request-receipt-immediate', customerSnapshot: customer, orderId: 'order-022', occurredAt: '2026-08-10T09:00:00+08:00', amountCents: 900, method: 'cash', accountId: 'account-cash', note: '演示手工优惠', immediateAllocations: [{ receivableId: 'receivable-order-022', cashCents: 900, discountCents: 100 }] })
+    expect(result.receipt.receiptNo).toBe('SK-260810-00001'); expect(result.writeoff?.writeoffNo).toBe('HX-260810-00001')
+    expect(service.getOrderSettlement('order-022')?.receivable.outstandingCents).toBe(1600)
+    expect(repository.read().movements.filter((item) => item.sourceId === result.receipt.id)).toHaveLength(1)
+  })
+
+  it('supports a balance receipt by consuming prepayment without creating a second cash movement', () => {
+    const { service, repository } = setup(); const customer = financeBaseline.receivables.find((item) => item.orderId === 'order-022')!.customerSnapshot; const before = repository.read().movements.length
+    const result = service.createReceipt(finance, { requestId: 'request-balance-receipt', customerSnapshot: customer, orderId: 'order-022', occurredAt: '2026-08-10T09:00:00+08:00', amountCents: 500, method: 'balance', note: '使用期初预收', immediateAllocations: [{ receivableId: 'receivable-order-022', cashCents: 500, discountCents: 0, prepaymentSourceId: 'prepayment-opening-customer-1' }] })
+    expect(result.receipt.movementId).toBeNull(); expect(repository.read().movements).toHaveLength(before)
+    expect(service.listSettlementSources(finance, customer.id).find((item) => item.id === 'prepayment-opening-customer-1')?.availableCents).toBe(4500)
+  })
+
+  it('creates and cancels a many-to-many writeoff while restoring each source', () => {
+    const { service } = setup(); const before = service.listSettlementSources(finance, 'customer-1').find((item) => item.id === 'customer-receipt-001')!.availableCents
+    const value = service.createWriteoff(finance, { requestId: 'request-writeoff-many', customerId: 'customer-1', occurredAt: '2026-08-10T09:00:00+08:00', note: '手工匹配两张应收', allocations: [
+      { sourceKind: 'receipt', sourceId: 'customer-receipt-001', receivableId: 'receivable-order-007', cashCents: 200, discountCents: 0 },
+      { sourceKind: 'receipt', sourceId: 'customer-receipt-001', receivableId: 'receivable-order-022', cashCents: 300, discountCents: 0 },
+    ] })
+    expect(value.amountCents).toBe(500); expect(service.listSettlementSources(finance, 'customer-1').find((item) => item.id === 'customer-receipt-001')!.availableCents).toBe(before - 500)
+    const cancelled = service.cancelWriteoff(finance, { requestId: 'request-writeoff-many-cancel', writeoffId: value.id, expectedVersion: value.version, reason: '演示取消核销' })
+    expect(cancelled.status).toBe('cancelled'); expect(service.listSettlementSources(finance, 'customer-1').find((item) => item.id === 'customer-receipt-001')!.availableCents).toBe(before)
+  })
+
+  it('voids only an unallocated current-month receipt and appends a reversal movement', () => {
+    const { service, repository } = setup(); const customer = financeBaseline.receivables.find((item) => item.orderId === 'order-022')!.customerSnapshot
+    const created = service.createReceipt(finance, { requestId: 'request-voidable-receipt', customerSnapshot: customer, occurredAt: '2026-08-10T09:00:00+08:00', amountCents: 100, method: 'cash', accountId: 'account-cash' }).receipt
+    const voided = service.voidReceipt(finance, { requestId: 'request-void-receipt', receiptId: created.id, expectedVersion: created.version, reason: '演示录入错误' })
+    expect(voided.status).toBe('void'); expect(repository.read().movements.filter((item) => item.sourceId === created.id)).toHaveLength(2)
+    expect(() => service.voidReceipt(finance, { requestId: 'request-void-again', receiptId: created.id, expectedVersion: voided.version, reason: '重复' })).toThrowError(FinanceDomainError)
+  })
+
+  it('rejects excess allocation and discount without an audit note atomically', () => {
+    const { service, repository } = setup(); const before = repository.read()
+    expect(() => service.createWriteoff(finance, { requestId: 'request-excess-writeoff', customerId: 'customer-1', occurredAt: '2026-08-10T09:00:00+08:00', allocations: [{ sourceKind: 'receipt', sourceId: 'customer-receipt-001', receivableId: 'receivable-order-007', cashCents: 0, discountCents: 1001 }] })).toThrow()
+    expect(repository.read()).toEqual(before)
+  })
 })
