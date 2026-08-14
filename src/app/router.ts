@@ -47,6 +47,14 @@ import OrderOutboundDetailView from '@/features/orders/views/OrderOutboundDetail
 import OrderDifferenceListView from '@/features/orders/views/OrderDifferenceListView.vue'
 import OrderDifferenceDetailView from '@/features/orders/views/OrderDifferenceDetailView.vue'
 import { guardOrderSubroute } from '@/features/orders/runtime/order-access'
+import FinanceAccountListView from '@/features/finance/views/FinanceAccountListView.vue'
+import FinanceAccountSummaryView from '@/features/finance/views/FinanceAccountSummaryView.vue'
+import FinanceAccountDetailView from '@/features/finance/views/FinanceAccountDetailView.vue'
+import FinanceAccountFormView from '@/features/finance/views/FinanceAccountFormView.vue'
+import FinanceCarryoverView from '@/features/finance/views/FinanceCarryoverView.vue'
+import FinanceBankListView from '@/features/finance/views/FinanceBankListView.vue'
+import FinancePaymentChannelView from '@/features/finance/views/FinancePaymentChannelView.vue'
+import { guardFinanceSubroute } from '@/features/finance/runtime/finance-access'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -115,6 +123,15 @@ export const router = createRouter({
     { path: '/inventory/locations', name: 'inventory-locations', component: LocationListView },
     { path: '/inventory/locations/new', name: 'inventory-location-new', component: LocationFormView },
     { path: '/inventory/locations/:locationId/edit', name: 'inventory-location-edit', component: LocationFormView },
+    { path: '/finance', redirect: '/finance/accounts' },
+    { path: '/finance/accounts', name: 'finance-accounts', component: FinanceAccountListView },
+    { path: '/finance/accounts/new', name: 'finance-account-new', component: FinanceAccountFormView },
+    { path: '/finance/accounts/:accountId/edit', name: 'finance-account-edit', component: FinanceAccountFormView },
+    { path: '/finance/accounts/:accountId', name: 'finance-account-detail', component: FinanceAccountDetailView },
+    { path: '/finance/account-summary', name: 'finance-account-summary', component: FinanceAccountSummaryView },
+    { path: '/finance/carryovers', name: 'finance-carryovers', component: FinanceCarryoverView },
+    { path: '/finance/banks', name: 'finance-banks', component: FinanceBankListView },
+    { path: '/finance/payment-channels', name: 'finance-payment-channels', component: FinancePaymentChannelView },
     { path: '/:module(orders|products|procurement|inventory|customers|finance|settings)', name: 'module', component: ModulePlaceholderView },
   ],
 })
@@ -126,5 +143,7 @@ router.beforeEach((to) => {
   if (customerResult !== true) return customerResult
   const productResult = guardProductSubroute(to.path)
   if (productResult !== true) return productResult
-  return guardInventorySubroute(to.path)
+  const inventoryResult = guardInventorySubroute(to.path)
+  if (inventoryResult !== true) return inventoryResult
+  return guardFinanceSubroute(to.path)
 })
