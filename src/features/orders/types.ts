@@ -106,6 +106,7 @@ export interface ReceiptRecord {
 export interface OrderReceivableRecord {
   id: EntityId; orderId: EntityId; orderNo: string; customerSnapshot: CustomerSnapshot; amountCents: number
   occurredAt: string; requestId: string; source: 'order-shipment'; status: 'open' | 'partial' | 'settled'
+  receivedCents: number; outstandingCents: number; receiptCount: number; writeoffCount: number
 }
 export interface OrderFulfillmentRequest { requestId: string; kind: 'outbound' | 'void-outbound' | 'difference' | 'shipment' | 'receipt' | 'print-outbound'; targetIds: EntityId[]; appliedAt: string }
 export interface OrderShare {

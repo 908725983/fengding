@@ -54,6 +54,13 @@ import FinanceAccountFormView from '@/features/finance/views/FinanceAccountFormV
 import FinanceCarryoverView from '@/features/finance/views/FinanceCarryoverView.vue'
 import FinanceBankListView from '@/features/finance/views/FinanceBankListView.vue'
 import FinancePaymentChannelView from '@/features/finance/views/FinancePaymentChannelView.vue'
+import FinanceReceivableView from '@/features/finance/views/FinanceReceivableView.vue'
+import FinanceReceiptListView from '@/features/finance/views/FinanceReceiptListView.vue'
+import FinanceReceiptFormView from '@/features/finance/views/FinanceReceiptFormView.vue'
+import FinanceReceiptDetailView from '@/features/finance/views/FinanceReceiptDetailView.vue'
+import FinanceWriteoffListView from '@/features/finance/views/FinanceWriteoffListView.vue'
+import FinanceWriteoffFormView from '@/features/finance/views/FinanceWriteoffFormView.vue'
+import FinanceWriteoffDetailView from '@/features/finance/views/FinanceWriteoffDetailView.vue'
 import { guardFinanceSubroute } from '@/features/finance/runtime/finance-access'
 
 export const router = createRouter({
@@ -123,7 +130,17 @@ export const router = createRouter({
     { path: '/inventory/locations', name: 'inventory-locations', component: LocationListView },
     { path: '/inventory/locations/new', name: 'inventory-location-new', component: LocationFormView },
     { path: '/inventory/locations/:locationId/edit', name: 'inventory-location-edit', component: LocationFormView },
-    { path: '/finance', redirect: '/finance/accounts' },
+    { path: '/finance', redirect: '/finance/receivables' },
+    { path: '/finance/receivables', name: 'finance-receivables', component: FinanceReceivableView, props: { mode: 'customers' } },
+    { path: '/finance/receivables/documents', name: 'finance-receivable-documents', component: FinanceReceivableView, props: { mode: 'documents' } },
+    { path: '/finance/receivables/products', name: 'finance-receivable-products', component: FinanceReceivableView, props: { mode: 'products' } },
+    { path: '/finance/receivables/aging', name: 'finance-receivable-aging', component: FinanceReceivableView, props: { mode: 'aging' } },
+    { path: '/finance/receipts', name: 'finance-receipts', component: FinanceReceiptListView },
+    { path: '/finance/receipts/new', name: 'finance-receipt-new', component: FinanceReceiptFormView },
+    { path: '/finance/receipts/:receiptId', name: 'finance-receipt-detail', component: FinanceReceiptDetailView },
+    { path: '/finance/writeoffs', name: 'finance-writeoffs', component: FinanceWriteoffListView },
+    { path: '/finance/writeoffs/new', name: 'finance-writeoff-new', component: FinanceWriteoffFormView },
+    { path: '/finance/writeoffs/:writeoffId', name: 'finance-writeoff-detail', component: FinanceWriteoffDetailView },
     { path: '/finance/accounts', name: 'finance-accounts', component: FinanceAccountListView },
     { path: '/finance/accounts/new', name: 'finance-account-new', component: FinanceAccountFormView },
     { path: '/finance/accounts/:accountId/edit', name: 'finance-account-edit', component: FinanceAccountFormView },

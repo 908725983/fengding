@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { reactive } from 'vue'
 import { createFinanceMockSession, financeBaseline } from '../../../../mock/handlers/finance-handler'
 import { InMemoryFinanceRepository } from '../repositories/finance-repository'
 import type { FinanceActor } from '../types'
@@ -166,6 +167,12 @@ describe('finance service', () => {
     const voided = service.voidReceipt(finance, { requestId: 'request-void-receipt', receiptId: created.id, expectedVersion: created.version, reason: '演示录入错误' })
     expect(voided.status).toBe('void'); expect(repository.read().movements.filter((item) => item.sourceId === created.id)).toHaveLength(2)
     expect(() => service.voidReceipt(finance, { requestId: 'request-void-again', receiptId: created.id, expectedVersion: voided.version, reason: '重复' })).toThrowError(FinanceDomainError)
+  })
+
+  it('takes an explicit customer snapshot from a Vue reactive form object', () => {
+    const { service } = setup(); const customer = reactive(structuredClone(financeBaseline.receivables.find((item) => item.orderId === 'order-022')!.customerSnapshot))
+    const value = service.createReceipt(finance, { requestId: 'request-reactive-form', customerSnapshot: customer, occurredAt: '2026-08-10T09:00:00+08:00', amountCents: 100, method: 'cash', accountId: 'account-cash' }).receipt
+    expect(value.customerSnapshot).toEqual({ ...customer }); expect(value.customerSnapshot).not.toBe(customer)
   })
 
   it('rejects excess allocation and discount without an audit note atomically', () => {

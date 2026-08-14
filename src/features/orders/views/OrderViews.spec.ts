@@ -22,6 +22,8 @@ async function setup(component: typeof OrderListView, path = "/orders") {
       { path: "/orders/differences", component: OrderDifferenceListView },
       { path: "/orders/:orderId/edit", component: OrderFormView },
       { path: "/orders/:orderId", component: OrderDetailView },
+      { path: "/finance/receivables/documents", component: OrderListView },
+      { path: "/finance/receipts/new", component: OrderListView },
     ],
   });
   await router.push(path);
@@ -71,6 +73,14 @@ describe("order views", () => {
     expect(wrapper.text()).toContain("待出库与履约动作");
     expect(wrapper.text()).toContain("销售出库记录");
     expect(wrapper.text()).toContain("尚无出库记录");
+  });
+  it("renders FIN-001 settlement projection and finance actions in the payment tab", async () => {
+    const { wrapper } = await setup(OrderDetailView, "/orders/order-007?tab=payment");
+    expect(wrapper.text()).toContain("数据来自资金域唯一事实源");
+    expect(wrapper.text()).toContain("待收金额");
+    expect(wrapper.text()).toContain("查看应收明细");
+    expect(wrapper.text()).toContain("登记收款");
+    expect(wrapper.text()).not.toContain("等待 FIN-001");
   });
   it("renders seeded outbound and difference workspaces",async()=>{const outbounds=await setup(OrderOutboundListView as typeof OrderListView,"/orders/outbounds");expect(outbounds.wrapper.text()).toContain("销售出库单");expect(outbounds.wrapper.text()).toContain("XSCK-260810-");outbounds.wrapper.unmount();const differences=await setup(OrderDifferenceListView as typeof OrderListView,"/orders/differences");expect(differences.wrapper.text()).toContain("差异单");expect(differences.wrapper.text()).toContain("CY-260810-")});
   it("opens a governed review dialog and renders special review evidence", async () => {

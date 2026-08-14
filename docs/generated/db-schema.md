@@ -108,15 +108,15 @@
 
 ### mock/schemas/finance-foundation.schema.json
 
-- SHA-256：`cba89cb6eb169f04da83a0428b47b3f339484893bc303ee9af5fe2063e4d8408`
+- SHA-256：`52da386b925985c73c3ec254efa62022a70992b6e5a3d911825cb674a87df81d`
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "finance-foundation.schema.json",
-  "title": "FIN-003 资金账户基础数据",
+  "title": "FIN-001/003 客户应收与资金账户基础数据",
   "type": "object",
-  "required": ["schemaVersion", "enterpriseId", "version", "bookStartMonth", "accounts", "movements", "periods", "banks", "paymentChannels", "paymentApplications", "requests", "auditLogs"],
+  "required": ["schemaVersion", "enterpriseId", "version", "bookStartMonth", "accounts", "movements", "periods", "banks", "paymentChannels", "paymentApplications", "receivables", "customerReceipts", "receiptWriteoffs", "prepaymentLedger", "dailySequences", "requests", "auditLogs"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "enterpriseId": { "type": "string", "minLength": 1 },
@@ -128,6 +128,11 @@
     "banks": { "type": "array" },
     "paymentChannels": { "type": "array" },
     "paymentApplications": { "type": "array" },
+    "receivables": { "type": "array" },
+    "customerReceipts": { "type": "array" },
+    "receiptWriteoffs": { "type": "array" },
+    "prepaymentLedger": { "type": "array" },
+    "dailySequences": { "type": "array" },
     "requests": { "type": "array" },
     "auditLogs": { "type": "array" }
   },
