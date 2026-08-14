@@ -37,6 +37,7 @@
 | `ORD-001` | 客户订单列表与详情 | passing | `../exec-plans/completed/2026-08-13-order-foundation.md` |
 | `ORD-002` | 新增、修改与订单分享 | passing | `../exec-plans/completed/2026-08-14-order-create-edit.md` |
 | `ORD-003` | 订单审核与状态流转 | passing | `../exec-plans/completed/2026-08-14-order-review.md` |
+| `ORD-004` | 销售出库、发货与差异 | passing | `../exec-plans/completed/2026-08-14-order-fulfillment.md` |
 
 ## 功能切片目录
 

@@ -2,8 +2,9 @@
 
 - 类型：business-feature
 - 功能：ORD-004
-- 当前阶段：implementation
-- 状态：active
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-14
 - 最近更新：2026-08-14
 
 ## 目标
@@ -60,7 +61,13 @@
 - [x] `npm run verify:harness` 通过：45 个切片、119 个决策门、8 份领域规格和 8 份需求快照；`git diff --check` 通过，变更仅含 Harness 文档。
 - [x] 规格检查点已提交：`5fca40c`。
 - [x] 用户确认“ORD-004 全部按推荐方案执行”，11 组决定已逐项写回订单/资金规格和产品索引，切片提升为 `ready`。
-- [ ] 当前步骤：实现 Types/Schema、订单与库存公开 command、跨域事务、幂等/并发/回滚及自动测试；通过后建立领域检查点。
+- [x] 领域核心检查点 `5179eec`：完成 Types/Schema、库存批次 FIFO 与精确反向 command、订单履约实体/Repository/Service、确定性 baseline、跨域整体回滚、幂等/并发与自动测试。
+- [x] Runtime/UI 检查点 `fd20103`：接入 Store、订单履约四 Tab、订单列表快捷动作、销售出库单列表/详情、差异单列表/详情、路由守卫和页面测试。
+- [x] 浏览器黄金旅程：从 `order-003` 实际完成 FIFO 预览、扣库、发货、签收和一次 ¥12.00 应收；`order-011` 验证待确认差异、退款禁用及忽略后可发货；仓库角色金额显示“已遮蔽”，差异路由退回 `/orders?denied=difference`。
+- [x] 1280px 销售出库单页面 `clientWidth=scrollWidth=1280`，无页面级横向溢出；应用控制台无 warning/error。
+- [x] `npm run mock:reset` 后 baseline/work SHA-256 均为 `28652886C3447BFB4182BBE4CDE826AB1796CEF72B48B51DE639B5114232F34E`。
+- [x] 最终 `npm run verify` 通过：Harness、类型检查、48 个测试文件/206 项测试及生产构建；仅保留既有 bundle 体积提示。
+- [x] 产品索引、订单规格、总体顺序、README 与质量评分已写回；`ORD-004` 标记 passing，下一切片为 `FIN-003`。
 
 ## 开放决策
 
@@ -100,4 +107,4 @@
 
 ## 中断恢复点
 
-当前处于 implementation。开工基线、原始资料/公开契约审计、规格检查点 `5fca40c` 和 11 组用户决策写回均已完成；`ORD-004` 为 `ready`。下一步从 Types/Schema 和跨库存/资金事务开始，先用自动测试证明数量守恒、FIFO 精确冲销、幂等、并发与整体回滚，再接 Runtime/Store/UI；不得跳过领域检查点直接做页面。
+本计划已完成，归档后不再作为恢复入口。可独立回退检查点为规格 `5fca40c`（记录检查点 `f2b642f`）、决策写回 `213b4df`、领域核心 `5179eec`、Runtime/UI `fd20103`；最终 Harness 写回与归档由承载本文件的完成提交记录。下一次执行应按 `docs/design-docs/implementation-sequence.md` 为 `FIN-003` 新建唯一 specification active plan，不得继续修改本计划，也不得把订单级应收投影误当作 `FIN-001` 收款/核销已完成。
