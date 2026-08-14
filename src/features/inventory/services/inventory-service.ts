@@ -1,10 +1,10 @@
 import { assertLocationDraft, assertWarehouseDraft, InventoryValidationError } from '../schemas/inventory-schema'
 import type { InventoryRepository } from '../repositories/inventory-repository'
 import type {
-  BatchStatus, ConfirmInboundInput, ConfirmOutboundInput, EntityId, FifoAllocation, InventoryActor, InventoryBatchRow,
+  BatchStatus, ConfirmInboundInput, ConfirmOutboundBatchInput, ConfirmOutboundInput, EntityId, FifoAllocation, InventoryActor, InventoryBatchRow,
   InventoryCatalogProvider, InventoryFeatureState, InventoryLocation, InventoryMovementRow, InventoryQuery, InventoryStatus,
   InventoryStockRow, InventoryThreshold, InventoryWorkspace, LocationDraft, LocationImportPreview, LocationImportRow,
-  PageResult, Warehouse, WarehouseDraft,
+  PageResult, ReferencedFifoAllocation, ReverseOutboundInput, Warehouse, WarehouseDraft,
 } from '../types'
 
 export type InventoryDomainErrorCode = 'PERMISSION_DENIED' | 'NOT_FOUND' | 'DUPLICATE' | 'INVALID_STATE' | 'SOURCE_NOT_FOUND' | 'INSUFFICIENT_STOCK' | 'EXPIRED_BATCH' | 'PRODUCT_UNAVAILABLE'
@@ -141,11 +141,37 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
   }
 
   function previewOutbound(actor: InventoryActor, input: Pick<ConfirmOutboundInput, 'warehouseId' | 'skuId' | 'quantityMilli'>): FifoAllocation[] {
-    assertWrite(actor); positiveMilli(input.quantityMilli); const state = deps.repository.read(); warehouseById(state, input.warehouseId); if (!deps.catalog.getSku(input.skuId)) throw new InventoryDomainError('PRODUCT_UNAVAILABLE', 'SKU 不存在')
+    assertWrite(actor); positiveMilli(input.quantityMilli); const state = deps.repository.read(); const warehouse=warehouseById(state, input.warehouseId); if(warehouse.status!=='enabled'||warehouse.saleProhibited)throw new InventoryDomainError('INVALID_STATE','仓库已禁用或禁止销售出库'); if (!deps.catalog.getSku(input.skuId)) throw new InventoryDomainError('PRODUCT_UNAVAILABLE', 'SKU 不存在')
     let remaining = input.quantityMilli; const result: FifoAllocation[] = []
     for (const item of eligibleBalances(state, input.warehouseId, input.skuId)) { const quantityMilli = Math.min(remaining, item.balance.quantityMilli); result.push({ balanceId: item.balance.id, batchId: item.batch.id, batchNumber: item.batch.batchNumber, locationId: item.balance.locationId, quantityMilli }); remaining -= quantityMilli; if (remaining === 0) break }
     if (remaining > 0) throw new InventoryDomainError('INSUFFICIENT_STOCK', '可出库的非过期库存不足')
     return result
+  }
+
+  function allocateBatch(state:InventoryFeatureState,input:Pick<ConfirmOutboundBatchInput,'warehouseId'|'lines'>):ReferencedFifoAllocation[]{
+    const warehouse=warehouseById(state,input.warehouseId);if(warehouse.status!=='enabled'||warehouse.saleProhibited)throw new InventoryDomainError('INVALID_STATE','仓库已禁用或禁止销售出库')
+    if(!input.lines.length||new Set(input.lines.map((line)=>line.referenceId)).size!==input.lines.length)throw new InventoryValidationError([{path:'lines',message:'出库行必须非空且引用唯一'}])
+    const used=new Map<string,number>();const result:ReferencedFifoAllocation[]=[]
+    for(const line of input.lines){positiveMilli(line.quantityMilli);if(!deps.catalog.getSku(line.skuId))throw new InventoryDomainError('PRODUCT_UNAVAILABLE','SKU 不存在');let remaining=line.quantityMilli
+      for(const item of eligibleBalances(state,input.warehouseId,line.skuId)){const available=item.balance.quantityMilli-(used.get(item.balance.id)??0);if(available<=0)continue;const quantityMilli=Math.min(remaining,available);result.push({referenceId:line.referenceId,skuId:line.skuId,balanceId:item.balance.id,batchId:item.batch.id,batchNumber:item.batch.batchNumber,locationId:item.balance.locationId,quantityMilli});used.set(item.balance.id,(used.get(item.balance.id)??0)+quantityMilli);remaining-=quantityMilli;if(remaining===0)break}
+      if(remaining>0)throw new InventoryDomainError('INSUFFICIENT_STOCK',`行 ${line.referenceId} 可出库的非过期库存不足`)
+    }
+    return result
+  }
+
+  function previewOutboundBatch(actor:InventoryActor,input:Pick<ConfirmOutboundBatchInput,'warehouseId'|'lines'>):ReferencedFifoAllocation[]{assertWrite(actor);return allocateBatch(deps.repository.read(),input)}
+
+  function confirmOutboundBatch(actor:InventoryActor,input:ConfirmOutboundBatchInput):ReferencedFifoAllocation[]{
+    assertWrite(actor);if(!deps.catalog.sourceExists(input.sourceType,input.sourceId))throw new InventoryDomainError('SOURCE_NOT_FOUND','业务来源不存在')
+    const existing=deps.repository.read().movements.filter((item)=>item.requestId===input.requestId);if(existing.length)throw new InventoryDomainError('INVALID_STATE','批量出库请求已执行，应由上游幂等记录返回原结果')
+    return deps.repository.transact((state)=>{const allocations=allocateBatch(state,input);return allocations.map((part)=>{const balance=state.balances.find((item)=>item.id===part.balanceId)!;const batch=state.batches.find((item)=>item.id===part.batchId)!;balance.quantityMilli-=part.quantityMilli;balance.updatedAt=input.occurredAt;const movementId=deps.nextId('movement');state.movements.push({id:movementId,enterpriseId:state.enterpriseId,requestId:input.requestId,sourceType:input.sourceType,sourceId:input.sourceId,direction:'outbound',warehouseId:input.warehouseId,locationId:part.locationId,skuId:part.skuId,batchId:part.batchId,quantityMilli:part.quantityMilli,balanceAfterMilli:balance.quantityMilli,costPerBaseUnitCents:batch.costPerBaseUnitCents,operatorId:input.operatorId,occurredAt:input.occurredAt});return{...part,movementId}})})
+  }
+
+  function reverseOutbound(actor:InventoryActor,input:ReverseOutboundInput):InventoryMovementRow[]{
+    assertWrite(actor);if(!deps.catalog.sourceExists(input.sourceType,input.sourceId))throw new InventoryDomainError('SOURCE_NOT_FOUND','业务来源不存在');if(!input.allocations.length)throw new InventoryValidationError([{path:'allocations',message:'冲销分配不能为空'}])
+    const replay=deps.repository.read().movements.filter((item)=>item.requestId===input.requestId);if(replay.length)return listMovements(actor).filter((item)=>item.requestId===input.requestId)
+    deps.repository.transact((state)=>{const seen=new Set<string>();for(const part of input.allocations){positiveMilli(part.quantityMilli);if(seen.has(part.movementId))throw new InventoryValidationError([{path:'allocations',message:'原流水不能重复冲销'}]);seen.add(part.movementId);const original=state.movements.find((item)=>item.id===part.movementId&&item.direction==='outbound');if(!original||original.warehouseId!==input.warehouseId||original.locationId!==part.locationId||original.batchId!==part.batchId||original.skuId!==part.skuId||original.quantityMilli!==part.quantityMilli)throw new InventoryDomainError('INVALID_STATE','原出库流水与冲销分配不一致');const balance=state.balances.find((item)=>item.id===part.balanceId&&item.warehouseId===input.warehouseId&&item.locationId===part.locationId&&item.batchId===part.batchId&&item.skuId===part.skuId);if(!balance)throw new InventoryDomainError('INVALID_STATE','原库存余额不存在，不能精确冲销');const batch=state.batches.find((item)=>item.id===part.batchId)!;balance.quantityMilli+=part.quantityMilli;balance.updatedAt=input.occurredAt;state.movements.push({id:deps.nextId('movement'),enterpriseId:state.enterpriseId,requestId:input.requestId,sourceType:input.sourceType,sourceId:input.sourceId,direction:'inbound',warehouseId:input.warehouseId,locationId:part.locationId,skuId:part.skuId,batchId:part.batchId,quantityMilli:part.quantityMilli,balanceAfterMilli:balance.quantityMilli,costPerBaseUnitCents:batch.costPerBaseUnitCents,operatorId:input.operatorId,occurredAt:input.occurredAt})}})
+    return listMovements(actor).filter((item)=>item.requestId===input.requestId)
   }
 
   function confirmOutbound(actor: InventoryActor, input: ConfirmOutboundInput): InventoryMovementRow[] {
@@ -186,5 +212,5 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
     return `\uFEFF${[headers.join(','), ...body].join('\r\n')}`
   }
 
-  return { listStocks, listBatches, listMovements, getWorkspace, saveThreshold, saveWarehouse, saveLocation, previewLocationImport, importLocations, previewOutbound, confirmOutbound, confirmInbound, exportStocksCsv, exportLocationsCsv }
+  return { listStocks, listBatches, listMovements, getWorkspace, saveThreshold, saveWarehouse, saveLocation, previewLocationImport, importLocations, previewOutbound, previewOutboundBatch, confirmOutbound, confirmOutboundBatch, reverseOutbound, confirmInbound, exportStocksCsv, exportLocationsCsv }
 }

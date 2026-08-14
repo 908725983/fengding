@@ -1,6 +1,6 @@
 export type EntityId = string
 export type OrderRole = 'super-admin' | 'sales-supervisor' | 'salesperson' | 'warehouse' | 'finance'
-export type OrderPermission = 'orders.create' | 'orders.edit' | 'orders.edit-price' | 'orders.add-gift' | 'orders.share' | 'orders.review' | 'orders.finance-review' | 'orders.return' | 'orders.cancel'
+export type OrderPermission = 'orders.create' | 'orders.edit' | 'orders.edit-price' | 'orders.add-gift' | 'orders.share' | 'orders.review' | 'orders.finance-review' | 'orders.return' | 'orders.cancel' | 'orders.outbound' | 'orders.void-outbound' | 'orders.ship' | 'orders.confirm-receipt' | 'orders.view-difference' | 'orders.confirm-difference' | 'orders.print-outbound'
 export type OrderStatus = 'pending-order-review' | 'pending-finance-review' | 'approved' | 'outbound-in-progress' | 'outbound' | 'shipped' | 'completed' | 'canceled'
 export type SettlementMethod = 'cash' | 'monthly' | 'terms'
 export type DeliveryMethod = 'door-delivery' | 'logistics' | 'customer-pickup'
@@ -29,11 +29,14 @@ export interface OrderAmounts {
   originalAmountCents: number; productDiscountCents: number; couponDiscountCents?: number; manualOrderDiscountCents?: number
   orderDiscountCents: number; freightCents: number; orderAmountCents: number
 }
-export interface OrderFulfillmentProjection { outboundPrintCount: number | null; logisticsCodes: string[] | null; hasDifference: boolean | null }
+export interface OrderFulfillmentProjection {
+  outboundPrintCount: number | null; logisticsCodes: string[] | null; hasDifference: boolean | null
+  outboundCount?: number; outboundQuantityMilliByLine?: Record<EntityId, number>; lastFulfilledAt?: string | null
+}
 export interface OrderCustomAttribute { definitionId: EntityId; key: string; label: string; type: AttributeType; value: string | null }
 export interface OrderAttachment { id: EntityId; name: string; mediaType: 'application/pdf' | 'image/jpeg' | 'image/png'; sizeBytes: number }
 export interface OrderPriceAdjustmentSnapshot { stage: 'pre-marketing' | 'category-discount' | 'membership' | 'promotion' | 'coupon' | 'manual'; label: string; amountCents: number; sourceId: string | null }
-export interface OrderActivityLog { id: EntityId; action: 'order.created' | 'order.updated' | 'order.printed' | 'order.share-created' | 'order.share-viewed' | 'order.share-confirmed' | 'order.review-approved' | 'order.review-returned' | 'order.canceled'; actor: NamedSnapshot; occurredAt: string; summary: string }
+export interface OrderActivityLog { id: EntityId; action: 'order.created' | 'order.updated' | 'order.printed' | 'order.share-created' | 'order.share-viewed' | 'order.share-confirmed' | 'order.review-approved' | 'order.review-returned' | 'order.canceled' | 'order.outbound-confirmed' | 'order.outbound-voided' | 'order.difference-confirmed' | 'order.shipped' | 'order.received'; actor: NamedSnapshot; occurredAt: string; summary: string }
 export interface OrderSpecialPriceEvidence {
   lineId: EntityId; skuId: EntityId; skuCodeSnapshot: string; unitId: EntityId; unitNameSnapshot: string
   dealUnitPriceCents: number; minimumSalePriceCents: number | null; maximumSalePriceCents: number | null; direction: SpecialPriceDirection
@@ -64,6 +67,47 @@ export interface CustomerOrder {
 export interface OrderPrintRequest { requestId: string; orderIds: EntityId[]; actorId: EntityId; printedAt: string }
 export interface OrderSaveRequest { requestId: string; orderId: EntityId; savedAt: string }
 export interface OrderReviewRequest { requestId: string; action: OrderReviewAction; orderIds: EntityId[]; appliedAt: string }
+export type SalesOutboundStatus = 'confirmed' | 'voided'
+export type DifferenceStatus = 'pending-confirmation' | 'confirmed' | 'voided'
+export type DifferenceOutcome = 'reship' | 'ignore'
+export interface OutboundAllocationSnapshot {
+  movementId: EntityId; balanceId: EntityId; batchId: EntityId; batchNumber: string; locationId: EntityId; locationName: string
+  productionDate: string | null; expiresOn: string | null; quantityMilli: number
+}
+export interface SalesOutboundLine {
+  id: EntityId; orderLineId: EntityId; skuId: EntityId; skuCodeSnapshot: string; productNameSnapshot: string
+  specificationSnapshot: string; unitSnapshot: UnitSnapshot; quantity: number; quantityMilli: number
+  dealUnitPriceCents: number; amountCents: number; allocations: OutboundAllocationSnapshot[]
+}
+export interface OutboundPrintRecord { id: EntityId; requestId: string; actorSnapshot: NamedSnapshot; printedAt: string }
+export interface SalesOutbound {
+  id: EntityId; outboundNo: string; orderId: EntityId; status: SalesOutboundStatus; warehouseSnapshot: WarehouseSnapshot
+  customerSnapshot: CustomerSnapshot; confirmedAt: string; operatorSnapshot: NamedSnapshot; documentAmountCents: number
+  lines: SalesOutboundLine[]; printRecords: OutboundPrintRecord[]
+  voidInfo: { reason: string; voidedAt: string; operatorSnapshot: NamedSnapshot; reversalRequestId: string } | null; version: number
+}
+export interface DifferenceLine {
+  orderLineId: EntityId; skuId: EntityId; skuCodeSnapshot: string; productNameSnapshot: string; unitSnapshot: UnitSnapshot
+  orderedQuantityMilli: number; actualQuantityMilli: number; differenceQuantityMilli: number; dealUnitPriceCents: number; differenceAmountCents: number
+}
+export interface DifferenceDocument {
+  id: EntityId; differenceNo: string; orderId: EntityId; outboundId: EntityId | null; status: DifferenceStatus
+  customerSnapshot: CustomerSnapshot; warehouseSnapshot: WarehouseSnapshot; reason: string; lines: DifferenceLine[]
+  differenceAmountCents: number; createdAt: string; createdBy: NamedSnapshot
+  outcome: DifferenceOutcome | null; confirmedAt: string | null; confirmedBy: NamedSnapshot | null; version: number
+}
+export interface ShipmentRecord {
+  id: EntityId; orderId: EntityId; outboundIds: EntityId[]; deliveryMethod: DeliveryMethod; logisticsCode: string | null
+  shippedAt: string; operatorSnapshot: NamedSnapshot; remark: string | null; requestId: string
+}
+export interface ReceiptRecord {
+  id: EntityId; orderId: EntityId; signedAt: string; signer: string; remark: string | null; operatorSnapshot: NamedSnapshot; requestId: string
+}
+export interface OrderReceivableRecord {
+  id: EntityId; orderId: EntityId; orderNo: string; customerSnapshot: CustomerSnapshot; amountCents: number
+  occurredAt: string; requestId: string; source: 'order-shipment'; status: 'open'
+}
+export interface OrderFulfillmentRequest { requestId: string; kind: 'outbound' | 'void-outbound' | 'difference' | 'shipment' | 'receipt' | 'print-outbound'; targetIds: EntityId[]; appliedAt: string }
 export interface OrderShare {
   id: EntityId; orderId: EntityId; tokenHash: string; status: ShareStatus; createdAt: string; expiresAt: string
   viewedAt: string | null; confirmedAt: string | null; revokedAt: string | null; createdBy: EntityId
@@ -71,6 +115,9 @@ export interface OrderShare {
 export interface OrderFeatureState {
   schemaVersion: 1; enterpriseId: EntityId; orders: CustomerOrder[]; printRequests: OrderPrintRequest[]
   nextOrderSequenceByDate?: Record<string, number>; saveRequests?: OrderSaveRequest[]; shares?: OrderShare[]; reviewRequests?: OrderReviewRequest[]
+  outbounds?: SalesOutbound[]; differences?: DifferenceDocument[]; shipments?: ShipmentRecord[]; receipts?: ReceiptRecord[]
+  receivables?: OrderReceivableRecord[]; fulfillmentRequests?: OrderFulfillmentRequest[]
+  nextOutboundSequenceByDate?: Record<string, number>; nextDifferenceSequenceByDate?: Record<string, number>
 }
 
 export interface OrderQuery {
@@ -154,4 +201,19 @@ export interface OrderShareResult { shareId: EntityId; token: string; url: strin
 export interface SharedOrderView {
   orderNo: string; customerName: string; status: OrderStatus; lines: Array<{ productName: string; skuCode: string; specification: string; quantityMilli: number; unitName: string; subtotalCents: number }>
   amounts: OrderAmounts; deliveryMethod: DeliveryMethod; requestedDeliveryAt: string; shareStatus: ShareStatus; expiresAt: string
+}
+
+export interface OutboundLineInput { orderLineId: EntityId; quantity: number }
+export interface PreviewOrderOutboundInput { orderId: EntityId; warehouseId: EntityId; lines: OutboundLineInput[]; finishShort: boolean; reason?: string | null }
+export interface ConfirmOrderOutboundInput extends PreviewOrderOutboundInput { requestId: string; expectedUpdatedAt: string }
+export interface VoidSalesOutboundInput { requestId: string; outboundId: EntityId; expectedOrderUpdatedAt: string; reason: string }
+export interface ConfirmDifferenceInput { requestId: string; differenceId: EntityId; expectedOrderUpdatedAt: string; outcome: DifferenceOutcome | 'refund' }
+export interface ConfirmShipmentInput { requestId: string; orderId: EntityId; expectedUpdatedAt: string; logisticsCode?: string | null; remark?: string | null }
+export interface ConfirmReceiptInput { requestId: string; orderId: EntityId; expectedUpdatedAt: string; signedAt: string; signer: string; remark?: string | null }
+export interface PrintSalesOutboundsInput { requestId: string; items: Array<{ outboundId: EntityId; expectedVersion: number }> }
+export interface OutboundPreviewLine extends SalesOutboundLine { availableMilli: number; currentMilli: number }
+export interface OrderOutboundPreview { orderId: EntityId; warehouse: WarehouseSnapshot; lines: OutboundPreviewLine[]; differenceLines: DifferenceLine[]; documentAmountCents: number }
+export interface OrderFulfillmentDetail {
+  order: VisibleOrder; outbounds: SalesOutbound[]; differences: DifferenceDocument[]; shipment: ShipmentRecord | null
+  receipt: ReceiptRecord | null; receivable: OrderReceivableRecord | null; permissions: OrderPermission[]
 }

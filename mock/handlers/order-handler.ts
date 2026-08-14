@@ -13,14 +13,19 @@ import type {
 } from '../../src/features/orders/types'
 import { InMemoryOrderRepository } from '../../src/features/orders/repositories/order-repository'
 import { createOrderService } from '../../src/features/orders/services/order-service'
+import { createOrderFulfillmentService } from '../../src/features/orders/services/order-fulfillment-service'
+import { InMemoryInventoryRepository } from '../../src/features/inventory/repositories/inventory-repository'
+import { createInventoryService } from '../../src/features/inventory/services/inventory-service'
 import { createPricingMockSession } from './pricing-handler'
 import { createAuthorizationMockSession } from './authorization-handler'
 import { createDistributionMockSession, distributionBaseline } from './distribution-handler'
+import { createInventoryCatalogProvider } from './inventory-handler'
 
 const featureData=baseline.featureData as Record<string,unknown>
 function upgradeOrderReviewBaseline(source:OrderFeatureState):OrderFeatureState{
   const state=structuredClone(source)
   state.reviewRequests=[]
+  state.outbounds=[];state.differences=[];state.shipments=[];state.receipts=[];state.receivables=[];state.fulfillmentRequests=[];state.nextOutboundSequenceByDate={};state.nextDifferenceSequenceByDate={}
   state.orders.forEach((order)=>{order.reviewRound=1;order.reviewRecords=[];order.specialPrice??=false;order.specialPriceReason??=null;order.specialPriceEvidence??=[]})
   for(const id of ['order-009','order-010']){const order=state.orders.find((item)=>item.id===id);if(order){order.specialPrice=true;order.specialPriceReason='演示特价审批：客户专项价格申请（虚构数据）';order.specialPriceEvidence=[]}}
   for(const id of ['order-002','order-010']){const order=state.orders.find((item)=>item.id===id);if(order){const occurredAt=order.orderedAt;order.reviewRecords=[{id:`review-baseline-${id}`,round:1,stage:'order',outcome:'approved',actorSnapshot:{id:'sales-supervisor-demo',name:'演示销售主管',role:'sales-supervisor'},reason:null,fromStatus:'pending-order-review',toStatus:'pending-finance-review',specialPrice:order.specialPrice??false,releasedPrepaymentCents:0,occurredAt,requestId:`baseline-review-${id}`}];order.activityLogs.push({id:`activity-review-${id}`,action:'order.review-approved',actor:{id:'sales-supervisor-demo',name:'演示销售主管'},occurredAt,summary:'业务审核通过'})}}
@@ -62,12 +67,31 @@ export function createOrderMockSession(scenarioName:OrderScenarioName='normal'){
   const prices:OrderPriceProvider={resolvePrice:(customerId,skuId,unitId,quantity)=>{if(partial)throw new Error('原型模拟：价格服务不可用');const value=pricing.service.resolvePrice({role:'salesperson',actorId:'order-price-provider'},{customerId,skuId,unitId,quantity});return{unitPriceCents:value.unitPriceCents,source:value.source,sourceReferenceId:value.sourceReferenceId}}}
   const authorizations:OrderAuthorizationProvider={resolveAuthorization:(customerId,productId,at)=>{if(partial)throw new Error('原型模拟：授权服务不可用');const value=authorization.service.resolveAuthorization({role:'salesperson',actorId:'order-authorization-provider'},customerId,productId,at);return{orderable:value.orderable,reason:value.reason}}}
   const warehouses:OrderWarehouseProvider={listWarehouses:()=>{if(partial)throw new Error('原型模拟：仓库服务不可用');return structuredClone(inventoryBaseline.warehouses.map(({id,code,name,status,saleProhibited,type})=>({id,code,name,status,saleProhibited,type})))},getWarehouse:(id)=>{if(partial)throw new Error('原型模拟：仓库服务不可用');const item=inventoryBaseline.warehouses.find((entry)=>entry.id===id);return item?structuredClone({id:item.id,code:item.code,name:item.name,status:item.status,saleProhibited:item.saleProhibited,type:item.type}):null}}
-  const staffValues=[{id:'admin-demo',name:'演示系统管理员'},{id:'sales-supervisor-demo',name:'演示销售主管'},{id:'salesperson-demo',name:'演示业务员'},{id:'staff-demo-1',name:'演示业务员甲'},{id:'staff-demo-2',name:'演示业务员乙'}]
+  const staffValues=[{id:'admin-demo',name:'演示系统管理员'},{id:'sales-supervisor-demo',name:'演示销售主管'},{id:'salesperson-demo',name:'演示业务员'},{id:'warehouse-demo',name:'演示仓库员'},{id:'finance-demo',name:'演示财务员'},{id:'staff-demo-1',name:'演示业务员甲'},{id:'staff-demo-2',name:'演示业务员乙'}]
   const staff:OrderStaffProvider={listStaff:()=>structuredClone(staffValues),getStaff:(id)=>structuredClone(staffValues.find((item)=>item.id===id)??null)}
   const templates:OrderTemplateProvider={listTemplates:(customerId)=>{if(partial)throw new Error('原型模拟：模板服务不可用');return distributionBaseline.templates.filter((item)=>item.status==='enabled'&&(item.scope.type==='all'||item.scope.customerIds.includes(customerId))).map((item)=>({id:item.id,name:item.name}))},loadTemplate:(templateId,customerId,at)=>{if(partial)throw new Error('原型模拟：模板服务不可用');const value=distribution.service.loadTemplate({role:'sales-supervisor',actorId:'order-template-provider'},templateId,customerId,'assisted-order',at);return{accepted:value.accepted.map((item)=>({skuId:item.skuId,quantity:item.quantity,unitId:item.unitId,sourceKey:item.sourceKey})),rejected:value.rejected.map((item)=>({skuId:item.skuId,message:item.message}))}}}
   const service=createOrderService({repository,customers:createOrderCustomerProvider(partial),finance:createDeterministicOrderFinanceProvider(partial),catalog,prices,authorizations,warehouses,staff,templates,now:()=>orderClock,nextId:(kind)=>`${kind}-runtime-${sequence++}`,nextToken:()=>{const seed=hashOrderShareToken(`fengding-order-share-secret:${tokenSequence++}`);return`ord_share_${seed.slice(6)}_8f3c1d72a9b4e6f0`},hashToken:hashOrderShareToken,shareBaseUrl:'http://127.0.0.1:4173'})
+  const inventoryRepository=new InMemoryInventoryRepository(structuredClone(inventoryBaseline));let inventorySequence=1
+  const inventory=createInventoryService({repository:inventoryRepository,catalog:createInventoryCatalogProvider(false),now:()=>orderClock,nextId:(kind)=>`${kind}-order-runtime-${inventorySequence++}`})
+  let seeding=true
+  const fulfillment=createOrderFulfillmentService({repository,inventoryRepository,inventory,staff,now:()=>orderClock,nextId:(kind)=>`${kind}-runtime-${sequence++}`,inventoryGate:()=>seeding?'available':scenarioName==='partial-failure'?'unavailable':scenarioName==='boundary'?'locked':'available',financeGate:()=>seeding?'available':scenarioName==='partial-failure'?'unavailable':'available'})
+  if(scenarioName!=='empty')seedFulfillmentBaseline(repository,fulfillment)
+  seeding=false
   const definition=scenarios[scenarioName]
   async function run<T>(operation:()=>T):Promise<T>{await new Promise((resolve)=>setTimeout(resolve,definition.latencyMs));if(scenarioName==='error')throw new OrderMockError('MOCK_INTERNAL_ERROR','原型模拟：订单服务暂时不可用');if(scenarioName==='permission-denied')throw new OrderMockError('PERMISSION_DENIED','原型模拟：当前会话没有订单查看权限');return operation()}
   function simulateConcurrentEdit(orderId:string):void{if(scenarioName!=='concurrent'||concurrentApplied)return;repository.transact((current)=>{const order=current.orders.find((item)=>item.id===orderId);if(order)order.updatedAt='2026-08-10T10:01:00+08:00'});concurrentApplied=true}
-  return{scenarioName,repository,service,run,simulateConcurrentEdit}
+  return{scenarioName,repository,inventoryRepository,service,fulfillment,run,simulateConcurrentEdit}
+}
+
+function seedFulfillmentBaseline(repository:InMemoryOrderRepository,fulfillment:ReturnType<typeof createOrderFulfillmentService>):void{
+  const actor={role:'super-admin' as const,actorId:'admin-demo'}
+  const reset=(id:string)=>repository.transact((state)=>{const order=state.orders.find((item)=>item.id===id);if(order){order.status='approved';order.updatedAt='2026-08-10T10:00:00+08:00';order.fulfillmentProjection={outboundPrintCount:0,logisticsCodes:[],hasDifference:false}}})
+  for(const id of ['order-004','order-005','order-006','order-007','order-011','order-019'])reset(id)
+  const runOutbound=(id:string,quantity:number,requestId:string,finishShort=false)=>{const order=repository.read().orders.find((item)=>item.id===id)!;return fulfillment.confirmOutbound(actor,{requestId,orderId:id,expectedUpdatedAt:order.updatedAt,warehouseId:'warehouse-main',lines:quantity>0?[{orderLineId:order.lines[0]!.id,quantity}]:[],finishShort,reason:finishShort?'演示短装：剩余库存待确认（虚构数据）':null})}
+  runOutbound('order-004',1,'baseline-fulfillment-order-004')
+  runOutbound('order-005',3,'baseline-fulfillment-order-005')
+  runOutbound('order-006',1,'baseline-fulfillment-order-006');let order=repository.read().orders.find((item)=>item.id==='order-006')!;fulfillment.confirmShipment(actor,{requestId:'baseline-shipment-order-006',orderId:order.id,expectedUpdatedAt:order.updatedAt,logisticsCode:'MOCK-SF-20260810006'})
+  runOutbound('order-007',2,'baseline-fulfillment-order-007');order=repository.read().orders.find((item)=>item.id==='order-007')!;fulfillment.confirmShipment(actor,{requestId:'baseline-shipment-order-007',orderId:order.id,expectedUpdatedAt:order.updatedAt,logisticsCode:'MOCK-SF-20260810007'});order=repository.read().orders.find((item)=>item.id==='order-007')!;fulfillment.confirmReceipt(actor,{requestId:'baseline-receipt-order-007',orderId:order.id,expectedUpdatedAt:order.updatedAt,signedAt:'2026-08-10T10:00:00+08:00',signer:'演示签收人'})
+  runOutbound('order-011',1,'baseline-difference-order-011',true)
+  const voided=runOutbound('order-019',2,'baseline-outbound-order-019').outbound!;order=repository.read().orders.find((item)=>item.id==='order-019')!;fulfillment.voidOutbound(actor,{requestId:'baseline-void-order-019',outboundId:voided.id,expectedOrderUpdatedAt:order.updatedAt,reason:'演示作废：复核后重新备货'})
 }

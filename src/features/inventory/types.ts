@@ -91,6 +91,7 @@ export interface InventoryMovementRow extends InventoryMovement {
 }
 
 export interface FifoAllocation { balanceId: EntityId; batchId: EntityId; batchNumber: string; locationId: EntityId; quantityMilli: number }
+export interface ReferencedFifoAllocation extends FifoAllocation { referenceId: EntityId; skuId: EntityId; movementId?: EntityId }
 
 export interface InventoryCommandBase {
   requestId: string; sourceType: string; sourceId: string; operatorId: EntityId; occurredAt: string
@@ -102,6 +103,14 @@ export interface ConfirmInboundInput extends InventoryCommandBase {
 }
 
 export interface ConfirmOutboundInput extends InventoryCommandBase { warehouseId: EntityId; skuId: EntityId; quantityMilli: number }
+export interface ConfirmOutboundBatchInput extends InventoryCommandBase {
+  warehouseId: EntityId
+  lines: Array<{ referenceId: EntityId; skuId: EntityId; quantityMilli: number }>
+}
+export interface ReverseOutboundInput extends InventoryCommandBase {
+  warehouseId: EntityId
+  allocations: Array<{ movementId: EntityId; balanceId: EntityId; locationId: EntityId; batchId: EntityId; skuId: EntityId; quantityMilli: number }>
+}
 
 export interface LocationImportRow { warehouseCode: string; locationCode: string; locationName: string; status: EntityStatus; note: string | null }
 export interface LocationImportPreview { rows: LocationImportRow[]; errors: string[] }
