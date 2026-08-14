@@ -431,7 +431,7 @@
 
 ## ORD-003 字段与交互契约
 
-当前状态：`source-only`。原文已明确普通主链为“待订单审核 → 待财务审核 → 已审核”，且唯一状态回退是待财务审核到待订单审核；`DEC-ORD-003/028～031` 仍会改变审批节点、退回/取消、权限、批量事务和跨域结果，因此决定并写回前禁止编码。
+当前状态：`ready`。2026-08-14 用户确认 `DEC-ORD-003/028～031` 全部推荐方案；本节是订单审核、退回、取消和特价审批的可编码契约，仍不得提前实现出库、发货、签收、差异或应收。
 
 ### 事实来源
 
@@ -456,56 +456,64 @@
 - 动作成功后留在详情并刷新最新状态/审核记录；从列表发起则原位刷新并保留查询、页码和滚动位置。并发冲突要求重新加载，不在 UI 静默覆盖。
 - 出库、发货、签收、差异、收款、删除、作废和关闭仍不属于本切片；不得因订单已审核就自动导航或生成这些数据。
 
-### 命令与字段
+### 筛选与列表
+
+- 继续复用 `ORD-001` 的状态筛选、URL、排序、分页、字段遮蔽和当前页选择；本切片不新增查询字段或状态枚举。
+- `pending-order-review` 行仅向具备对应权限的角色显示业务审核、退回、取消；`pending-finance-review` 行仅显示财务审核和财务退回。其他状态没有本切片写动作。
+- 批量审核只消费当前页已选择且全部为 `pending-order-review` 的记录，最多 100 条；存在其他状态时禁用并明确指出不符合条件的单号，不静默剔除。
+- 批量确认摘要显示总数、普通订单数和特价订单数；成功后清空选择并保留查询/页码，失败保留选择以便重新加载或重试。
+- 业务退回仍使用 `pending-order-review` 规范状态，列表状态标签补充“已退回待修改”文字提示；该提示来自当前轮最近的 `returned` 审核记录，不增加筛选枚举。
+
+### 表单与校验
 
 单笔状态命令统一使用下列最小输入；未知字段拒绝，所有 ID 和文本去首尾空格后校验：
 
 | 字段 | 类型 | 必填 | 规则/用途 |
 |---|---|---|---|
 | `orderId` | ID | 是 | Service 重新校验企业、未删除、可见性和当前状态 |
-| `action` | enum | 是 | `approve-order`、`return-order`、`approve-finance`、`return-finance`、`cancel-order`；最终集合受待决策约束 |
+| `action` | enum | 是 | 固定为 `approve-order`、`return-order`、`approve-finance`、`return-finance`、`cancel-order` |
 | `expectedUpdatedAt` | ISO datetime | 是 | 与最新订单版本严格一致，否则 `CONFLICT`，不能覆盖其他审核/编辑结果 |
 | `requestId` | 非空 string | 是 | 同一请求只产生一次状态、审核记录、资金/分享副作用和日志 |
-| `reason` | string/null | 条件必填 | 推荐退回/取消必填 1～200 字；审核通过可选备注不替代确认 |
+| `reason` | string/null | 条件必填 | 退回/取消必填 1～200 字；审核通过可选备注，最多 200 字且不替代确认 |
 
-批量业务审核输入为 `items[{orderId,expectedUpdatedAt}] + requestId`；ID 不得重复且至少一项。数量上限原文未定义，原型推荐限制当前页最多 100 条，若产品不确认则实现前继续标记为待决策而不是自行截断。
+批量业务审核输入为 `items[{orderId,expectedUpdatedAt}] + requestId`；ID 不得重复且至少一项，固定限制当前页最多 100 条。只支持业务审核通过，不支持批量财务审核、退回或取消。
 
 订单聚合需要保留审核历史，而不能只改当前状态：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `reviewRound` | 正整数 | 首次保存为 1；退回后编辑并重新提交时递增，具体触发受 `DEC-ORD-028` 约束 |
+| `reviewRound` | 正整数 | 首次保存为 1；任一退回后首次成功编辑递增，同一轮内继续编辑不重复递增 |
 | `reviewRecords[]` | immutable records | 已发生的每次审批/退回/取消记录，不因再次编辑删除 |
-| `reviewRecords[].stage` | `order` / `finance` / `special-price` | 特价是否作为独立 stage 受 `DEC-ORD-003` 约束 |
+| `reviewRecords[].stage` | `order` / `finance` | 特价审批合并在 finance stage，以 `specialPrice=true` 和依据快照区分，不建立独立状态/阶段 |
 | `reviewRecords[].outcome` | `approved` / `returned` / `canceled` | 必须与命令和 from/to 状态一致 |
 | `reviewRecords[].actorSnapshot` | `{id,name,role}` | 保存当时操作者，不跟随员工改名 |
 | `reviewRecords[].reason` | string/null | 退回/取消原因及可选通过备注，不记录敏感财务详情 |
 | `reviewRecords[].fromStatus/toStatus` | `OrderStatus` | 即使业务退回保持同一规范状态，也能审计动作结果 |
 | `reviewRecords[].occurredAt/requestId` | datetime/string | 受控时钟；请求 ID 仅用于幂等和诊断，不在普通 UI 暴露 |
 
-特价审批还缺少可靠的历史依据：仅保存 `specialPrice=true` 无法知道当时哪一行越界、上下限是多少。推荐由 `DEC-ORD-003` 确认后补充 `specialPriceReason`（人工标记时必填）和保存时的 `specialPriceEvidence[]`，逐条保存行 ID、SKU/单位快照、成交价、当时最低/最高售价及越界方向；审批不得用后来变化的商品价格反算历史原因。已有 fixture 必须通过显式 schema migration/基线升级补齐，不能在读取时默默虚构。
+特价订单必须保存可靠的历史依据：补充 `specialPriceReason`，人工勾选或价格越界时均必填 1～200 字；保存时生成 `specialPriceEvidence[]`，逐条保存异常行 ID、SKU/单位快照、成交价、当时最低/最高售价及越界方向。越界时特价标记不可取消，恢复到界内后可取消；仅人工标记且没有越界行时证据数组可空，但原因仍必填。财务审批不得用后来变化的商品价格反算历史原因。已有 fixture 通过显式 schema migration/基线升级补齐，不在读取时默默虚构。
 
-### 状态、动作与副作用
+### 状态与计算
 
 原文明示且当前可固定的状态主链如下；所有判断必须位于同一状态机配置并由 Service 强制执行：
 
 | 当前状态 | 动作 | 成功状态 | 明确副作用 | 尚待决策 |
 |---|---|---|---|---|
-| `pending-order-review` | 业务审核通过 | `pending-finance-review` | 原子写审核记录、活动日志和 `updatedAt` | 角色默认映射、特价是否改变节点 |
-| `pending-order-review` | 业务退回 | 待 `DEC-ORD-028` | 不释放预收、不改库存 | 目标/展示、原因和再次提交轮次 |
-| `pending-order-review` | 取消 | `canceled` | 按既有契约释放本单预收、撤销有效分享；不扣/补库存 | 权限、原因和是否可恢复 |
-| `pending-finance-review` | 财务审核通过 | `approved` | 原子写审核记录、日志和 `updatedAt` | 特价强化审批及是否有资金校验/结果 |
-| `pending-finance-review` | 财务退回 | `pending-order-review` | 保留预收占用和全部历史；之后允许按 `ORD-002` 修改 | 原因、角色和审核轮次 |
+| `pending-order-review` | 业务审核通过 | `pending-finance-review` | 原子写审核记录、活动日志和 `updatedAt`；特价订单不增加新状态 | 销售主管/管理员且有 `orders.review` |
+| `pending-order-review` | 业务退回 | `pending-order-review` | 必填原因，记录“已退回待修改”；不释放预收、不改库存 | 销售主管/管理员且有 `orders.return` |
+| `pending-order-review` | 取消 | `canceled` | 必填原因，原子释放本单预收、撤销有效分享；不扣/补库存且不可恢复 | 销售主管/管理员且有 `orders.cancel` |
+| `pending-finance-review` | 财务审核通过 | `approved` | 原子写审核记录、日志和 `updatedAt`；特价时要求强化确认 | 财务/管理员且有 `orders.finance-review` |
+| `pending-finance-review` | 财务退回 | `pending-order-review` | 必填原因，保留预收占用和全部历史；之后允许按 `ORD-002` 修改 | 财务/管理员且有 `orders.return` |
 
 - `approved` 及以后状态在本切片没有退回、取消、编辑、出库或资金写命令。非法状态即使绕过按钮直接调用 Service 也必须拒绝。
 - 普通审核通过不得预占/扣减库存，也不得生成出库单、差异单、物流、应收或收款；这由 `DEC-ORD-002` 与切片边界固定。
-- 审核不得重新计算订单金额、折扣、价格、授权、单位或收货快照；是否读取当前客户/仓库/信用和是否调整资金仍由 `DEC-ORD-031` 决定。
+- 审核只消费已保存且通过 Schema 的订单、预收占用和特价依据；不得重新读取当前客户/仓库/信用来改变审批结果，不重新计算订单金额、折扣、价格、授权、单位或收货快照，不调整预收、不形成应收。
 - 每个成功命令只产生一条领域审核记录和对应安全活动日志；幂等重放返回原结果，不重复写。失败必须保持订单、审核记录、预收、分享和日志的事务前状态。
 - 列表、详情和时间轴从状态机/审核历史投影，不从按钮是否显示反推业务状态。财务退回后要显示退回原因和历史已通过的业务审核，但当前主状态仍是待订单审核。
 
-### 权限与操作矩阵
+### 详情与操作矩阵
 
-原文明确业务主管执行订单审核、财务人员执行财务审核；全局超级管理员拥有完整订单能力。细粒度默认映射仍由 `DEC-ORD-029` 决定，推荐矩阵为：
+原文明确业务主管执行订单审核、财务人员执行财务审核；全局超级管理员拥有完整订单能力。已确认 baseline 细权限矩阵为：
 
 | 动作/权限 | 超级管理员 | 销售主管 | 业务员 | 财务人员 | 仓库人员 |
 |---|---|---|---|---|---|
@@ -533,6 +541,8 @@
 | `concurrent` | 两个会话对同一版本审核，或编辑与审核竞态 | 首个成功，后续 `CONFLICT` 并要求重新加载 |
 
 Mock reset 必须恢复审核前基线和确定哈希；测试只能通过 Service 推进，不直接改 fixture。固定 clock/ID 驱动记录顺序。取消涉及的预收释放使用 `ORD-002` 已有 fake finance 边界，分享撤销只修改本地哈希记录，不访问真实资金或通知服务。
+
+以上五组决策已由用户于 2026-08-14 回复“ORD-003 全部按推荐方案执行”确认并写回；`ORD-003` 达到 `ready`，允许 active plan 进入 implementation，但不代表代码或验收已经完成。
 
 ### 验收追踪
 
