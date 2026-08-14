@@ -58,7 +58,7 @@ describe("order views", () => {
     expect(wrapper.text()).toContain("粘贴商品（skuCode,quantity,unitCode）");
     expect(wrapper.text()).toContain("保存并结算出库（F8）");
     expect(
-      wrapper.find('button[title*="ORD-003"]').attributes("disabled"),
+      wrapper.find('button[title*="ORD-004"]').attributes("disabled"),
     ).toBeDefined();
   });
   it("shows future tabs as explicit unavailable states", async () => {

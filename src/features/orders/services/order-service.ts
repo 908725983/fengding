@@ -33,7 +33,7 @@ function assertOutput(actor:OrderActor):void{if(!fullRoles.has(actor.role))throw
 function providerFailure(message:string,cause:unknown):never{if(cause instanceof OrderDomainError||cause instanceof OrderValidationError)throw cause;throw new OrderDomainError('DATA_PROVIDER_UNAVAILABLE',message)}
 function maskOrder(actor:OrderActor,source:CustomerOrder):VisibleOrder{
   const order=structuredClone(source) as VisibleOrder
-  if(actor.role==='warehouse'){order.amounts={originalAmountCents:null,productDiscountCents:null,couponDiscountCents:null,manualOrderDiscountCents:null,orderDiscountCents:null,freightCents:null,orderAmountCents:null};order.lines=order.lines.map((line)=>({...line,discountBasisPoints:null,originalUnitPriceCents:null,dealUnitPriceCents:null,subtotalCents:null}));order.reviewRecords=order.reviewRecords?.map((item)=>({...item,reason:null}))}
+  if(actor.role==='warehouse'){order.amounts={originalAmountCents:null,productDiscountCents:null,couponDiscountCents:null,manualOrderDiscountCents:null,orderDiscountCents:null,freightCents:null,orderAmountCents:null};order.lines=order.lines.map((line)=>({...line,discountBasisPoints:null,originalUnitPriceCents:null,dealUnitPriceCents:null,subtotalCents:null}));order.reviewRecords=order.reviewRecords?.map((item)=>({...item,reason:null}));order.specialPriceReason=order.specialPrice?'价格依据已遮蔽':null;order.specialPriceEvidence=[]}
   if(actor.role==='finance'){order.shippingSnapshot={...order.shippingSnapshot,phone:null,address:null};order.lines=order.lines.map((line)=>({...line,imageSnapshot:null,reason:null}))}
   return order
 }

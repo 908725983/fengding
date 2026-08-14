@@ -564,7 +564,7 @@ onMounted(() => store.initializeForm(orderId.value));
           type="button"
           class="order-button"
           disabled
-          title="等待 ORD-003、ORD-004 与资金编排"
+          title="等待 ORD-004 与资金编排"
         >
           保存并结算出库（F8）</button
         ><button class="order-button primary" :disabled="saving">
