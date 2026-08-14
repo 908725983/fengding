@@ -106,4 +106,4 @@
 
 ## 中断恢复点
 
-当前处于 specification，尚未新增 `ORD-005` 业务代码、页面或 fixture。开工基线为提交 `3f5efee`，54 个测试文件/242 项测试通过；规格现场已完成，Harness 为 45 个切片/163 个决策门。下一步只能写回用户对 `DEC-FIN-003` 及 19 项新决策的明确结论，使 `ORD-005` 达到 ready；之后才可按 Types/Schema 开始 implementation。
+当前处于 specification，尚未新增 `ORD-005` 业务代码、页面或 fixture。开工基线为提交 `3f5efee`，规格检查点为 `9b735d1`；54 个测试文件/242 项测试的开工基线通过，规格现场 Harness 为 45 个切片/163 个决策门。下一步只能写回用户对 `DEC-FIN-003` 及 19 项新决策的明确结论，使 `ORD-005` 达到 ready；之后才可按 Types/Schema 开始 implementation。
