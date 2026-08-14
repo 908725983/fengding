@@ -212,4 +212,4 @@ baseline 只保存 `INV-001` 自有仓库、库位、余额、批次、阈值与
 
 退货入库命令至少需要 `requestId/sourceType=customer-return/sourceId/operatorId/occurredAt/warehouseId/locationId/skuId/quantityMilli/costPerBaseUnitCents` 以及追踪商品的批次、生产和有效期。成功必须追加不可变库存流水并向 Order 返回 movement 引用；Order 与 Inventory 写入必须原子，任何一行、仓库/库位、批次、版本或权限失败时全部不生效。
 
-用户于 2026-08-14 确认全部推荐方案：审核后由仓库在退单仓库内选择启用库位，一次整单精确入库，不支持部分或差异收货；追踪商品沿用原出库批次、生产日期、有效期和原出库流水成本，非追踪商品使用系统批次；退款前可因 1～200 字原因整张精确作废并恢复待收货，退款后禁止作废。仅开放 `sourceType=customer-return` 的窄 public command，不借此开放 `INV-002` 通用页面。
+用户于 2026-08-14 确认全部推荐方案：审核后由仓库在退单仓库内选择启用库位，一次整单精确入库，不支持部分或差异收货；追踪商品沿用原出库批次、生产日期、有效期和原出库流水成本，非追踪商品使用系统批次；退款前可因 1～200 字原因整张精确作废并恢复待收货，退款后禁止作废。作废时库存反向流水、Finance 贷项冲销/待退款关闭和 Order 状态恢复为一个三仓事务；重入库生成新资金记录。仅开放 `sourceType=customer-return/customer-return-void` 的窄 public command，不借此开放 `INV-002` 通用页面。

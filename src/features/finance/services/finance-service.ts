@@ -25,8 +25,8 @@ export interface FinanceServiceDependencies {
 }
 
 const rolePermissions: Record<FinanceActor['role'], FinancePermission[]> = {
-  'super-admin': ['finance.view-accounts', 'finance.manage-accounts', 'finance.view-ledger', 'finance.carryover', 'finance.manage-banks', 'finance.manage-payment-channels', 'finance.view-receivables', 'finance.view-receivable-details', 'finance.view-aging', 'finance.view-receipts', 'finance.manage-receipts', 'finance.view-writeoffs', 'finance.manage-writeoffs', 'finance.export-receivables'],
-  finance: ['finance.view-accounts', 'finance.manage-accounts', 'finance.view-ledger', 'finance.carryover', 'finance.manage-banks', 'finance.manage-payment-channels', 'finance.view-receivables', 'finance.view-receivable-details', 'finance.view-aging', 'finance.view-receipts', 'finance.manage-receipts', 'finance.view-writeoffs', 'finance.manage-writeoffs', 'finance.export-receivables'],
+  'super-admin': ['finance.view-accounts', 'finance.manage-accounts', 'finance.view-ledger', 'finance.carryover', 'finance.manage-banks', 'finance.manage-payment-channels', 'finance.view-receivables', 'finance.view-receivable-details', 'finance.view-aging', 'finance.view-receipts', 'finance.manage-receipts', 'finance.view-writeoffs', 'finance.manage-writeoffs', 'finance.export-receivables', 'finance.view-refunds', 'finance.manage-refunds'],
+  finance: ['finance.view-accounts', 'finance.manage-accounts', 'finance.view-ledger', 'finance.carryover', 'finance.manage-banks', 'finance.manage-payment-channels', 'finance.view-receivables', 'finance.view-receivable-details', 'finance.view-aging', 'finance.view-receipts', 'finance.manage-receipts', 'finance.view-writeoffs', 'finance.manage-writeoffs', 'finance.export-receivables', 'finance.view-refunds', 'finance.manage-refunds'],
   'sales-supervisor': ['finance.view-accounts', 'finance.view-ledger', 'finance.view-receivables', 'finance.view-receivable-details', 'finance.view-aging', 'finance.view-receipts', 'finance.view-writeoffs', 'finance.export-receivables'], salesperson: [], warehouse: [],
 }
 const normalize = (value: string) => value.trim().toLocaleLowerCase()
@@ -80,8 +80,8 @@ function writeoffAmounts(state: FinanceFeatureState, receivableId: string): { ca
   return { cash: allocations.reduce((sum, item) => sum + item.cashCents, 0), discount: allocations.reduce((sum, item) => sum + item.discountCents, 0) }
 }
 function projectReceivable(state: FinanceFeatureState, value: CustomerReceivable, now: string): ReceivableProjection {
-  const settled = writeoffAmounts(state, value.id); const receivedCents = settled.cash + settled.discount; const outstandingCents = value.amountCents - receivedCents
-  return { ...structuredClone(value), receivedCents, outstandingCents, status: outstandingCents === 0 ? 'settled' : receivedCents > 0 ? 'partial' : 'open', ageDays: ageDays(value.occurredAt, now), overdue: outstandingCents > 0 && datePart(now) > value.dueDate }
+  const settled = writeoffAmounts(state, value.id); const receivedCents = settled.cash + settled.discount; const credited = state.creditAdjustments.reduce((sum, item) => sum + (item.receivableId === value.id && item.status === 'active' ? item.amountCents : 0), 0); const outstandingCents = Math.max(0, value.amountCents - receivedCents - credited)
+  return { ...structuredClone(value), receivedCents, outstandingCents, status: outstandingCents === 0 ? 'settled' : receivedCents + credited > 0 ? 'partial' : 'open', ageDays: ageDays(value.occurredAt, now), overdue: outstandingCents > 0 && datePart(now) > value.dueDate }
 }
 function sourceBalance(state: FinanceFeatureState, sourceId: string): number { return state.prepaymentLedger.filter((item) => item.sourceId === sourceId).reduce((sum, item) => sum + item.amountDeltaCents, 0) }
 function sourceEntry(state: FinanceFeatureState, sourceId: string): CustomerPrepaymentLedgerEntry | undefined { return state.prepaymentLedger.find((item) => item.sourceId === sourceId && item.amountDeltaCents > 0) }

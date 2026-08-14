@@ -30,7 +30,7 @@ export function createInventoryCatalogProvider(partialFailure = false): Inventor
       }
     }))
   }
-  return { listSkus: list, getSku: (id) => list().find((item) => item.skuId === id) ?? null, sourceExists: (type, id) => type === 'sales-outbound' || type === 'sales-outbound-void' || knownSources.has(`${type}:${id}`) }
+  return { listSkus: list, getSku: (id) => list().find((item) => item.skuId === id) ?? null, sourceExists: (type, id) => type === 'sales-outbound' || type === 'sales-outbound-void' || ((type === 'customer-return' || type === 'customer-return-void') && id.startsWith('return-')) || knownSources.has(`${type}:${id}`) }
 }
 
 export function createBaselineInventoryRepository(): InMemoryInventoryRepository { return new InMemoryInventoryRepository(inventoryBaseline) }

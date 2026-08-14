@@ -14,6 +14,7 @@ const kinds = new Set(['receipt', 'payment', 'transfer-in', 'transfer-out', 'ref
 const requestKinds = new Set([
   'account-save', 'movement-post', 'period-close', 'period-reverse', 'bank-save', 'payment-apply',
   'receivable-create', 'receipt-create', 'receipt-void', 'writeoff-create', 'writeoff-cancel',
+  'credit-create', 'credit-reverse', 'refund-confirm', 'refund-reject', 'refund-reapply',
 ])
 
 function required(issues: FinanceValidationIssue[], path: string, value: unknown, max = 100): void {
@@ -106,6 +107,8 @@ export function assertFinanceFeatureState(state: FinanceFeatureState): void {
   unique(issues, 'receivables.orderId', state.receivables.map((item) => item.orderId))
   unique(issues, 'receipts.receiptNo', state.customerReceipts.map((item) => item.receiptNo))
   unique(issues, 'writeoffs.writeoffNo', state.receiptWriteoffs.map((item) => item.writeoffNo))
+  unique(issues, 'creditAdjustments.id', state.creditAdjustments.map((item) => item.id))
+  unique(issues, 'refunds.id', state.refunds.map((item) => item.id)); unique(issues, 'refunds.refundNo', state.refunds.map((item) => item.refundNo))
   unique(issues, 'dailySequences.date', state.dailySequences.map((item) => item.date))
   const receivableIds = new Set(state.receivables.map((item) => item.id))
   const receiptIds = new Set(state.customerReceipts.map((item) => item.id))
@@ -161,8 +164,30 @@ export function assertFinanceFeatureState(state: FinanceFeatureState): void {
     if (!Number.isSafeInteger(entry.amountDeltaCents) || entry.amountDeltaCents === 0) issues.push({ path: `prepaymentLedger.${entry.id}.amountDeltaCents`, message: '必须为非零整数分' })
     iso(issues, `prepaymentLedger.${entry.id}.occurredAt`, entry.occurredAt)
   }
+  const creditIds = new Set(state.creditAdjustments.map((item) => item.id))
+  for (const credit of state.creditAdjustments) {
+    required(issues, `creditAdjustments.${credit.id}.sourceId`, credit.sourceId); required(issues, `creditAdjustments.${credit.id}.sourceNo`, credit.sourceNo)
+    if (!receivableIds.has(credit.receivableId)) issues.push({ path: `creditAdjustments.${credit.id}.receivableId`, message: '应收不存在' })
+    money(issues, `creditAdjustments.${credit.id}.amountCents`, credit.amountCents, true); money(issues, `creditAdjustments.${credit.id}.outstandingReductionCents`, credit.outstandingReductionCents); money(issues, `creditAdjustments.${credit.id}.refundObligationCents`, credit.refundObligationCents); money(issues, `creditAdjustments.${credit.id}.nonRefundableDiscountCents`, credit.nonRefundableDiscountCents)
+    if (credit.amountCents !== credit.outstandingReductionCents + credit.refundObligationCents + credit.nonRefundableDiscountCents) issues.push({ path: `creditAdjustments.${credit.id}.amountCents`, message: '贷项拆分不守恒' })
+    iso(issues, `creditAdjustments.${credit.id}.occurredAt`, credit.occurredAt)
+    if (!['active', 'reversed'].includes(credit.status) || (credit.status === 'reversed') !== Boolean(credit.reversalInfo)) issues.push({ path: `creditAdjustments.${credit.id}.status`, message: '贷项冲销状态与审计不一致' })
+  }
+  const refundAllocationIds: string[] = []
+  for (const refund of state.refunds) {
+    required(issues, `refunds.${refund.id}.refundNo`, refund.refundNo); if (!/^TK-\d{6}-\d{5}$/.test(refund.refundNo)) issues.push({ path: `refunds.${refund.id}.refundNo`, message: '退款编号格式无效' })
+    if (!creditIds.has(refund.creditAdjustmentId)) issues.push({ path: `refunds.${refund.id}.creditAdjustmentId`, message: '贷项不存在' })
+    money(issues, `refunds.${refund.id}.requestedAmountCents`, refund.requestedAmountCents); money(issues, `refunds.${refund.id}.refundedAmountCents`, refund.refundedAmountCents)
+    if (!['pending', 'refunded', 'rejected'].includes(refund.status) || !['original', 'cash', 'balance'].includes(refund.method)) issues.push({ path: `refunds.${refund.id}.status`, message: '退款状态或方式无效' })
+    if (refund.status === 'refunded' && refund.refundedAmountCents !== refund.requestedAmountCents) issues.push({ path: `refunds.${refund.id}.refundedAmountCents`, message: '确认退款必须整笔完成' })
+    if (refund.status !== 'refunded' && refund.refundedAmountCents !== 0) issues.push({ path: `refunds.${refund.id}.refundedAmountCents`, message: '未退款不得有实退金额' })
+    if (refund.allocations.reduce((sum, item) => sum + item.amountCents, 0) !== refund.refundedAmountCents) issues.push({ path: `refunds.${refund.id}.allocations`, message: '退款分配不守恒' })
+    refund.allocations.forEach((item) => { refundAllocationIds.push(item.id); money(issues, `refundAllocations.${item.id}.amountCents`, item.amountCents, true); if (item.sourceKind === 'cash-account' ? !item.accountId : item.method === 'balance' ? item.accountId !== null : !item.accountId) issues.push({ path: `refundAllocations.${item.id}.accountId`, message: '退款来源账户无效' }) })
+    iso(issues, `refunds.${refund.id}.requestedAt`, refund.requestedAt); iso(issues, `refunds.${refund.id}.resolvedAt`, refund.resolvedAt)
+  }
+  unique(issues, 'refundAllocations.id', refundAllocationIds)
   for (const sequence of state.dailySequences) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(sequence.date) || [sequence.receivable, sequence.receipt, sequence.writeoff].some((value) => !Number.isSafeInteger(value) || value < 1)) issues.push({ path: `dailySequences.${sequence.date}`, message: '日序列无效' })
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sequence.date) || [sequence.receivable, sequence.receipt, sequence.writeoff, sequence.refund ?? 1].some((value) => !Number.isSafeInteger(value) || value < 1)) issues.push({ path: `dailySequences.${sequence.date}`, message: '日序列无效' })
   }
   for (const request of state.requests) { required(issues, 'requests.requestId', request.requestId); if (!requestKinds.has(request.kind)) issues.push({ path: `requests.${request.requestId}.kind`, message: '请求类型无效' }) }
   if (issues.length) throw new FinanceValidationError(issues)

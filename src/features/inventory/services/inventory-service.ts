@@ -1,10 +1,10 @@
 import { assertLocationDraft, assertWarehouseDraft, InventoryValidationError } from '../schemas/inventory-schema'
 import type { InventoryRepository } from '../repositories/inventory-repository'
 import type {
-  BatchStatus, ConfirmInboundInput, ConfirmOutboundBatchInput, ConfirmOutboundInput, EntityId, FifoAllocation, InventoryActor, InventoryBatchRow,
+  BatchStatus, ConfirmInboundInput, ConfirmOutboundBatchInput, ConfirmOutboundInput, ConfirmReturnInboundInput, EntityId, FifoAllocation, InventoryActor, InventoryBatchRow,
   InventoryCatalogProvider, InventoryFeatureState, InventoryLocation, InventoryMovementRow, InventoryQuery, InventoryStatus,
   InventoryStockRow, InventoryThreshold, InventoryWorkspace, LocationDraft, LocationImportPreview, LocationImportRow,
-  PageResult, ReferencedFifoAllocation, ReverseOutboundInput, Warehouse, WarehouseDraft,
+  PageResult, ReferencedFifoAllocation, ReverseOutboundInput, ReverseReturnInboundInput, Warehouse, WarehouseDraft,
 } from '../types'
 
 export type InventoryDomainErrorCode = 'PERMISSION_DENIED' | 'NOT_FOUND' | 'DUPLICATE' | 'INVALID_STATE' | 'SOURCE_NOT_FOUND' | 'INSUFFICIENT_STOCK' | 'EXPIRED_BATCH' | 'PRODUCT_UNAVAILABLE'
@@ -200,6 +200,48 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
     }), listMovements(actor).filter((item) => item.requestId === input.requestId)
   }
 
+  function confirmReturnInbound(actor: InventoryActor, input: ConfirmReturnInboundInput): InventoryMovementRow[] {
+    assertWrite(actor); if (input.sourceType !== 'customer-return' || !deps.catalog.sourceExists(input.sourceType, input.sourceId)) throw new InventoryDomainError('SOURCE_NOT_FOUND', '客户退单来源不存在')
+    if (!input.lines.length || new Set(input.lines.map((item) => item.referenceId)).size !== input.lines.length) throw new InventoryValidationError([{ path: 'lines', message: '退货入库行必须非空且引用唯一' }])
+    const replay = deps.repository.read().movements.filter((item) => item.requestId === input.requestId); if (replay.length) return listMovements(actor).filter((item) => item.requestId === input.requestId)
+    deps.repository.transact((state) => {
+      const warehouse = warehouseById(state, input.warehouseId); const location = locationById(state, input.locationId)
+      if (warehouse.status !== 'enabled' || location.status !== 'enabled' || location.warehouseId !== warehouse.id) throw new InventoryDomainError('INVALID_STATE', '仓库或库位不可用于退货入库')
+      for (const line of input.lines) {
+        positiveMilli(line.quantityMilli); if (!Number.isSafeInteger(line.costPerBaseUnitCents) || line.costPerBaseUnitCents < 0) throw new InventoryValidationError([{ path: 'costPerBaseUnitCents', message: '原出库成本必须是非负整数分' }])
+        const sku = deps.catalog.getSku(line.skuId); if (!sku) throw new InventoryDomainError('PRODUCT_UNAVAILABLE', 'SKU 不存在'); const tracked = sku.manageProductionDate || sku.shelfLifeDays !== null
+        if (tracked && (!line.batchNumber.trim() || !line.productionDate)) throw new InventoryValidationError([{ path: 'batch', message: '追踪商品必须沿用原出库批次和生产日期' }])
+        const batchNumber = tracked ? line.batchNumber.trim() : `SYSTEM-NONTRACKED-${line.skuId}`; const expiresOn = line.expiresOn
+        let batch = state.batches.find((item) => item.skuId === line.skuId && normalize(item.batchNumber) === normalize(batchNumber))
+        if (batch && (batch.productionDate !== line.productionDate || batch.expiresOn !== expiresOn || batch.costPerBaseUnitCents !== line.costPerBaseUnitCents)) throw new InventoryDomainError('DUPLICATE', '原批次日期或成本快照不一致')
+        if (!batch) { batch = { id: deps.nextId('batch'), enterpriseId: state.enterpriseId, skuId: line.skuId, batchNumber, tracked, productionDate: line.productionDate, expiresOn, receivedAt: input.occurredAt, costPerBaseUnitCents: line.costPerBaseUnitCents }; state.batches.push(batch) }
+        let balance = state.balances.find((item) => item.warehouseId === input.warehouseId && item.locationId === input.locationId && item.skuId === line.skuId && item.batchId === batch!.id)
+        if (!balance) { balance = { id: deps.nextId('balance'), enterpriseId: state.enterpriseId, warehouseId: input.warehouseId, locationId: input.locationId, skuId: line.skuId, batchId: batch.id, quantityMilli: 0, updatedAt: input.occurredAt }; state.balances.push(balance) }
+        balance.quantityMilli += line.quantityMilli; balance.updatedAt = input.occurredAt
+        state.movements.push({ id: deps.nextId('movement'), enterpriseId: state.enterpriseId, requestId: input.requestId, sourceType: input.sourceType, sourceId: input.sourceId, direction: 'inbound', warehouseId: input.warehouseId, locationId: input.locationId, skuId: line.skuId, batchId: batch.id, quantityMilli: line.quantityMilli, balanceAfterMilli: balance.quantityMilli, costPerBaseUnitCents: line.costPerBaseUnitCents, operatorId: input.operatorId, occurredAt: input.occurredAt })
+      }
+    })
+    return listMovements(actor).filter((item) => item.requestId === input.requestId)
+  }
+
+  function reverseReturnInbound(actor: InventoryActor, input: ReverseReturnInboundInput): InventoryMovementRow[] {
+    assertWrite(actor); if (input.sourceType !== 'customer-return-void' || !deps.catalog.sourceExists(input.sourceType, input.sourceId)) throw new InventoryDomainError('SOURCE_NOT_FOUND', '客户退单来源不存在')
+    if (!input.movementIds.length || new Set(input.movementIds).size !== input.movementIds.length) throw new InventoryValidationError([{ path: 'movementIds', message: '原入库流水必须非空且唯一' }])
+    const snapshot = deps.repository.read(); const replay = snapshot.movements.filter((item) => item.requestId === input.requestId); if (replay.length) return listMovements(actor).filter((item) => item.requestId === input.requestId)
+    if (snapshot.movements.some((item) => item.sourceType === 'customer-return-void' && item.sourceId === input.sourceId)) throw new InventoryDomainError('INVALID_STATE', '退货入库已经作废')
+    deps.repository.transact((state) => {
+      for (const movementId of input.movementIds) {
+        const original = state.movements.find((item) => item.id === movementId && item.direction === 'inbound' && item.sourceType === 'customer-return' && item.sourceId === input.sourceId)
+        if (!original || original.warehouseId !== input.warehouseId) throw new InventoryDomainError('INVALID_STATE', '原退货入库流水不一致')
+        const balance = state.balances.find((item) => item.warehouseId === original.warehouseId && item.locationId === original.locationId && item.skuId === original.skuId && item.batchId === original.batchId)
+        if (!balance || balance.quantityMilli < original.quantityMilli) throw new InventoryDomainError('INSUFFICIENT_STOCK', '当前批次库存不足，不能精确作废退货入库')
+        balance.quantityMilli -= original.quantityMilli; balance.updatedAt = input.occurredAt
+        state.movements.push({ id: deps.nextId('movement'), enterpriseId: state.enterpriseId, requestId: input.requestId, sourceType: input.sourceType, sourceId: input.sourceId, direction: 'outbound', warehouseId: original.warehouseId, locationId: original.locationId, skuId: original.skuId, batchId: original.batchId, quantityMilli: original.quantityMilli, balanceAfterMilli: balance.quantityMilli, costPerBaseUnitCents: original.costPerBaseUnitCents, operatorId: input.operatorId, occurredAt: input.occurredAt })
+      }
+    })
+    return listMovements(actor).filter((item) => item.requestId === input.requestId)
+  }
+
   function exportStocksCsv(actor: InventoryActor, query: InventoryQuery, selected: string[] = []): string {
     assertWrite(actor); let rows = listStocks(actor, { ...query, page: 1 }).items; if (selected.length) rows = rows.filter((item) => selected.includes(`${item.warehouse.id}:${item.skuId}`)); const headers = ['warehouseCode', 'warehouseName', 'skuCode', 'productName', 'currentBaseQuantity', 'pendingOutbound', 'available', 'inTransit', 'status', 'costPerBaseUnitCents', 'amountCents']; const body = rows.map((row) => [row.warehouse.code, row.warehouse.name, row.sku?.skuCode ?? row.skuId, row.sku?.productName ?? '商品资料不可用', row.currentMilli / 1000, 'unavailable', 'unavailable', 'unavailable', row.status, row.costPerBaseUnitCents ?? '', row.amountCents ?? ''].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')); return `\uFEFF${[headers.join(','), ...body].join('\r\n')}`
   }
@@ -212,5 +254,5 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
     return `\uFEFF${[headers.join(','), ...body].join('\r\n')}`
   }
 
-  return { listStocks, listBatches, listMovements, getWorkspace, saveThreshold, saveWarehouse, saveLocation, previewLocationImport, importLocations, previewOutbound, previewOutboundBatch, confirmOutbound, confirmOutboundBatch, reverseOutbound, confirmInbound, exportStocksCsv, exportLocationsCsv }
+  return { listStocks, listBatches, listMovements, getWorkspace, saveThreshold, saveWarehouse, saveLocation, previewLocationImport, importLocations, previewOutbound, previewOutboundBatch, confirmOutbound, confirmOutboundBatch, reverseOutbound, confirmInbound, confirmReturnInbound, reverseReturnInbound, exportStocksCsv, exportLocationsCsv }
 }

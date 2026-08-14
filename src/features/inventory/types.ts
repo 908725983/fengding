@@ -111,6 +111,13 @@ export interface ReverseOutboundInput extends InventoryCommandBase {
   warehouseId: EntityId
   allocations: Array<{ movementId: EntityId; balanceId: EntityId; locationId: EntityId; batchId: EntityId; skuId: EntityId; quantityMilli: number }>
 }
+export interface ConfirmReturnInboundInput extends InventoryCommandBase {
+  sourceType: 'customer-return'; warehouseId: EntityId; locationId: EntityId
+  lines: Array<{ referenceId: EntityId; skuId: EntityId; quantityMilli: number; costPerBaseUnitCents: number; batchNumber: string; productionDate: string | null; expiresOn: string | null }>
+}
+export interface ReverseReturnInboundInput extends InventoryCommandBase {
+  sourceType: 'customer-return-void'; warehouseId: EntityId; movementIds: EntityId[]
+}
 
 export interface LocationImportRow { warehouseCode: string; locationCode: string; locationName: string; status: EntityStatus; note: string | null }
 export interface LocationImportPreview { rows: LocationImportRow[]; errors: string[] }
