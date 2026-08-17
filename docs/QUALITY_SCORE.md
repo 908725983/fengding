@@ -1,7 +1,7 @@
 # 质量评分
 
 - 最近审计：2026-08-14
-- 当前阶段：`ORD-006` 订单与销售统计已完成规格提取，等待确认 15 项推荐方案；尚未进入编码。
+- 当前阶段：`ORD-006` 订单与销售统计的 15 项推荐方案已确认并达到 ready，进入 implementation。
 
 ## 评分标准
 
@@ -18,12 +18,12 @@
 |---|---:|---|
 | 工程基础 passing | 2 | `HNS-001`、`SHELL-001` 有完成计划和验证证据 |
 | 可进入规格提取的业务切片 | 43 | `PRD-006` 已从关联推荐独立登记；其余切片按目录状态推进 |
-| 已达到 ready 的业务切片 | 14 | `CUS-001`、`PRD-001/002/003/004`、`INV-001`、`ORD-001/002/003/004/005`、`FIN-003`、`FIN-001` 均已 passing |
+| 已达到 ready 的业务切片 | 15 | `ORD-006` 已 ready 待实现；其余 14 个 ready 切片均已有 passing 证据 |
 | 因需求不足 blocked | 2 | `MER-001` 商家、`ANA-001` 独立数据分析 |
-| 已知人工决策门 | 182 | `ORD-006` 新登记 `DEC-ORD-052～066` 共 15 项 open；状态、金额、单位、权限和事实源边界未确认前禁止编码 |
-| 当前业务 active plan | 1 | `docs/exec-plans/active/2026-08-17-order-sales-statistics.md` 是唯一现场，当前阶段 specification |
+| 已知人工决策门 | 182 | `ORD-006` 的 `DEC-ORD-052～066` 已于 2026-08-17 确认推荐方案并写回；本切片无 open 决策 |
+| 当前业务 active plan | 1 | `docs/exec-plans/active/2026-08-17-order-sales-statistics.md` 是唯一现场，当前阶段 implementation |
 
-`ORD-001/002/003/004/005`、`FIN-003` 和 `FIN-001` 的已确认决策均有实现与验证证据；`ORD-006` 与 `PRD-006` 仍为 source-only。
+`ORD-001/002/003/004/005`、`FIN-003` 和 `FIN-001` 的已确认决策均有实现与验证证据；`ORD-006` 已 ready 但尚无实现证据，`PRD-006` 仍为 source-only。
 
 ## 产品领域
 
