@@ -61,8 +61,8 @@
 - [x] 在唯一决策目录登记 `DEC-ORD-052～066`。
 - [x] `npm run verify:harness` 通过：45 个功能切片、182 个决策门、8 份领域规格/需求快照；`git diff --check` 通过，`src/` 与 `mock/` 无差异。
 - [x] 用户回复“ORD-006 全部按推荐方案执行”；`DEC-ORD-052～066` 逐项写回 `orders.md`、索引和本计划，字段准备度改为 ready。
-- [ ] 当前步骤：复查 ready/Harness 门禁后，实现只读统计 Types/Schema、Repository 投影和公式 Service，建立第一个可回退代码检查点。
-- [ ] 实现 Runtime/UI、二维表偏好与 fake CSV，建立第二个可回退检查点。
+- [x] ready 固定章节复查后 Harness 通过；只读统计 Types/Schema、一次快照投影、公式 Service、角色矩阵、二维表偏好 Repository 与 9 项专项测试通过。
+- [ ] 当前步骤：提交领域核心检查点后，实现 Runtime/UI、二维表偏好与 fake CSV，建立第二个可回退检查点。
 - [ ] 完成自动/浏览器/Mock 重置/干净重启验收，更新质量与总体顺序，归档计划。
 
 ## 开放决策
