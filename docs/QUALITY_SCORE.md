@@ -1,7 +1,7 @@
 # 质量评分
 
 - 最近审计：2026-08-19
-- 当前阶段：`PUR-004` 已实现、验收并归档；下一切片为 `PUR-001` 规格提取。
+- 当前阶段：`PUR-001` 规格提取；尚未进入 implementation。
 
 ## 评分标准
 
@@ -20,8 +20,8 @@
 | 可进入规格提取的业务切片 | 43 | `PRD-006` 已从关联推荐独立登记；其余切片按目录状态推进 |
 | 已达到 ready 的业务切片 | 16 | 16 个 ready 切片均已有 passing 证据，`PUR-004` 为最新完成切片 |
 | 因需求不足 blocked | 2 | `MER-001` 商家、`ANA-001` 独立数据分析 |
-| 已知人工决策门 | 197 | `DEC-PUR-004～018` 已于 2026-08-19 全部采用推荐方案，本切片无 open 决策 |
-| 当前业务 active plan | 0 | `PUR-004` 计划已归档；开始 `PUR-001` 时再创建唯一 active plan |
+| 已知人工决策门 | 207 | `DEC-PUR-019～028` 为 `PUR-001` 新登记 open 决策；`DEC-PUR-002` 仍阻塞补货公式 |
+| 当前业务 active plan | 1 | `docs/exec-plans/active/2026-08-19-replenishment-analysis.md` 是唯一现场，当前阶段 specification |
 
 `ORD-001`、`ORD-002`、`ORD-003`、`ORD-004`、`ORD-005`、`ORD-006`、`FIN-003` 和 `FIN-001` 的已确认决策均有实现与验证证据；`PRD-006` 仍为 source-only。
 

@@ -128,3 +128,8 @@ AI 可以自行决定：符合现有架构的代码拆分、组件复用、测�
 - `PUR-004` 供应商与直送供应：`docs/exec-plans/completed/2026-08-19-supplier-foundation.md`
 - 领域核心检查点：`b5b0fa7`；Runtime/UI 检查点：`24e5cfe`
 - 下一切片：`PUR-001`。开始时创建新的 `docs/exec-plans/active/YYYY-MM-DD-*.md`，先从采购原文、库存 provider 与 PUR-004 provider 提取规格和决策，不复用已完成计划编码。
+
+## 当前现场
+
+- `PUR-001` 补货分析与快速采购：`docs/exec-plans/active/2026-08-19-replenishment-analysis.md`
+- 当前阶段：`specification`；`DEC-PUR-019～028` 已登记，尚未确认，禁止业务编码。
