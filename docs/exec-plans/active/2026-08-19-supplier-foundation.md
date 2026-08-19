@@ -59,7 +59,9 @@
 - [x] 在唯一决策目录登记 `DEC-PUR-004～018`。
 - [x] `npm run verify:harness` 通过：45 个功能切片、197 个决策门、8 份领域规格/需求快照；`git diff --check` 通过，`src/`、`mock/` 与 `package.json` 无差异。
 - [x] 用户回复“PUR-004 全部按推荐方案执行”；15 项决定逐项写回采购规格、索引和本计划，字段准备度改为 ready。
-- [ ] 当前步骤：运行 ready 门禁后，实现 Types、Schema、baseline、Repository 与 Service，建立领域核心检查点。
+- [x] 运行 ready 门禁后，实现 Types、Schema、baseline、Repository 与 Service；定向 3 个测试文件/12 项测试通过。
+- [x] 领域核心全仓验证通过：Harness、类型检查、62 个测试文件/284 项测试和生产构建；生成 schema 已刷新为 9 个业务 schema。
+- [ ] 当前步骤：建立领域核心检查点，然后实现 Runtime、路由与 UI。
 
 ## 开放决策
 
@@ -85,4 +87,4 @@
 
 ## 中断恢复点
 
-当前处于 `PUR-004` implementation：基线与 specification 已通过，`DEC-PUR-004～018` 已决定并写回，字段准备度为 ready；尚未新增采购代码、fixture、路由或页面。恢复时先核对本计划、索引和 Git 现场，下一步实现 Types、Schema、baseline、Repository 与 Service。
+当前处于 `PUR-004` implementation：领域 Types、Schema、baseline、Repository、Service、公开 supply provider 与 3 个测试文件/12 项测试已落地；尚未创建 Runtime、路由和页面。恢复时先运行全仓验证并建立领域核心检查点，再实现 Runtime/UI。

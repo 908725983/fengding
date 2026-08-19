@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fengding://mock/PUR-004",
+  "title": "PUR-004 供应商与供货关系 Mock 契约",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "suppliers", "supplierProducts", "auditLogs", "requests"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "suppliers": { "type": "array" },
+    "supplierProducts": { "type": "array" },
+    "auditLogs": { "type": "array" },
+    "requests": { "type": "array" }
+  },
+  "additionalProperties": false
+}

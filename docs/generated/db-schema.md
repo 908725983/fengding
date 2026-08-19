@@ -2,7 +2,7 @@
 
 - 来源：`mock/schemas/` 与 `mock/fixtures/baseline.json`
 - 生成方式：`npm run docs:generate`
-- 最近刷新：2026-08-14
+- 最近刷新：2026-08-19
 
 > 本文件由脚本生成，禁止手工编辑“生成内容”。当前原型没有数据库，本页描述的是已通过字段准备门的 Mock 契约，不是生产表结构。
 
@@ -10,7 +10,7 @@
 
 - Mock schema 版本：7
 - 默认场景：normal
-- 已登记功能数据：`CUS-001`、`FIN-003`、`INV-001`、`ORD-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`
+- 已登记功能数据：`CUS-001`、`FIN-003`、`INV-001`、`ORD-001`、`PRD-001`、`PRD-002`、`PRD-003`、`PRD-004`、`PUR-004`
 
 ### mock/schemas/authorization-foundation.schema.json
 
@@ -214,6 +214,29 @@
     "strategies": { "type": "array" },
     "categoryTierMappings": { "type": "array" },
     "costBasis": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+```
+
+### mock/schemas/procurement-foundation.schema.json
+
+- SHA-256：`756973f625ee6358bf03f37e8883206b01e0f962b83fd85b9bac90a57bc0dba3`
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fengding://mock/PUR-004",
+  "title": "PUR-004 供应商与供货关系 Mock 契约",
+  "type": "object",
+  "required": ["schemaVersion", "enterpriseId", "suppliers", "supplierProducts", "auditLogs", "requests"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enterpriseId": { "type": "string", "minLength": 1 },
+    "suppliers": { "type": "array" },
+    "supplierProducts": { "type": "array" },
+    "auditLogs": { "type": "array" },
+    "requests": { "type": "array" }
   },
   "additionalProperties": false
 }
