@@ -3,7 +3,7 @@ import type { OrderRepository } from '../repositories/order-repository'
 import { OrderDomainError } from '../services/order-service'
 import { normalizeOrderStatisticsQuery } from './schema'
 import type {
-  OrderStatisticsAccess, OrderStatisticsActor, OrderStatisticsPage, OrderStatisticsQuery, OrderStatisticsReportKey,
+  OrderStatisticsAccess, OrderStatisticsActor, OrderStatisticsFilterOptions, OrderStatisticsPage, OrderStatisticsQuery, OrderStatisticsReportKey,
   OrderStatisticsRow, StatisticsDocumentKind, StatisticsProductSnapshot, StatisticsUnitMode, StatisticsUnitSnapshot,
 } from './types'
 
@@ -258,5 +258,13 @@ export function createOrderStatisticsService(deps: OrderStatisticsServiceDepende
     const csv = all.map((row) => [row.occurredAt, row.documentNo ?? '—', row.documentType, row.documentStatus ?? '—', row.customerCode, row.customerName, row.product.skuCode, row.product.name, row.product.specification, row.unit.name, row.displayQuantityMilli, row.pendingDisplayQuantityMilli ?? '—', row.documentCount, row.amountCents ?? 'unavailable', row.averageUnitPriceCents ?? 'unavailable', row.fulfillmentRateBasisPoints ?? 'unavailable', row.discountRateBasisPoints ?? 'unavailable', row.product.barcode ?? 'unavailable', row.product.physicalCode ?? 'unavailable', row.packageName ?? 'unavailable'].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(','))
     return `\uFEFF${[headers.join(','), ...csv].join('\r\n')}`
   }
-  return { query, exportCsv, getAccess: (actor: OrderStatisticsActor, report: OrderStatisticsReportKey) => getOrderStatisticsAccess(actor, report) }
+  function listFilterOptions(actor: OrderStatisticsActor, report: OrderStatisticsReportKey): OrderStatisticsFilterOptions {
+    assertView(actor, report)
+    const state = deps.repository.read()
+    const visibleOrders = state.orders.filter((order) => order.deletedAt === null && order.status !== 'canceled' && (actor.role !== 'salesperson' || order.salespersonSnapshot.id === actor.actorId))
+    const customers = [...new Map(visibleOrders.map((order) => [order.customerSnapshot.id, { id: order.customerSnapshot.id, code: order.customerSnapshot.code, name: order.customerSnapshot.name }])).values()].sort((a, b) => a.code.localeCompare(b.code))
+    const products = [...new Map(visibleOrders.flatMap((order) => order.lines.map((line) => [line.skuId, { skuId: line.skuId, skuCode: line.skuCodeSnapshot, name: line.productNameSnapshot, specification: line.specificationSnapshot }] as const))).values()].sort((a, b) => a.skuCode.localeCompare(b.skuCode))
+    return { customers, products }
+  }
+  return { query, exportCsv, listFilterOptions, getAccess: (actor: OrderStatisticsActor, report: OrderStatisticsReportKey) => getOrderStatisticsAccess(actor, report) }
 }

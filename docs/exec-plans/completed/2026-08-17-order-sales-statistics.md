@@ -2,9 +2,10 @@
 
 - 类型：business-feature
 - 功能：ORD-006
-- 当前阶段：implementation
-- 状态：active
-- 最近更新：2026-08-17
+- 当前阶段：verification
+- 状态：completed
+- 完成日期：2026-08-19
+- 最近更新：2026-08-19
 
 ## 目标
 
@@ -62,8 +63,15 @@
 - [x] `npm run verify:harness` 通过：45 个功能切片、182 个决策门、8 份领域规格/需求快照；`git diff --check` 通过，`src/` 与 `mock/` 无差异。
 - [x] 用户回复“ORD-006 全部按推荐方案执行”；`DEC-ORD-052～066` 逐项写回 `orders.md`、索引和本计划，字段准备度改为 ready。
 - [x] ready 固定章节复查后 Harness 通过；只读统计 Types/Schema、一次快照投影、公式 Service、角色矩阵、二维表偏好 Repository 与 9 项专项测试通过。
-- [ ] 当前步骤：提交领域核心检查点后，实现 Runtime/UI、二维表偏好与 fake CSV，建立第二个可回退检查点。
-- [ ] 完成自动/浏览器/Mock 重置/干净重启验收，更新质量与总体顺序，归档计划。
+- [x] 提交领域核心检查点后，实现 Runtime/UI、二维表偏好与 fake CSV，建立第二个可回退检查点；二维表保存边界补充了响应式快照转换和即时重算。
+- [x] 完成自动、浏览器、Mock 重置、布局与控制台验收，更新质量与总体顺序，准备归档计划。
+
+## 完成证据（2026-08-19）
+
+- 自动验证：`npm run verify` 通过，Harness 45 个功能切片/182 个决策门，类型检查通过，59 个测试文件/272 项测试通过，生产构建通过（仅保留既知 chunk size 提示）。
+- Mock 重置：`npm run mock:reset` 通过；`mock/fixtures/baseline.json` 与 `work/mock-state.json` SHA-256 均为 `07E07EE977157DF4E047BAA40FEC07FE6E92AF5EC70BBF6FBF0B89ED5EFB64F3`。
+- 浏览器验收：1280×720 的 `/orders/statistics` 与 `/orders/sales-statistics`；筛选写入 URL 并重载恢复，商品汇总/二维表保存与恢复默认，CSV fake 导出，预售 `unavailable`，销售出库正/退货入库负，仓库金额遮蔽和订单统计路由限制，控制台无 warning/error，页面无横向溢出。
+- 完成边界：预售、套餐名称、物理编码和 `INV-002` 其他出入库仍按规格显示 unavailable；未伪造预售或其他移动事实。
 
 ## 开放决策
 
@@ -97,4 +105,4 @@
 
 ## 中断恢复点
 
-当前处于 `ORD-006` implementation：基线和 specification 已通过，15 项决定已写回，字段准备度为 ready；尚未新增统计业务代码、fixture、路由或页面。恢复时先核对本计划、索引状态和 Git 现场，下一步是实现只读统计 Types/Schema、Repository 投影与公式 Service。
+`ORD-006` 已完成：基线、specification、Types/Schema、只读 Repository 投影、公式 Service、Runtime/Store、页面、二维表偏好和 fake CSV 均有自动与人工证据；15 项决定已写回，字段准备度为 ready。中断后若需复核，从本计划“完成证据”与 `git log` 的最后一个 ORD-006 检查点开始，不重复实现，也不得扩大到预售或 `INV-002`。

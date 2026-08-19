@@ -123,3 +123,8 @@ export interface OrderStatisticsAccess {
   canExport: boolean
   amountsVisible: boolean
 }
+
+export interface OrderStatisticsFilterOptions {
+  customers: Array<{ id: string; code: string; name: string }>
+  products: Array<{ skuId: string; skuCode: string; name: string; specification: string }>
+}

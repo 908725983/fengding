@@ -49,6 +49,7 @@ import OrderDifferenceDetailView from '@/features/orders/views/OrderDifferenceDe
 import OrderReturnListView from '@/features/orders/views/OrderReturnListView.vue'
 import OrderReturnFormView from '@/features/orders/views/OrderReturnFormView.vue'
 import OrderReturnDetailView from '@/features/orders/views/OrderReturnDetailView.vue'
+import OrderStatisticsView from '@/features/orders/statistics/OrderStatisticsView.vue'
 import { guardOrderSubroute } from '@/features/orders/runtime/order-access'
 import FinanceAccountListView from '@/features/finance/views/FinanceAccountListView.vue'
 import FinanceAccountSummaryView from '@/features/finance/views/FinanceAccountSummaryView.vue'
@@ -84,6 +85,8 @@ export const router = createRouter({
     { path: '/orders/returns/new', name: 'order-return-new', component: OrderReturnFormView },
     { path: '/orders/returns/:returnId/edit', name: 'order-return-edit', component: OrderReturnFormView },
     { path: '/orders/returns/:returnId', name: 'order-return-detail', component: OrderReturnDetailView },
+    { path: '/orders/statistics', name: 'order-statistics', component: OrderStatisticsView, props: { area: 'order' } },
+    { path: '/orders/sales-statistics', name: 'order-sales-statistics', component: OrderStatisticsView, props: { area: 'sales' } },
     { path: '/orders/:orderId/edit', name: 'order-edit', component: OrderFormView },
     { path: '/orders/:orderId', name: 'order-detail', component: OrderDetailView },
     { path: '/customers', name: 'customer-list', component: CustomerListView },

@@ -1,0 +1,29 @@
+.statistics-page { padding-bottom: 28px; }
+.statistics-tabs { display: flex; gap: 2px; overflow-x: auto; margin: 12px 0; padding: 0 10px; background: #fff; border: 1px solid var(--color-border); }
+.statistics-tabs button { min-height: 44px; padding: 0 15px; color: #5c6877; white-space: nowrap; background: transparent; border: 0; border-bottom: 3px solid transparent; cursor: pointer; }
+.statistics-tabs button.active { color: var(--color-primary-strong); border-bottom-color: var(--color-primary); font-weight: 700; }
+.statistics-filter { align-items: end; }
+.statistics-filter label { min-width: 142px; }
+.statistics-filter .keyword { min-width: 220px; }
+.statistics-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 12px; padding: 10px 12px; background: #fff; border: 1px solid var(--color-border); }
+.statistics-toolbar > div { display: flex; gap: 8px; align-items: center; }
+.statistics-toolbar span { color: var(--color-muted); font-size: 12px; }
+.statistics-notice { margin: 8px 0 0; padding: 8px 12px; color: #176b67; background: var(--color-primary-soft); border: 1px solid #bfe7e4; }
+.statistics-totals { display: flex; flex-wrap: wrap; gap: 30px; padding: 12px 16px; color: #596573; background: #fff8f5; border: 1px solid #f1d7ca; border-top: 0; }
+.statistics-totals strong { margin-left: 6px; color: #d6422f; font-size: 16px; }
+.statistics-table-wrap { border-top: 0; }
+.statistics-table { min-width: 1320px; }
+.statistics-table td { height: 58px; }
+.statistics-negative { color: #c4372a; }
+.statistics-unavailable { color: #596573; background: #f8fafc; }
+.statistics-unavailable strong { font-size: 18px; }
+.statistics-dialog-backdrop { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 24px; background: rgb(23 35 48 / 42%); }
+.statistics-dialog { width: min(720px, 100%); padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 20px 60px rgb(23 35 48 / 25%); }
+.statistics-dialog header, .statistics-dialog footer { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.statistics-dialog h2 { margin: 0 0 4px; }
+.statistics-dialog p { margin: 0; color: var(--color-muted); }
+.statistics-config { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+.statistics-config fieldset { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--color-border); }
+.statistics-config label { display: flex; gap: 8px; align-items: center; }
+.statistics-dialog footer { justify-content: flex-end; }
+@media (max-width: 820px) { .statistics-toolbar { align-items: flex-start; flex-direction: column; } .statistics-config { grid-template-columns: 1fr; } }
