@@ -123,7 +123,7 @@
 
 ## 当前下一动作
 
-`CUS-001`、`PRD-001/002/003/004`、`INV-001`、`ORD-001/002/003/004/005/006`、`FIN-003`、`FIN-001` 已完成并归档。阶段二已完成；阶段三当前切片是 `PUR-004` 供应商与直送供应，唯一现场为 `docs/exec-plans/active/2026-08-19-supplier-foundation.md`。字段、关系、权限、页面状态和验收候选已提取，`DEC-PUR-004～018` 未确认，当前只能继续 specification，禁止采购业务编码。
+`CUS-001`、`PRD-001/002/003/004`、`INV-001`、`ORD-001/002/003/004/005/006`、`FIN-003`、`FIN-001` 已完成并归档。阶段二已完成；阶段三当前切片是 `PUR-004` 供应商与直送供应，唯一现场为 `docs/exec-plans/active/2026-08-19-supplier-foundation.md`。`DEC-PUR-004～018` 已确认，字段准备度为 ready；下一步按 Types→Schema→baseline→Repository→Service→Runtime/UI 实现。
 
 `FIN-001` 已将 `ORD-004` 的发货应收迁入 Finance 唯一事实源；`ORD-005` 已复用这些事实，以不可变贷项和退款单完成客户退货及短装退款闭环。后续切片不得直接修改应收、核销、账户流水或预收账；通用其他入库、转账和其他收支仍保持 `INV-002/FIN-004` 边界。
 
