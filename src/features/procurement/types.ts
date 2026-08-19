@@ -66,7 +66,7 @@ export interface ProcurementRequestRecord {
   command: string
   targetId: EntityId
   resultVersion: number
-  result: Supplier | SupplierProductRelation
+  result: Supplier | SupplierProductRelation | Supplier[]
 }
 
 export interface ProcurementFeatureState {
@@ -151,6 +151,8 @@ export interface PurchaseSupplyCandidate {
 export interface ProcurementSupplyProvider {
   listCandidates(skuId: EntityId, mode?: 'warehouse' | 'direct'): PurchaseSupplyCandidate[]
   getPreferred(skuId: EntityId, mode?: 'warehouse' | 'direct'): PurchaseSupplyCandidate | null
+  listEffectiveSkuIds(supplierId: EntityId): EntityId[]
+  listEnabledSuppliers(): Array<{ id: EntityId; name: string }>
 }
 
 export interface SupplierImportRow extends SupplierDraft { rowNumber: number }
@@ -162,6 +164,7 @@ export interface ProcurementWorkspace {
   suppliers: PageResult<SupplierListItem>
   supplierProducts: SupplierProductListItem[]
   categories: ProcurementCategorySnapshot[]
+  skus: ProcurementSkuSnapshot[]
   catalogAvailable: boolean
   directDelivery: DirectDeliveryAvailability
 }

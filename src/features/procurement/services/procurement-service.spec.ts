@@ -34,6 +34,13 @@ describe('procurement service', () => {
     expect(JSON.stringify(session.repository.read().auditLogs)).not.toContain('6222000000009876')
   })
 
+  it('preserves hidden bank data when warehouse edits other fields', () => {
+    const current = session.service.getSupplier(warehouse, 'supplier-1')
+    session.service.updateSupplier(warehouse, current.id, { value: { code: current.code, name: '仓库更新名称', tradeType: current.tradeType, deliveryMode: current.deliveryMode, contactName: current.contactName, contactPhone: current.contactPhone, address: current.address, bankName: current.bankName, bankAccount: current.bankAccount, note: current.note }, expectedVersion: current.version, requestId: 'warehouse-update' })
+    expect(session.service.getSupplier(admin, 'supplier-1').bankAccount).toBe('6222000000004321')
+    expect(session.service.getSupplier(warehouse, 'supplier-1').bankAccount).toBe('****4321')
+  })
+
   it('manages sku relations, unit snapshots, price history and one preferred supplier', () => {
     const historical = session.service.listSupplierProducts(admin, { supplierId: 'supplier-1' }).find((item) => item.skuId === 'sku-2')!
     expect(historical.procurementUnitId).toBe('unit-box'); expect(historical.procurementUnitRateMilli).toBe(12000)
@@ -56,7 +63,7 @@ describe('procurement service', () => {
   it('atomically previews import and exports filtered, role-masked csv', () => {
     const invalid = session.service.previewSupplierImport(admin, [{ ...draft, rowNumber: 1, code: 'SUP-000001' }])
     expect(invalid.valid).toBe(false); expect(() => session.service.importSuppliers(admin, invalid, 'import-invalid')).toThrow(/未写入/); expect(session.repository.read().suppliers).toHaveLength(3)
-    const valid = session.service.previewSupplierImport(admin, [{ ...draft, rowNumber: 1 }]); expect(session.service.importSuppliers(admin, valid, 'import-1')).toHaveLength(1)
+    const valid = session.service.previewSupplierImport(admin, [{ ...draft, rowNumber: 1 }]); const imported = session.service.importSuppliers(admin, valid, 'import-1'); expect(imported).toHaveLength(1); expect(session.service.importSuppliers(admin, valid, 'import-1')).toEqual(imported)
     expect(session.service.exportSuppliersCsv(admin, { status: 'disabled' })).toContain('SUP-000003')
     const masked = session.service.exportSuppliersCsv(warehouse); expect(masked).toContain('****4321'); expect(masked).not.toContain('6222000000004321')
   })

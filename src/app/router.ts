@@ -68,6 +68,12 @@ import FinanceWriteoffDetailView from '@/features/finance/views/FinanceWriteoffD
 import FinanceRefundListView from '@/features/finance/views/FinanceRefundListView.vue'
 import FinanceRefundDetailView from '@/features/finance/views/FinanceRefundDetailView.vue'
 import { guardFinanceSubroute } from '@/features/finance/runtime/finance-access'
+import SupplierListView from '@/features/procurement/views/SupplierListView.vue'
+import SupplierDetailView from '@/features/procurement/views/SupplierDetailView.vue'
+import SupplierFormView from '@/features/procurement/views/SupplierFormView.vue'
+import SupplierProductView from '@/features/procurement/views/SupplierProductView.vue'
+import DirectDeliveryView from '@/features/procurement/views/DirectDeliveryView.vue'
+import { guardProcurementSubroute } from '@/features/procurement/runtime/procurement-access'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -142,6 +148,13 @@ export const router = createRouter({
     { path: '/inventory/locations', name: 'inventory-locations', component: LocationListView },
     { path: '/inventory/locations/new', name: 'inventory-location-new', component: LocationFormView },
     { path: '/inventory/locations/:locationId/edit', name: 'inventory-location-edit', component: LocationFormView },
+    { path: '/procurement', redirect: '/procurement/suppliers' },
+    { path: '/procurement/suppliers', name: 'procurement-suppliers', component: SupplierListView },
+    { path: '/procurement/suppliers/new', name: 'procurement-supplier-new', component: SupplierFormView },
+    { path: '/procurement/suppliers/:id/edit', name: 'procurement-supplier-edit', component: SupplierFormView },
+    { path: '/procurement/suppliers/:id', name: 'procurement-supplier-detail', component: SupplierDetailView },
+    { path: '/procurement/supplier-products', name: 'procurement-supplier-products', component: SupplierProductView },
+    { path: '/procurement/direct-delivery', name: 'procurement-direct-delivery', component: DirectDeliveryView },
     { path: '/finance', redirect: '/finance/receivables' },
     { path: '/finance/receivables', name: 'finance-receivables', component: FinanceReceivableView, props: { mode: 'customers' } },
     { path: '/finance/receivables/documents', name: 'finance-receivable-documents', component: FinanceReceivableView, props: { mode: 'documents' } },
@@ -176,5 +189,7 @@ router.beforeEach((to) => {
   if (productResult !== true) return productResult
   const inventoryResult = guardInventorySubroute(to.path)
   if (inventoryResult !== true) return inventoryResult
+  const procurementResult = guardProcurementSubroute(to.path)
+  if (procurementResult !== true) return procurementResult
   return guardFinanceSubroute(to.path)
 })

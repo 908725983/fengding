@@ -20,6 +20,9 @@ const requireRequestId = (requestId: string): void => { if (!requestId.trim()) t
 const normalize = (value: string) => value.trim().toLocaleLowerCase()
 const csvCell = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`
 const maskBankAccount = (value: string | null): string | null => value ? `****${value.slice(-4)}` : null
+const protectSupplier = (supplier: Supplier, actor: ProcurementActor): Supplier => actor.role === 'warehouse' ? { ...supplier, bankAccount: maskBankAccount(supplier.bankAccount) } : supplier
+
+export function createEmptySupplierDraft(): SupplierDraft { return { code: '', name: '', tradeType: 'purchase', deliveryMode: 'warehouse', contactName: '', contactPhone: '', address: null, bankName: null, bankAccount: null, note: null } }
 
 function projectSupplier(state: ProcurementFeatureState, supplier: Supplier, actor: ProcurementActor): SupplierListItem {
   return { ...supplier, bankAccount: actor.role === 'super-admin' ? supplier.bankAccount : maskBankAccount(supplier.bankAccount), enabledProductCount: state.supplierProducts.filter((item) => item.supplierId === supplier.id && item.status === 'enabled').length }
@@ -28,15 +31,17 @@ function projectSupplier(state: ProcurementFeatureState, supplier: Supplier, act
 export function createProcurementService(deps: ProcurementServiceDependencies) {
   const { repository, catalog, now, nextId } = deps
 
-  function findReplay<T extends Supplier | SupplierProductRelation>(state: ProcurementFeatureState, requestId: string, command: string): T | null {
+  function findReplay<T extends Supplier | SupplierProductRelation | Supplier[]>(state: ProcurementFeatureState, requestId: string, command: string): T | null {
     const record = state.requests.find((item) => item.requestId === requestId)
     if (!record) return null
     if (record.command !== command) throw new ProcurementDomainError('REQUEST_ID_REUSED', '同一 requestId 不能用于不同命令')
     return structuredClone(record.result) as T
   }
 
-  function recordRequest(state: ProcurementFeatureState, requestId: string, command: string, result: Supplier | SupplierProductRelation): void {
-    state.requests.push({ requestId, command, targetId: result.id, resultVersion: result.version, result: structuredClone(result) })
+  function recordRequest(state: ProcurementFeatureState, requestId: string, command: string, result: Supplier | SupplierProductRelation | Supplier[]): void {
+    const first = Array.isArray(result) ? result[0] : result
+    if (!first) throw new ProcurementDomainError('EMPTY_COMMAND_RESULT', '命令没有可记录的结果')
+    state.requests.push({ requestId, command, targetId: first.id, resultVersion: first.version, result: structuredClone(result) })
   }
 
   function audit(state: ProcurementFeatureState, actor: ProcurementActor, targetType: 'supplier' | 'supplier-product', targetId: string, action: string, detail: string): void {
@@ -65,35 +70,36 @@ export function createProcurementService(deps: ProcurementServiceDependencies) {
   function createSupplier(actor: ProcurementActor, command: WriteCommand<SupplierDraft>): Supplier {
     requireAccess(actor); requireRequestId(command.requestId); if (command.expectedVersion !== 0) throw new ProcurementDomainError('VERSION_CONFLICT', '新建供应商 expectedVersion 必须为 0')
     const value = normalizeSupplierDraft(command.value); assertSupplierDraft(value)
-    return repository.transact((state) => {
+    const result = repository.transact((state) => {
       const replay = findReplay<Supplier>(state, command.requestId, 'supplier.create'); if (replay) return replay
       if (state.suppliers.some((item) => item.code.toUpperCase() === value.code)) throw new ProcurementDomainError('SUPPLIER_CODE_DUPLICATE', '供应商编码已存在')
       if (state.suppliers.some((item) => item.name === value.name)) throw new ProcurementDomainError('SUPPLIER_NAME_DUPLICATE', '供应商名称已存在')
       const supplier: Supplier = { ...value, id: nextId('supplier'), enterpriseId: state.enterpriseId, status: 'enabled', externalAccountState: 'unavailable', version: 1, createdAt: now(), updatedAt: now() }
       state.suppliers.push(supplier); audit(state, actor, 'supplier', supplier.id, 'supplier.created', `创建供应商 ${supplier.code}`); recordRequest(state, command.requestId, 'supplier.create', supplier); return supplier
-    })
+    }); return protectSupplier(result, actor)
   }
 
   function updateSupplier(actor: ProcurementActor, id: string, command: WriteCommand<SupplierDraft>): Supplier {
     requireAccess(actor); requireRequestId(command.requestId); const value = normalizeSupplierDraft(command.value); assertSupplierDraft(value)
-    return repository.transact((state) => {
+    const result = repository.transact((state) => {
       const replay = findReplay<Supplier>(state, command.requestId, 'supplier.update'); if (replay) return replay
       const supplier = state.suppliers.find((item) => item.id === id); if (!supplier) throw new ProcurementDomainError('SUPPLIER_NOT_FOUND', '供应商不存在')
       if (supplier.version !== command.expectedVersion) throw new ProcurementDomainError('VERSION_CONFLICT', '供应商已被其他操作修改，请刷新后重试')
       if (value.code !== supplier.code) throw new ProcurementDomainError('SUPPLIER_CODE_IMMUTABLE', '供应商编码创建后不可修改')
       if (state.suppliers.some((item) => item.id !== id && item.name === value.name)) throw new ProcurementDomainError('SUPPLIER_NAME_DUPLICATE', '供应商名称已存在')
-      Object.assign(supplier, value, { version: supplier.version + 1, updatedAt: now() }); audit(state, actor, 'supplier', id, 'supplier.updated', `更新供应商 ${supplier.code}（银行资料未写入日志）`); recordRequest(state, command.requestId, 'supplier.update', supplier); return supplier
-    })
+      const effective = actor.role === 'warehouse' ? { ...value, bankName: supplier.bankName, bankAccount: supplier.bankAccount } : value
+      Object.assign(supplier, effective, { version: supplier.version + 1, updatedAt: now() }); audit(state, actor, 'supplier', id, 'supplier.updated', `更新供应商 ${supplier.code}（银行资料未写入日志）`); recordRequest(state, command.requestId, 'supplier.update', supplier); return supplier
+    }); return protectSupplier(result, actor)
   }
 
   function setSupplierStatus(actor: ProcurementActor, id: string, status: 'enabled' | 'disabled', expectedVersion: number, requestId: string): Supplier {
     requireAccess(actor); requireRequestId(requestId); const commandName = `supplier.${status}`
-    return repository.transact((state) => {
+    const result = repository.transact((state) => {
       const replay = findReplay<Supplier>(state, requestId, commandName); if (replay) return replay
       const supplier = state.suppliers.find((item) => item.id === id); if (!supplier) throw new ProcurementDomainError('SUPPLIER_NOT_FOUND', '供应商不存在')
       if (supplier.version !== expectedVersion) throw new ProcurementDomainError('VERSION_CONFLICT', '供应商已被其他操作修改，请刷新后重试')
       supplier.status = status; supplier.version += 1; supplier.updatedAt = now(); audit(state, actor, 'supplier', id, commandName, `${status === 'enabled' ? '启用' : '停用'}供应商 ${supplier.code}`); recordRequest(state, requestId, commandName, supplier); return supplier
-    })
+    }); return protectSupplier(result, actor)
   }
 
   function listSupplierProducts(actor: ProcurementActor, query: SupplierProductListQuery = {}): SupplierProductListItem[] {
@@ -112,7 +118,7 @@ export function createProcurementService(deps: ProcurementServiceDependencies) {
       const supplier = state.suppliers.find((item) => item.id === command.value.supplierId); if (!supplier || supplier.status !== 'enabled') throw new ProcurementDomainError('SUPPLIER_NOT_ENABLED', '只能为启用供应商新增供货关系')
       if (state.supplierProducts.some((item) => item.supplierId === command.value.supplierId && item.skuId === command.value.skuId)) throw new ProcurementDomainError('SUPPLIER_PRODUCT_DUPLICATE', '该供应商与 SKU 的供货关系已存在')
       const sku = catalog.getSku(command.value.skuId); if (!sku || sku.deleted || sku.productStatus !== 'on-sale') throw new ProcurementDomainError('SKU_NOT_AVAILABLE', 'SKU 不存在或当前不可采购')
-      if (command.value.preferred) state.supplierProducts.filter((item) => item.skuId === sku.skuId && item.status === 'enabled').forEach((item) => { item.preferred = false })
+      if (command.value.preferred) state.supplierProducts.filter((item) => item.skuId === sku.skuId && item.status === 'enabled' && item.preferred).forEach((item) => { item.preferred = false; item.version += 1; item.updatedAt = now(); audit(state, actor, 'supplier-product', item.id, 'supplier-product.preferred-cleared', `SKU ${item.skuCodeSnapshot} 首选关系被替换`) })
       const relation: SupplierProductRelation = { id: nextId('supplier-product'), enterpriseId: state.enterpriseId, supplierId: supplier.id, skuId: sku.skuId, productIdSnapshot: sku.productId, productNameSnapshot: sku.productName, productCodeSnapshot: sku.productCode, skuCodeSnapshot: sku.skuCode, specificationSnapshot: sku.specification, barcodeSnapshot: sku.barcode, categoryIdSnapshot: sku.categoryId, procurementUnitId: sku.procurementUnitId, procurementUnitNameSnapshot: sku.procurementUnitName, procurementUnitRateMilli: sku.procurementUnitRateMilli, supplyPriceCents: command.value.supplyPriceCents, preferred: command.value.preferred, status: 'enabled', version: 1, createdAt: now(), updatedAt: now() }
       state.supplierProducts.push(relation); audit(state, actor, 'supplier-product', relation.id, 'supplier-product.created', `建立 ${supplier.code} / ${sku.skuCode} 供货关系，价格 ${relation.supplyPriceCents} 分`); recordRequest(state, command.requestId, 'supplier-product.create', relation); return relation
     })
@@ -125,7 +131,7 @@ export function createProcurementService(deps: ProcurementServiceDependencies) {
       const relation = state.supplierProducts.find((item) => item.id === id); if (!relation) throw new ProcurementDomainError('SUPPLIER_PRODUCT_NOT_FOUND', '供货关系不存在')
       if (relation.version !== expectedVersion) throw new ProcurementDomainError('VERSION_CONFLICT', '供货关系已被其他操作修改，请刷新后重试')
       const supplier = state.suppliers.find((item) => item.id === relation.supplierId)!; if (value.preferred && (supplier.status !== 'enabled' || relation.status !== 'enabled')) throw new ProcurementDomainError('RELATION_NOT_EFFECTIVE', '只有有效供货关系可设为首选')
-      const before = relation.supplyPriceCents; if (value.preferred) state.supplierProducts.filter((item) => item.id !== id && item.skuId === relation.skuId && item.status === 'enabled').forEach((item) => { item.preferred = false })
+      const before = relation.supplyPriceCents; if (value.preferred) state.supplierProducts.filter((item) => item.id !== id && item.skuId === relation.skuId && item.status === 'enabled' && item.preferred).forEach((item) => { item.preferred = false; item.version += 1; item.updatedAt = now(); audit(state, actor, 'supplier-product', item.id, 'supplier-product.preferred-cleared', `SKU ${item.skuCodeSnapshot} 首选关系被替换`) })
       relation.supplyPriceCents = value.supplyPriceCents; relation.preferred = value.preferred; relation.version += 1; relation.updatedAt = now(); audit(state, actor, 'supplier-product', id, 'supplier-product.updated', `供应价 ${before} 分 -> ${relation.supplyPriceCents} 分；首选 ${relation.preferred ? '是' : '否'}`); recordRequest(state, requestId, 'supplier-product.update', relation); return relation
     })
   }
@@ -137,6 +143,7 @@ export function createProcurementService(deps: ProcurementServiceDependencies) {
       const relation = state.supplierProducts.find((item) => item.id === id); if (!relation) throw new ProcurementDomainError('SUPPLIER_PRODUCT_NOT_FOUND', '供货关系不存在')
       if (relation.version !== expectedVersion) throw new ProcurementDomainError('VERSION_CONFLICT', '供货关系已被其他操作修改，请刷新后重试')
       const supplier = state.suppliers.find((item) => item.id === relation.supplierId)!; if (status === 'enabled' && supplier.status !== 'enabled') throw new ProcurementDomainError('SUPPLIER_NOT_ENABLED', '供应商停用时不能启用供货关系')
+      if (status === 'enabled') { const sku = catalog.getSku(relation.skuId); if (!sku || sku.deleted || sku.productStatus !== 'on-sale') throw new ProcurementDomainError('SKU_NOT_AVAILABLE', 'SKU 当前不可采购，不能启用供货关系') }
       relation.status = status; if (status === 'disabled') relation.preferred = false; relation.version += 1; relation.updatedAt = now(); audit(state, actor, 'supplier-product', id, commandName, `${status === 'enabled' ? '启用' : '停用'} ${relation.skuCodeSnapshot} 供货关系`); recordRequest(state, requestId, commandName, relation); return relation
     })
   }
@@ -155,14 +162,15 @@ export function createProcurementService(deps: ProcurementServiceDependencies) {
   function importSuppliers(actor: ProcurementActor, preview: SupplierImportPreview, requestId: string): Supplier[] {
     requireAccess(actor); requireRequestId(requestId); if (!preview.valid) throw new ProcurementDomainError('IMPORT_PREVIEW_INVALID', '导入预览存在错误，未写入任何数据')
     return repository.transact((state) => {
-      if (state.requests.some((item) => item.requestId === requestId)) throw new ProcurementDomainError('REQUEST_ID_REUSED', '该导入 requestId 已使用')
+      const replay = findReplay<Supplier[]>(state, requestId, 'supplier.import'); if (replay) return replay
       const created = preview.rows.map((row) => { const { rowNumber: _rowNumber, ...value } = row; const supplier: Supplier = { ...value, id: nextId('supplier'), enterpriseId: state.enterpriseId, status: 'enabled', externalAccountState: 'unavailable', version: 1, createdAt: now(), updatedAt: now() }; state.suppliers.push(supplier); audit(state, actor, 'supplier', supplier.id, 'supplier.imported', `导入供应商 ${supplier.code}`); return supplier })
-      if (created[0]) recordRequest(state, requestId, 'supplier.import', created[0]); return created
+      if (created[0]) recordRequest(state, requestId, 'supplier.import', created); return created
     })
   }
 
   function exportSuppliersCsv(actor: ProcurementActor, query: SupplierListQuery = {}): string {
-    requireAccess(actor); const rows = listSuppliers(actor, { ...query, page: 1, pageSize: 100 }).items
+    requireAccess(actor); const first = listSuppliers(actor, { ...query, page: 1, pageSize: 100 }); const rows = [...first.items]
+    for (let page = 2; rows.length < first.total; page += 1) rows.push(...listSuppliers(actor, { ...query, page, pageSize: 100 }).items)
     return ['供应商编码,供应商名称,交易类型,供货方式,联系人,电话,地址,开户行,银行账号,状态', ...rows.map((row) => [row.code, row.name, row.tradeType, row.deliveryMode, row.contactName, row.contactPhone, row.address ?? '', row.bankName ?? '', row.bankAccount ?? '', row.status].map(csvCell).join(','))].join('\r\n')
   }
 
@@ -175,13 +183,13 @@ export function createProcurementService(deps: ProcurementServiceDependencies) {
       const sku = catalog.getSku(skuId); if (!sku || sku.deleted || sku.productStatus !== 'on-sale') return []
       const state = repository.read(); return state.supplierProducts.filter((relation) => relation.skuId === skuId && relation.status === 'enabled').flatMap((relation) => { const supplier = state.suppliers.find((item) => item.id === relation.supplierId); if (!supplier || supplier.status !== 'enabled' || (mode && supplier.deliveryMode !== 'both' && supplier.deliveryMode !== mode)) return []; return [{ supplierId: supplier.id, supplierCode: supplier.code, supplierName: supplier.name, deliveryMode: supplier.deliveryMode, relationId: relation.id, skuId, supplyPriceCents: relation.supplyPriceCents, procurementUnitId: relation.procurementUnitId, procurementUnitName: relation.procurementUnitNameSnapshot, procurementUnitRateMilli: relation.procurementUnitRateMilli, preferred: relation.preferred }] })
     }
-    return { listCandidates, getPreferred: (skuId, mode) => listCandidates(skuId, mode).find((item) => item.preferred) ?? null }
+    return { listCandidates, getPreferred: (skuId, mode) => listCandidates(skuId, mode).find((item) => item.preferred) ?? null, listEffectiveSkuIds: (supplierId) => { const state = repository.read(); const supplier = state.suppliers.find((item) => item.id === supplierId); if (!supplier || supplier.status !== 'enabled') return []; return [...new Set(state.supplierProducts.filter((item) => item.supplierId === supplierId && item.status === 'enabled' && catalog.getSku(item.skuId)?.productStatus === 'on-sale').map((item) => item.skuId))] }, listEnabledSuppliers: () => repository.read().suppliers.filter((item) => item.status === 'enabled').map(({ id, name }) => ({ id, name })) }
   }
 
   function getWorkspace(actor: ProcurementActor, supplierQuery: SupplierListQuery = {}, relationQuery: SupplierProductListQuery = {}): ProcurementWorkspace {
-    requireAccess(actor); let categories = [] as ReturnType<ProcurementCatalogProvider['listCategories']>; let catalogAvailable = true; let supplierProducts: SupplierProductListItem[] = []
-    try { categories = catalog.listCategories(); supplierProducts = listSupplierProducts(actor, relationQuery) } catch { catalogAvailable = false }
-    return { suppliers: listSuppliers(actor, supplierQuery), supplierProducts, categories, catalogAvailable, directDelivery: directDeliveryUnavailable() }
+    requireAccess(actor); let categories = [] as ReturnType<ProcurementCatalogProvider['listCategories']>; let skus = [] as ReturnType<ProcurementCatalogProvider['listSkus']>; let catalogAvailable = true; let supplierProducts: SupplierProductListItem[] = []
+    try { categories = catalog.listCategories(); skus = catalog.listSkus(); supplierProducts = listSupplierProducts(actor, relationQuery) } catch { catalogAvailable = false }
+    return { suppliers: listSuppliers(actor, supplierQuery), supplierProducts, categories, skus, catalogAvailable, directDelivery: directDeliveryUnavailable() }
   }
 
   return { listSuppliers, getSupplier, createSupplier, updateSupplier, setSupplierStatus, listSupplierProducts, createSupplierProduct, updateSupplierProduct, setSupplierProductStatus, previewSupplierImport, importSuppliers, exportSuppliersCsv, exportSupplierProductsCsv, createSupplyProvider, getWorkspace, getDirectDeliveryAvailability: directDeliveryUnavailable }

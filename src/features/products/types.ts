@@ -238,7 +238,8 @@ export interface ProductReferenceData {
   units: ProductUnit[]
   tags: ProductReference[]
   displayCategories: ProductReference[]
-  supplierProvider: 'unavailable'
+  supplierProvider: 'available' | 'unavailable'
+  suppliers?: Array<{ id: EntityId; name: string }>
   freightTemplateProvider: 'unavailable'
 }
 

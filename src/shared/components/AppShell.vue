@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { businessModules, findBusinessModule } from '@/app/module-catalog'
+import { currentProcurementRole } from '@/features/procurement/runtime/procurement-access'
 
 const route = useRoute()
 const isPublicShare = computed(() => route.path.startsWith('/share/orders/'))
@@ -9,6 +10,7 @@ const currentModule = computed(() => {
   const key = route.path.split('/')[1] || 'dashboard'
   return findBusinessModule(key)
 })
+const visibleModules = computed(() => businessModules.filter((item) => item.key !== 'procurement' || ['super-admin', 'warehouse'].includes(currentProcurementRole.value)))
 </script>
 
 <template>
@@ -25,7 +27,7 @@ const currentModule = computed(() => {
 
       <nav class="navigation">
         <RouterLink
-          v-for="item in businessModules"
+          v-for="item in visibleModules"
           :key="item.key"
           :to="item.path"
           class="navigation__item"

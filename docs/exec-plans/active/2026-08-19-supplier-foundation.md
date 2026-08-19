@@ -61,7 +61,11 @@
 - [x] 用户回复“PUR-004 全部按推荐方案执行”；15 项决定逐项写回采购规格、索引和本计划，字段准备度改为 ready。
 - [x] 运行 ready 门禁后，实现 Types、Schema、baseline、Repository 与 Service；定向 3 个测试文件/12 项测试通过。
 - [x] 领域核心全仓验证通过：Harness、类型检查、62 个测试文件/284 项测试和生产构建；生成 schema 已刷新为 9 个业务 schema。
-- [ ] 当前步骤：建立领域核心检查点，然后实现 Runtime、路由与 UI。
+- [x] 建立领域核心检查点 `b5b0fa7`；实现 Runtime、六条固定路由、供应商列表/详情/表单、供货关系、直送 unavailable 与商品供应商筛选公开 provider。
+- [x] 定向验证通过：采购/商品 31 个测试文件/112 项测试；全仓 66 个测试文件/292 项测试、类型检查和生产构建通过。
+- [x] 浏览器验收通过：1280×800 三页无整页横向溢出，银行账号角色遮蔽、财务拒绝、首选切换、商品供应商筛选与直送 unavailable 均符合契约；发现并修复无效关系按钮产生未处理错误。
+- [x] Mock 连续两次 reset 后 baseline/work SHA-256 均为 `30D11134C851990C05240731089FF56589073374BCA3718BD14C2CBED6E745E9`。
+- [ ] 当前步骤：提交 Runtime/UI 检查点，完成最终验证、质量记录与计划归档。
 
 ## 开放决策
 
@@ -87,4 +91,4 @@
 
 ## 中断恢复点
 
-当前处于 `PUR-004` implementation：领域 Types、Schema、baseline、Repository、Service、公开 supply provider 与 3 个测试文件/12 项测试已落地；尚未创建 Runtime、路由和页面。恢复时先运行全仓验证并建立领域核心检查点，再实现 Runtime/UI。
+当前处于 `PUR-004` 收尾：领域核心、Runtime/UI、商品公开 provider、自动验证、浏览器验收、截图和双 reset 哈希均已完成；恢复时先提交 Runtime/UI 检查点，再执行最终全仓验证，更新质量记录并将本计划归档。浏览器证据位于 `docs/exec-plans/evidence/PUR-004-*.png`。

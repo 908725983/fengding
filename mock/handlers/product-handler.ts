@@ -7,6 +7,7 @@ import slowScenario from '../scenarios/slow.json'
 import type { ProductFeatureState } from '../../src/features/products/types'
 import { InMemoryProductRepository } from '../../src/features/products/repositories/product-repository'
 import { createProductService } from '../../src/features/products/services/product-service'
+import { createProcurementMockSession } from './procurement-handler'
 
 const featureData = baseline.featureData as Record<string, unknown>
 export const productBaseline = structuredClone(featureData['PRD-001']) as ProductFeatureState
@@ -35,7 +36,8 @@ export function createProductMockSession(scenarioName: ProductScenarioName = 'no
   }
   const repository = new InMemoryProductRepository(state)
   let sequence = 1
-  const service = createProductService({ repository, now: () => baseline.clock, nextId: (kind) => `${kind}-runtime-${sequence++}` })
+  const supplierProvider = createProcurementMockSession('normal').service.createSupplyProvider()
+  const service = createProductService({ repository, supplierProvider, now: () => baseline.clock, nextId: (kind) => `${kind}-runtime-${sequence++}` })
   const definition = scenarioDefinitions[scenarioName]
 
   async function run<T>(operation: () => T): Promise<T> {

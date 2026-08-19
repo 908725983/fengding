@@ -16,7 +16,7 @@ const importOpen = ref(false)
 const importSource = ref(productCsvTemplate())
 const importPreview = ref<ProductCsvPreview | null>(null)
 const importSuccess = ref<string | null>(null)
-const filters = reactive({ categoryId: '', brandId: '', status: '', keyword: '', tagIds: [] as string[], priceMin: '', priceMax: '' })
+const filters = reactive({ categoryId: '', brandId: '', status: '', keyword: '', supplierId: '', tagIds: [] as string[], priceMin: '', priceMax: '' })
 const statusLabels = { draft: '草稿', 'on-sale': '上架', 'off-sale': '下架' } as const
 
 const allCurrentSelected = computed(() => result.value.items.length > 0 && result.value.items.every((row) => selectedIds.value.includes(row.productId)))
@@ -42,6 +42,7 @@ function buildQuery(): ProductListQuery {
     view: query.value.view ?? 'spu', categoryId: filters.categoryId || undefined, brandId: filters.brandId || undefined,
     status: (filters.status || undefined) as ProductStatus | undefined, keyword: filters.keyword || undefined,
     tagIds: filters.tagIds.length ? [...filters.tagIds] : undefined,
+    supplierId: filters.supplierId || undefined,
     priceMinCents: filters.priceMin === '' ? undefined : Math.round(Number(filters.priceMin) * 100),
     priceMaxCents: filters.priceMax === '' ? undefined : Math.round(Number(filters.priceMax) * 100),
     pageSize: result.value.pageSize as 10 | 30 | 50 | 100,
@@ -56,7 +57,7 @@ async function search(): Promise<void> {
 }
 
 async function reset(): Promise<void> {
-  Object.assign(filters, { categoryId: '', brandId: '', status: '', keyword: '', tagIds: [], priceMin: '', priceMax: '' })
+  Object.assign(filters, { categoryId: '', brandId: '', status: '', keyword: '', supplierId: '', tagIds: [], priceMin: '', priceMax: '' })
   await router.replace({ query: {} }); selectedIds.value = []; await store.resetQuery()
 }
 
@@ -134,7 +135,7 @@ onMounted(() => store.load())
             <fieldset><legend>商品标签（任一命中）</legend><button v-for="tag in references.tags" :key="tag.id" type="button" :class="{ chosen: filters.tagIds.includes(tag.id) }" @click="toggleTag(tag.id)">{{ tag.name }}</button></fieldset>
             <label><span>最低基准订货价（元）</span><input v-model="filters.priceMin" type="number" min="0" step="0.01"></label>
             <label><span>最高基准订货价（元）</span><input v-model="filters.priceMax" type="number" min="0" step="0.01"></label>
-            <label><span>供应商</span><input disabled placeholder="数据源未接入"></label>
+            <label><span>供应商</span><select v-model="filters.supplierId" :disabled="references.supplierProvider==='unavailable'"><option value="">全部供应商</option><option v-for="supplier in references.suppliers" :key="supplier.id" :value="supplier.id">{{supplier.name}}</option></select></label>
           </div>
           <div class="filter-actions"><button class="text-button" type="button" @click="showMore = !showMore">{{ showMore ? '收起筛选' : '更多筛选' }}</button><div><button class="button" type="button" @click="reset">重置</button><button class="button primary" type="submit">查询</button></div></div>
         </form>

@@ -38,6 +38,7 @@ export interface ProductServiceDependencies {
   repository: ProductRepository
   now: () => string
   nextId: (kind: 'product' | 'sku' | 'log') => string
+  supplierProvider?: { listEffectiveSkuIds(supplierId: EntityId): EntityId[]; listEnabledSuppliers(): Array<{ id: EntityId; name: string }> }
 }
 
 const readableRoles = new Set(['super-admin', 'sales-supervisor', 'salesperson', 'warehouse'])
@@ -204,7 +205,8 @@ export function createProductService(dependencies: ProductServiceDependencies) {
 
   function listProducts(actor: ProductActor, query: ProductListQuery = {}): PageResult<ProductListItem> {
     assertRead(actor)
-    if (query.supplierId) throw new ProductDomainError('DATA_PROVIDER_UNAVAILABLE', '供应商关系尚未接入')
+    const supplierSkuIds = query.supplierId ? new Set(dependencies.supplierProvider?.listEffectiveSkuIds(query.supplierId) ?? []) : null
+    if (query.supplierId && !dependencies.supplierProvider) throw new ProductDomainError('DATA_PROVIDER_UNAVAILABLE', '供应商关系尚未接入')
     const state = repository.read()
     const view = query.view ?? 'spu'
     const categoryScope = query.categoryId ? descendants(state, query.categoryId) : null
@@ -217,6 +219,7 @@ export function createProductService(dependencies: ProductServiceDependencies) {
       if (query.tagIds?.length && !query.tagIds.some((id) => product.tagIds.includes(id))) continue
       const productKeywordMatch = keyword ? [product.name, product.code].some((value) => normalize(value).includes(keyword)) : true
       const matchingSkus = product.skus.filter((sku) => {
+        if (supplierSkuIds && !supplierSkuIds.has(sku.id)) return false
         const keywordMatch = !keyword || productKeywordMatch || [sku.code, sku.barcode ?? '', sku.specificationName, sku.specificationValue].some((value) => normalize(value).includes(keyword))
         const price = sku.baseOrderPriceCents
         const priceMatch = (query.priceMinCents === undefined || (price !== null && price >= query.priceMinCents))
@@ -335,7 +338,7 @@ export function createProductService(dependencies: ProductServiceDependencies) {
     const state = repository.read()
     return {
       categories: state.categories, brands: state.brands, units: state.units, tags: state.tags, displayCategories: state.displayCategories,
-      supplierProvider: 'unavailable', freightTemplateProvider: 'unavailable',
+      supplierProvider: dependencies.supplierProvider ? 'available' : 'unavailable', suppliers: dependencies.supplierProvider?.listEnabledSuppliers() ?? [], freightTemplateProvider: 'unavailable',
     }
   }
 

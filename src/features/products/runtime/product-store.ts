@@ -18,7 +18,7 @@ import type {
 export type ProductRuntimeScenario = ProductScenarioName | 'partial-failure'
 
 const emptyReferences = (): ProductReferenceData => ({
-  categories: [], brands: [], units: [], tags: [], displayCategories: [], supplierProvider: 'unavailable', freightTemplateProvider: 'unavailable',
+  categories: [], brands: [], units: [], tags: [], displayCategories: [], supplierProvider: 'unavailable', suppliers: [], freightTemplateProvider: 'unavailable',
 })
 
 export const useProductStore = defineStore('products', () => {
