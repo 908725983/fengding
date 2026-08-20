@@ -3,3 +3,4 @@
 .replenishment-tabs button.active{color:var(--color-primary-strong);font-weight:700;background:var(--color-primary-soft)}
 .replenishment-table{min-width:1450px}
 .pur-status.available{color:var(--color-success);background:var(--color-success-soft)}
+.replenishment-version{font-size:16px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
