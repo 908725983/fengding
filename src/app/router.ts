@@ -74,6 +74,8 @@ import SupplierFormView from '@/features/procurement/views/SupplierFormView.vue'
 import SupplierProductView from '@/features/procurement/views/SupplierProductView.vue'
 import DirectDeliveryView from '@/features/procurement/views/DirectDeliveryView.vue'
 import { guardProcurementSubroute } from '@/features/procurement/runtime/procurement-access'
+import ReplenishmentView from '@/features/procurement/views/ReplenishmentView.vue'
+import QuickPurchaseView from '@/features/procurement/views/QuickPurchaseView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -149,6 +151,9 @@ export const router = createRouter({
     { path: '/inventory/locations/new', name: 'inventory-location-new', component: LocationFormView },
     { path: '/inventory/locations/:locationId/edit', name: 'inventory-location-edit', component: LocationFormView },
     { path: '/procurement', redirect: '/procurement/suppliers' },
+    { path: '/procurement/replenishment', name: 'procurement-replenishment', component: ReplenishmentView },
+    { path: '/procurement/quick-purchase/stock', name: 'procurement-quick-stock', component: QuickPurchaseView, props: { kind: 'stock' } },
+    { path: '/procurement/quick-purchase/order', name: 'procurement-quick-order', component: QuickPurchaseView, props: { kind: 'order' } },
     { path: '/procurement/suppliers', name: 'procurement-suppliers', component: SupplierListView },
     { path: '/procurement/suppliers/new', name: 'procurement-supplier-new', component: SupplierFormView },
     { path: '/procurement/suppliers/:id/edit', name: 'procurement-supplier-edit', component: SupplierFormView },

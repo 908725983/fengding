@@ -8,6 +8,8 @@ import type { ProductFeatureState } from '../../src/features/products/types'
 import type { ProcurementCatalogProvider, ProcurementFeatureState, ProcurementSkuSnapshot } from '../../src/features/procurement/types'
 import { InMemoryProcurementRepository } from '../../src/features/procurement/repositories/procurement-repository'
 import { createProcurementService } from '../../src/features/procurement/services/procurement-service'
+import { createReplenishmentService } from '../../src/features/procurement/services/replenishment-service'
+import { createInventoryMockSession } from './inventory-handler'
 
 const featureData = baseline.featureData as Record<string, unknown>
 export const procurementBaseline = structuredClone(featureData['PUR-004']) as ProcurementFeatureState
@@ -23,6 +25,8 @@ export function createProcurementCatalogProvider(partialFailure = false): Procur
       productStatus: product.status, deleted: product.deletedAt !== null, procurementUnitId: product.sceneUnits.procurement.unitId,
       procurementUnitName: units.get(product.sceneUnits.procurement.unitId) ?? product.sceneUnits.procurement.unitId,
       procurementUnitRateMilli: Math.round(product.sceneUnits.procurement.conversionRate * 1000),
+      minimumOrderQuantity: product.minimumOrderQuantity,
+      orderMultiple: product.orderMultiple,
     })))
   }
   return {
@@ -43,7 +47,9 @@ export function createProcurementMockSession(scenarioName: ProcurementScenarioNa
   if (scenarioName === 'empty') { state.suppliers = []; state.supplierProducts = []; state.auditLogs = []; state.requests = [] }
   const repository = new InMemoryProcurementRepository(state); let sequence = 1
   const service = createProcurementService({ repository, catalog: createProcurementCatalogProvider(scenarioName === 'partial-failure'), now: () => baseline.clock, nextId: (kind) => `${kind}-runtime-${sequence++}` })
+  const inventorySession = createInventoryMockSession(scenarioName === 'empty' ? 'empty' : scenarioName === 'error' ? 'error' : scenarioName === 'slow' ? 'slow' : scenarioName === 'partial-failure' ? 'partial-failure' : 'normal')
+  const replenishment = createReplenishmentService({ inventory: inventorySession.service.createReplenishmentProvider(), catalog: createProcurementCatalogProvider(scenarioName === 'partial-failure'), supply: service.createSupplyProvider(), now: () => baseline.clock, nextId: (kind) => `${kind}-runtime-${sequence++}` })
   const definition = scenarios[scenarioName]
   async function run<T>(operation: () => T): Promise<T> { await new Promise((resolve) => setTimeout(resolve, definition.latencyMs)); if (scenarioName === 'error') throw new ProcurementMockError('MOCK_INTERNAL_ERROR', '原型模拟：采购供应商服务暂时不可用'); return operation() }
-  return { scenarioName, repository, service, run }
+  return { scenarioName, repository, service, replenishment, run }
 }

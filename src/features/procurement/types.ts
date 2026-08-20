@@ -125,6 +125,8 @@ export interface ProcurementSkuSnapshot {
   procurementUnitId: EntityId
   procurementUnitName: string
   procurementUnitRateMilli: number
+  minimumOrderQuantity: number | null
+  orderMultiple: number
 }
 
 export interface ProcurementCategorySnapshot { id: EntityId; name: string; parentId: EntityId | null; status: 'active' | 'inactive' }
@@ -168,3 +170,69 @@ export interface ProcurementWorkspace {
   catalogAvailable: boolean
   directDelivery: DirectDeliveryAvailability
 }
+
+export type ReplenishmentMode = 'safety' | 'shortage' | 'combined'
+export type ReplenishmentValue<T> = T | null
+export type ReplenishmentAvailability = 'available' | 'unavailable'
+
+export interface InventoryReplenishmentFact {
+  warehouseId: EntityId
+  warehouseCode: string
+  warehouseName: string
+  skuId: EntityId
+  categoryId: EntityId | null
+  productName: string
+  productCode: string
+  skuCode: string
+  specification: string
+  inventoryUnitName: string
+  currentMilli: number
+  safetyMinimumMilli: number
+  maximumMilli: number | null
+  availableMilli: number | null
+  inTransitMilli: number | null
+  pendingOutboundMilli: number | null
+}
+
+export interface InventoryReplenishmentProvider {
+  snapshot(): { rows: InventoryReplenishmentFact[]; available: boolean; version: string }
+}
+
+export interface ReplenishmentRow {
+  id: string
+  warehouseId: EntityId
+  warehouseCode: string
+  warehouseName: string
+  skuId: EntityId
+  categoryId: EntityId | null
+  productName: string
+  productCode: string
+  skuCode: string
+  specification: string
+  unitName: string
+  currentQuantity: number | null
+  pendingQuantity: number | null
+  shortageQuantity: number | null
+  safetyMinimumQuantity: number | null
+  maximumQuantity: number | null
+  suggestedQuantity: number | null
+  suggestionSource: Array<'safety' | 'shortage'>
+  supplyPriceCents: number | null
+  priceState: 'available' | 'manual-required' | 'unavailable'
+  estimatedAmountCents: number | null
+  availability: ReplenishmentAvailability
+  unavailableReason?: string
+  calculatedQuantity: number | null
+  manualQuantity: number | null
+  quantitySource: 'calculated' | 'manual'
+  supplierCandidates: PurchaseSupplyCandidate[]
+}
+
+export interface ReplenishmentSummary { inventoryTotal: number | null; shortageTotal: number | null; suggestedTotal: number | null }
+export interface ReplenishmentQuery { mode: ReplenishmentMode; categoryId?: EntityId; warehouseId?: EntityId; keyword?: string }
+export interface ReplenishmentResult { rows: ReplenishmentRow[]; summary: ReplenishmentSummary; availability: ReplenishmentAvailability; version: string }
+export interface ReplenishmentDraftLine { rowId: string; warehouseId: EntityId; skuId: EntityId; supplierId?: EntityId; quantity: number; source: 'stock-analysis' | 'order-analysis'; sourceOrderId?: EntityId }
+export interface ReplenishmentCandidateDraft { id: string; source: 'stock' | 'order'; createdAt: string; lines: ReplenishmentDraftLine[]; orderSnapshots: Array<{ orderId: string; orderCode: string; status: string }> }
+
+export interface ReplenishmentOrderFact { orderId: EntityId; orderCode: string; skuId: EntityId; warehouseId: EntityId; quantityMilli: number; categoryId: EntityId | null; supplierId: EntityId | null; deliveryAt: string | null; status: string; outboundStatus: string; paymentStatus: string; deliveryMode: string; snapshotVersion: string }
+export interface ReplenishmentOrderProvider { snapshot(): { rows: ReplenishmentOrderFact[]; available: boolean; version: string } }

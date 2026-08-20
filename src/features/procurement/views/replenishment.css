@@ -1,0 +1,5 @@
+.replenishment-tabs{display:flex;gap:0;margin-top:12px;border-bottom:1px solid var(--color-border)}
+.replenishment-tabs button{padding:11px 18px;color:var(--color-muted);background:#fff;border:1px solid var(--color-border);border-bottom:0;cursor:pointer}
+.replenishment-tabs button.active{color:var(--color-primary-strong);font-weight:700;background:var(--color-primary-soft)}
+.replenishment-table{min-width:1450px}
+.pur-status.available{color:var(--color-success);background:var(--color-success-soft)}

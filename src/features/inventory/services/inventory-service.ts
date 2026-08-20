@@ -7,6 +7,7 @@ import type {
   PageResult, ReferencedFifoAllocation, ReverseOutboundInput, ReverseReturnInboundInput, Warehouse, WarehouseDraft,
 } from '../types'
 
+
 export type InventoryDomainErrorCode = 'PERMISSION_DENIED' | 'NOT_FOUND' | 'DUPLICATE' | 'INVALID_STATE' | 'SOURCE_NOT_FOUND' | 'INSUFFICIENT_STOCK' | 'EXPIRED_BATCH' | 'PRODUCT_UNAVAILABLE'
 export class InventoryDomainError extends Error {
   constructor(readonly code: InventoryDomainErrorCode, message: string) { super(message); this.name = 'InventoryDomainError' }
@@ -254,5 +255,32 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
     return `\uFEFF${[headers.join(','), ...body].join('\r\n')}`
   }
 
-  return { listStocks, listBatches, listMovements, getWorkspace, saveThreshold, saveWarehouse, saveLocation, previewLocationImport, importLocations, previewOutbound, previewOutboundBatch, confirmOutbound, confirmOutboundBatch, reverseOutbound, confirmInbound, confirmReturnInbound, reverseReturnInbound, exportStocksCsv, exportLocationsCsv }
+  function createReplenishmentProvider() {
+    return {
+      snapshot: () => {
+        const stocks = listStocks({ actorId: 'procurement-provider', role: 'warehouse' }, { page: 1 }).items
+        const rows = stocks.map((row) => ({
+          warehouseId: row.warehouse.id,
+          warehouseCode: row.warehouse.code,
+          warehouseName: row.warehouse.name,
+          skuId: row.skuId,
+          categoryId: row.sku?.categoryId ?? null,
+          productName: row.sku?.productName ?? row.skuId,
+          productCode: row.sku?.productId ?? row.skuId,
+          skuCode: row.sku?.skuCode ?? row.skuId,
+          specification: row.sku?.specification ?? '',
+          inventoryUnitName: row.sku?.inventoryUnitName ?? '',
+          currentMilli: row.currentMilli,
+          safetyMinimumMilli: row.safetyMinimumMilli,
+          maximumMilli: row.maximumMilli,
+          availableMilli: row.availableMilli,
+          inTransitMilli: row.inTransitMilli,
+          pendingOutboundMilli: row.pendingOutboundMilli,
+        }))
+        return { rows, available: true, version: `inventory:${stocks.map((row) => `${row.warehouse.id}:${row.skuId}:${row.currentMilli}`).join('|')}` }
+      },
+    }
+  }
+
+  return { listStocks, listBatches, listMovements, getWorkspace, saveThreshold, saveWarehouse, saveLocation, previewLocationImport, importLocations, previewOutbound, previewOutboundBatch, confirmOutbound, confirmOutboundBatch, reverseOutbound, confirmInbound, confirmReturnInbound, reverseReturnInbound, exportStocksCsv, exportLocationsCsv, createReplenishmentProvider }
 }
