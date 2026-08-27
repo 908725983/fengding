@@ -20,7 +20,9 @@ describe('PRD-001 product detail view', () => {
     expect(wrapper.text()).toContain('基础信息')
     expect(wrapper.text()).toContain('SKU 与价格资料')
     expect(wrapper.text()).toContain('库存单位')
-    expect(wrapper.text()).toContain('等级/客户价格 · PRD-002')
+    expect(wrapper.text()).not.toContain('等级/客户价格 · PRD-002')
+    expect(wrapper.text()).not.toContain('供应商价格 · 规划中')
+    expect(wrapper.text()).not.toContain('订货设置/关联商品 · 规划中')
   })
 
   it('renders authorization plans, specials and explainable resolution in authorization tab', async () => {

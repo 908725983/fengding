@@ -50,12 +50,6 @@ function togglePayment(method: PaymentMethod): void {
   else draft.paymentMethods.push(method)
 }
 
-function fakeMapPick(): void {
-  draft.longitude = 120.000001
-  draft.latitude = 30.000001
-  window.alert('原型模拟：已选择虚构坐标 120.000001, 30.000001')
-}
-
 function showTutorial(): void { window.alert('原型模拟：视频教程尚未接入') }
 function showAttachmentHelp(): void { window.alert('原型模拟：仅记录虚构的 PDF/JPG/PNG 元数据，不上传真实文件') }
 
@@ -117,26 +111,22 @@ onMounted(async () => {
     <form v-if="!loading" class="customer-form" @submit.prevent="save(false)">
       <main class="form-main">
         <section class="form-card"><h2>基本信息</h2><div class="form-grid">
-          <label><span>编码方式 *</span><select v-model="draft.codeMode" :disabled="isEdit"><option value="auto">自动生成</option><option value="manual">手工输入</option></select></label>
-          <label><span>客户编码 *</span><input v-model="draft.code" :disabled="draft.codeMode === 'auto'" :placeholder="draft.codeMode === 'auto' ? '保存时自动生成' : '请输入唯一编码'" :aria-invalid="Boolean(fieldError('code'))"><em>{{ fieldError('code') }}</em></label>
+          <label><span>客户编码 *</span><input v-model="draft.code" :disabled="isEdit" placeholder="请输入唯一编码" :aria-invalid="Boolean(fieldError('code'))"><em>{{ fieldError('code') }}</em></label>
           <label><span>客户名称 *</span><input v-model="draft.name" maxlength="50" :aria-invalid="Boolean(fieldError('name'))"><em>{{ fieldError('name') }}</em></label>
           <label><span>客户分类 *</span><select v-model="draft.categoryId" data-test="category" :aria-invalid="Boolean(fieldError('categoryId'))" @change="onCategoryChange"><option value="">请选择分类</option><option v-for="item in categories.filter((category) => category.status === 'active')" :key="item.id" :value="item.id">{{ item.name }}</option></select><em>{{ fieldError('categoryId') }}</em></label>
           <label><span>客户类型</span><select v-model="draft.customerType"><option :value="null">请选择</option><option value="enterprise">企业客户</option><option value="individual">个人客户</option></select></label>
           <label><span>客户来源</span><select v-model="draft.source"><option :value="null">请选择</option><option value="online-registration">线上注册</option><option value="offline-development">线下开发</option><option value="referral">客户转介绍</option><option value="other">其他</option></select></label>
           <label><span>客户级别</span><select v-model="draft.importanceLevel"><option :value="null">请选择</option><option value="A">A · 重点</option><option value="B">B · 普通</option><option value="C">C · 潜在</option></select></label>
-          <label><span>客户状态</span><input :value="draft.status === 'active' ? '启用' : draft.status === 'pending' ? '待审核' : draft.status === 'inactive' ? '停用' : '冻结'" disabled><small>状态请在详情页使用独立操作修改</small></label>
         </div></section>
 
         <section class="form-card"><h2>联系信息</h2><div class="form-grid">
           <label><span>联系人 *</span><input v-model="draft.primaryContactName" :aria-invalid="Boolean(fieldError('primaryContactName'))"><em>{{ fieldError('primaryContactName') }}</em></label>
           <label><span>联系电话 *</span><input v-model="draft.primaryPhone" :aria-invalid="Boolean(fieldError('primaryPhone'))"><em>{{ fieldError('primaryPhone') }}</em></label>
           <label><span>备用电话</span><input v-model="draft.backupPhone"></label><label><span>邮箱</span><input v-model="draft.email" type="email" :aria-invalid="Boolean(fieldError('email'))"><em>{{ fieldError('email') }}</em></label>
-          <label><span>省编码 *</span><input v-model="draft.provinceCode" placeholder="模拟省编码" :aria-invalid="Boolean(fieldError('provinceCode'))"><em>{{ fieldError('provinceCode') }}</em></label>
-          <label><span>市编码 *</span><input v-model="draft.cityCode" placeholder="模拟市编码" :aria-invalid="Boolean(fieldError('cityCode'))"><em>{{ fieldError('cityCode') }}</em></label>
-          <label><span>区编码 *</span><input v-model="draft.districtCode" placeholder="模拟区编码" :aria-invalid="Boolean(fieldError('districtCode'))"><em>{{ fieldError('districtCode') }}</em></label>
+          <label><span>市编码 *</span><input v-model="draft.cityCode" placeholder="请输入市编码" :aria-invalid="Boolean(fieldError('cityCode'))"><em>{{ fieldError('cityCode') }}</em></label>
           <label><span>地址标签</span><select v-model="draft.addressLabel"><option :value="null">请选择</option><option value="company">公司地址</option><option value="warehouse">仓库地址</option><option value="delivery">收货地址</option></select></label>
           <label class="form-wide"><span>详细地址 *</span><input v-model="draft.address" maxlength="100" :aria-invalid="Boolean(fieldError('address'))"><em>{{ fieldError('address') }}</em></label>
-          <label><span>微信号</span><input v-model="draft.wechatId"></label><div class="map-field"><span>经纬度定位</span><button class="button" type="button" @click="fakeMapPick">模拟选点</button><small>{{ draft.longitude === null ? '尚未选点' : `${draft.longitude}, ${draft.latitude}` }}</small></div>
+          <label><span>微信号</span><input v-model="draft.wechatId"></label>
         </div></section>
 
         <section class="form-card"><h2>财务信息</h2><div class="form-grid">
@@ -145,7 +135,7 @@ onMounted(async () => {
           <label><span>结算方式 *</span><select v-model="draft.settlementMethod" data-test="settlement" @change="onSettlementChange"><option value="cash">现结</option><option value="monthly">月结</option><option value="terms">账期结算</option></select></label>
           <label><span>账期（天）</span><input v-model.number="draft.paymentTermDays" data-test="payment-term" type="number" min="1" max="365" :disabled="draft.settlementMethod !== 'terms'" :aria-invalid="Boolean(fieldError('paymentTermDays'))"><em>{{ fieldError('paymentTermDays') }}</em></label>
           <fieldset class="form-wide"><legend>付款方式</legend><label v-for="item in ([['bank-transfer','银行转账'],['cheque','支票'],['cash','现金'],['wechat','微信'],['alipay','支付宝']] as const)" :key="item[0]" class="check-inline"><input type="checkbox" :checked="draft.paymentMethods.includes(item[0])" @change="togglePayment(item[0])">{{ item[1] }}</label></fieldset>
-          <label><span>开户行</span><input v-model="draft.bankName"></label><label><span>银行账号</span><input v-model="draft.bankAccount"></label>
+          <label><span>开户行</span><input v-model="draft.bankName"></label><label><span>银行账号</span><input v-model="draft.bankAccount" inputmode="numeric" maxlength="19" placeholder="选择银行转账时填写 16～19 位数字" :aria-invalid="Boolean(fieldError('bankAccount'))"><em>{{ fieldError('bankAccount') }}</em></label>
           <label><span>税号</span><input v-model="draft.taxId" maxlength="18" :aria-invalid="Boolean(fieldError('taxId'))"><em>{{ fieldError('taxId') }}</em></label><label><span>开票抬头</span><input v-model="draft.invoiceTitle"></label>
         </div></section>
 
@@ -157,7 +147,6 @@ onMounted(async () => {
       <aside class="form-aside">
         <section class="form-card"><h2>客户标签</h2><label v-for="tag in tags.filter((item) => item.status === 'active')" :key="tag.id" class="tag-check"><input v-model="draft.tagIds" type="checkbox" :value="tag.id"><i :style="{ backgroundColor: tag.color }"></i>{{ tag.name }}</label></section>
         <section class="form-card"><h2>业务设置</h2><label class="switch-row"><input v-model="draft.businessSettings.canViewInventory" type="checkbox">允许查看库存</label><label class="switch-row"><input v-model="draft.businessSettings.canSelfOrder" type="checkbox">允许自主下单</label><label class="switch-row"><input v-model="draft.businessSettings.canViewPrice" type="checkbox">允许查看价格</label><label class="switch-row"><input v-model="draft.businessSettings.acceptsMarketing" type="checkbox">接收营销消息</label><label class="switch-row"><input v-model="draft.businessSettings.autoAssignOrders" type="checkbox">自动分配订单</label><p v-if="draft.businessSettings.autoAssignOrders" class="simulation-note">原型模拟：自动分配规则尚未配置，不产生真实分配。</p></section>
-        <section class="form-card form-summary"><h2>保存说明</h2><ul><li>客户编码企业内唯一</li><li>分类默认额度/账期只在新建选择时带入</li><li>非账期结算自动清空账期天数</li><li>失败不会保存部分数据</li></ul></section>
       </aside>
     </form>
   </section>

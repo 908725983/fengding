@@ -14,7 +14,9 @@ const kinds = new Set(['receipt', 'payment', 'transfer-in', 'transfer-out', 'ref
 const requestKinds = new Set([
   'account-save', 'movement-post', 'period-close', 'period-reverse', 'bank-save', 'payment-apply',
   'receivable-create', 'receipt-create', 'receipt-void', 'writeoff-create', 'writeoff-cancel',
-  'credit-create', 'credit-reverse', 'refund-confirm', 'refund-reject', 'refund-reapply',
+  'credit-create', 'credit-reverse', 'refund-confirm', 'refund-reject', 'refund-reapply', 'refund-correct',
+  'payable-create', 'supplier-payment-create', 'supplier-payment-void', 'supplier-writeoff-create', 'supplier-writeoff-cancel', 'supplier-credit-create',
+  'transfer-create', 'transfer-approve', 'transfer-cancel', 'other-item-save', 'other-create', 'other-review', 'supplier-refund-confirm',
 ])
 
 function required(issues: FinanceValidationIssue[], path: string, value: unknown, max = 100): void {
@@ -58,7 +60,7 @@ export function assertFinanceFeatureState(state: FinanceFeatureState): void {
   required(issues, 'enterpriseId', state.enterpriseId)
   if (!Number.isSafeInteger(state.version) || state.version < 1) issues.push({ path: 'version', message: '必须是正整数' })
   if (!monthPattern.test(state.bookStartMonth)) issues.push({ path: 'bookStartMonth', message: '必须为 YYYY-MM' })
-  for (const collection of [state.accounts, state.movements, state.periods, state.banks, state.paymentChannels, state.paymentApplications, state.receivables, state.customerReceipts, state.receiptWriteoffs, state.prepaymentLedger, state.auditLogs]) {
+  for (const collection of [state.accounts, state.movements, state.periods, state.banks, state.paymentChannels, state.paymentApplications, state.receivables, state.customerReceipts, state.receiptWriteoffs, state.prepaymentLedger, state.auditLogs, state.payables, state.supplierPayments, state.supplierPaymentWriteoffs, state.supplierPayableCredits, state.transfers, state.incomeExpenseItems, state.otherTransactions, state.supplierRefundReceipts]) {
     unique(issues, 'entity.id', collection.map((item) => item.id))
     if (collection.some((item) => item.enterpriseId !== state.enterpriseId)) issues.push({ path: 'enterpriseId', message: '实体企业不一致' })
   }
@@ -109,6 +111,28 @@ export function assertFinanceFeatureState(state: FinanceFeatureState): void {
   unique(issues, 'writeoffs.writeoffNo', state.receiptWriteoffs.map((item) => item.writeoffNo))
   unique(issues, 'creditAdjustments.id', state.creditAdjustments.map((item) => item.id))
   unique(issues, 'refunds.id', state.refunds.map((item) => item.id)); unique(issues, 'refunds.refundNo', state.refunds.map((item) => item.refundNo))
+  unique(issues, 'payables.payableNo', state.payables.map((item) => item.payableNo)); unique(issues, 'payables.inboundId', state.payables.map((item) => item.inboundId))
+  unique(issues, 'supplierPayments.paymentNo', state.supplierPayments.map((item) => item.paymentNo))
+  unique(issues, 'supplierPaymentWriteoffs.writeoffNo', state.supplierPaymentWriteoffs.map((item) => item.writeoffNo))
+  unique(issues, 'supplierPayableCredits.id', state.supplierPayableCredits.map((item) => item.id))
+  unique(issues, 'transfers.transferNo', state.transfers.map((item) => item.transferNo))
+  unique(issues, 'otherTransactions.documentNo', state.otherTransactions.map((item) => item.documentNo))
+  unique(issues, 'supplierRefundReceipts.receiptNo', state.supplierRefundReceipts.map((item) => item.receiptNo))
+  unique(issues, 'supplierRefundReceipts.creditId', state.supplierRefundReceipts.map((item) => item.creditId))
+  unique(issues, 'incomeExpenseItems.name', state.incomeExpenseItems.map((item) => `${item.direction}:${normalize(item.name)}`))
+  for (const transfer of state.transfers) {
+    money(issues, `transfers.${transfer.id}.amountCents`, transfer.amountCents, true); iso(issues, `transfers.${transfer.id}.occurredAt`, transfer.occurredAt)
+    if (transfer.fromAccountId === transfer.toAccountId) issues.push({ path: `transfers.${transfer.id}.accounts`, message: '转出和转入账户不能相同' })
+    if (!accountIds.has(transfer.fromAccountId) || !accountIds.has(transfer.toAccountId)) issues.push({ path: `transfers.${transfer.id}.accounts`, message: '转账账户不存在' })
+    if (transfer.status === 'completed' && transfer.movementIds.length !== 2) issues.push({ path: `transfers.${transfer.id}.movementIds`, message: '完成转账必须有两条流水' })
+  }
+  for (const item of state.incomeExpenseItems) { required(issues, `incomeExpenseItems.${item.id}.name`, item.name, 80); if (!['income', 'expense'].includes(item.direction)) issues.push({ path: `incomeExpenseItems.${item.id}.direction`, message: '方向无效' }) }
+  for (const transaction of state.otherTransactions) {
+    money(issues, `otherTransactions.${transaction.id}.amountCents`, transaction.amountCents, true); iso(issues, `otherTransactions.${transaction.id}.occurredAt`, transaction.occurredAt)
+    if (!accountIds.has(transaction.accountId)) issues.push({ path: `otherTransactions.${transaction.id}.accountId`, message: '账户不存在' })
+    if (transaction.status === 'approved' && !transaction.movementId) issues.push({ path: `otherTransactions.${transaction.id}.movementId`, message: '已批准单据必须有关联流水' })
+  }
+  for (const receipt of state.supplierRefundReceipts) { money(issues, `supplierRefundReceipts.${receipt.id}.amountCents`, receipt.amountCents, true); iso(issues, `supplierRefundReceipts.${receipt.id}.occurredAt`, receipt.occurredAt); if (!accountIds.has(receipt.accountId)) issues.push({ path: `supplierRefundReceipts.${receipt.id}.accountId`, message: '账户不存在' }) }
   unique(issues, 'dailySequences.date', state.dailySequences.map((item) => item.date))
   const receivableIds = new Set(state.receivables.map((item) => item.id))
   const receiptIds = new Set(state.customerReceipts.map((item) => item.id))
@@ -186,8 +210,27 @@ export function assertFinanceFeatureState(state: FinanceFeatureState): void {
     iso(issues, `refunds.${refund.id}.requestedAt`, refund.requestedAt); iso(issues, `refunds.${refund.id}.resolvedAt`, refund.resolvedAt)
   }
   unique(issues, 'refundAllocations.id', refundAllocationIds)
+  const payableIds = new Set(state.payables.map((item) => item.id)); const paymentIds = new Set(state.supplierPayments.map((item) => item.id)); const supplierWriteoffAllocationIds: string[] = []
+  for (const payable of state.payables) {
+    required(issues, `payables.${payable.id}.payableNo`, payable.payableNo); required(issues, `payables.${payable.id}.purchaseOrderId`, payable.purchaseOrderId); required(issues, `payables.${payable.id}.inboundId`, payable.inboundId)
+    money(issues, `payables.${payable.id}.goodsAmountCents`, payable.goodsAmountCents); money(issues, `payables.${payable.id}.discountCents`, payable.discountCents); money(issues, `payables.${payable.id}.otherFeeCents`, payable.otherFeeCents); money(issues, `payables.${payable.id}.amountCents`, payable.amountCents)
+    if (payable.amountCents !== payable.goodsAmountCents - payable.discountCents + payable.otherFeeCents) issues.push({ path: `payables.${payable.id}.amountCents`, message: '应付金额不守恒' })
+    if (!['unpaid', 'partially-paid', 'paid', 'voided'].includes(payable.status)) issues.push({ path: `payables.${payable.id}.status`, message: '应付状态无效' }); if (!/^\d{4}-\d{2}-\d{2}$/.test(payable.dueDate)) issues.push({ path: `payables.${payable.id}.dueDate`, message: '到期日无效' }); iso(issues, `payables.${payable.id}.occurredAt`, payable.occurredAt)
+    unique(issues, `payables.${payable.id}.items`, payable.items.map((item) => item.inboundLineId)); payable.items.forEach((item) => { money(issues, `payables.${payable.id}.items.${item.inboundLineId}.quantityMilli`, item.quantityMilli, true); money(issues, `payables.${payable.id}.items.${item.inboundLineId}.unitPriceCents`, item.unitPriceCents); money(issues, `payables.${payable.id}.items.${item.inboundLineId}.amountCents`, item.amountCents) })
+  }
+  for (const payment of state.supplierPayments) {
+    required(issues, `supplierPayments.${payment.id}.paymentNo`, payment.paymentNo); money(issues, `supplierPayments.${payment.id}.amountCents`, payment.amountCents, true); iso(issues, `supplierPayments.${payment.id}.occurredAt`, payment.occurredAt)
+    if (!['cash', 'bank'].includes(payment.method) || !payment.accountId || !payment.movementId) issues.push({ path: `supplierPayments.${payment.id}.accountId`, message: '付款账户或方式无效' }); if (!['normal', 'void'].includes(payment.status) || (payment.status === 'void') !== Boolean(payment.voidInfo)) issues.push({ path: `supplierPayments.${payment.id}.status`, message: '付款状态与作废审计不一致' })
+  }
+  for (const writeoff of state.supplierPaymentWriteoffs) {
+    required(issues, `supplierPaymentWriteoffs.${writeoff.id}.writeoffNo`, writeoff.writeoffNo); if (!writeoff.allocations.length) issues.push({ path: `supplierPaymentWriteoffs.${writeoff.id}.allocations`, message: '至少需要一条分配' }); let total = 0
+    for (const allocation of writeoff.allocations) { supplierWriteoffAllocationIds.push(allocation.id); money(issues, `supplierPaymentWriteoffs.${writeoff.id}.allocations.${allocation.id}.amountCents`, allocation.amountCents, true); if (!paymentIds.has(allocation.paymentId)) issues.push({ path: `supplierPaymentWriteoffs.${writeoff.id}.allocations.${allocation.id}.paymentId`, message: '付款不存在' }); if (!payableIds.has(allocation.payableId)) issues.push({ path: `supplierPaymentWriteoffs.${writeoff.id}.allocations.${allocation.id}.payableId`, message: '应付不存在' }); total += allocation.amountCents }
+    if (total !== writeoff.amountCents) issues.push({ path: `supplierPaymentWriteoffs.${writeoff.id}.amountCents`, message: '核销金额不守恒' }); if (!['active', 'cancelled'].includes(writeoff.status) || (writeoff.status === 'cancelled') !== Boolean(writeoff.cancelInfo)) issues.push({ path: `supplierPaymentWriteoffs.${writeoff.id}.status`, message: '核销状态与审计不一致' }); iso(issues, `supplierPaymentWriteoffs.${writeoff.id}.occurredAt`, writeoff.occurredAt)
+  }
+  unique(issues, 'supplierPaymentWriteoffs.allocations.id', supplierWriteoffAllocationIds)
+  for (const credit of state.supplierPayableCredits) { required(issues, `supplierPayableCredits.${credit.id}.sourceId`, credit.sourceId); money(issues, `supplierPayableCredits.${credit.id}.amountCents`, credit.amountCents, true); money(issues, `supplierPayableCredits.${credit.id}.outstandingReductionCents`, credit.outstandingReductionCents); money(issues, `supplierPayableCredits.${credit.id}.refundObligationCents`, credit.refundObligationCents); if (credit.amountCents !== credit.outstandingReductionCents + credit.refundObligationCents) issues.push({ path: `supplierPayableCredits.${credit.id}.amountCents`, message: '供应商贷项不守恒' }); if (credit.payableId && !payableIds.has(credit.payableId)) issues.push({ path: `supplierPayableCredits.${credit.id}.payableId`, message: '应付不存在' }); if (!['active', 'reversed'].includes(credit.status) || (credit.status === 'reversed') !== Boolean(credit.reversalInfo)) issues.push({ path: `supplierPayableCredits.${credit.id}.status`, message: '供应商贷项状态无效' }); iso(issues, `supplierPayableCredits.${credit.id}.occurredAt`, credit.occurredAt) }
   for (const sequence of state.dailySequences) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(sequence.date) || [sequence.receivable, sequence.receipt, sequence.writeoff, sequence.refund ?? 1].some((value) => !Number.isSafeInteger(value) || value < 1)) issues.push({ path: `dailySequences.${sequence.date}`, message: '日序列无效' })
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sequence.date) || [sequence.receivable, sequence.receipt, sequence.writeoff, sequence.refund ?? 1, sequence.payable ?? 1, sequence.payment ?? 1].some((value) => !Number.isSafeInteger(value) || value < 1)) issues.push({ path: `dailySequences.${sequence.date}`, message: '日序列无效' })
   }
   for (const request of state.requests) { required(issues, 'requests.requestId', request.requestId); if (!requestKinds.has(request.kind)) issues.push({ path: `requests.${request.requestId}.kind`, message: '请求类型无效' }) }
   if (issues.length) throw new FinanceValidationError(issues)

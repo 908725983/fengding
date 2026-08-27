@@ -28,7 +28,9 @@ export function validateOrderDraft(draft: OrderDraft): OrderValidationIssue[] {
   if(!iso(draft.requestedDeliveryAt)) issues.push({path:'requestedDeliveryAt',message:'必须是有效时间'})
   if(!deliveryMethods.has(draft.deliveryMethod)) issues.push({path:'deliveryMethod',message:'请选择配送方式'})
   required(issues,'shipping.recipient',draft.shipping.recipient,80); required(issues,'shipping.phone',draft.shipping.phone,40)
-  required(issues,'shipping.province',draft.shipping.province,40); required(issues,'shipping.city',draft.shipping.city,40); required(issues,'shipping.district',draft.shipping.district,40); required(issues,'shipping.address',draft.shipping.address,200)
+  // Region fields remain in the persisted snapshot for compatibility, but are
+  // no longer collected by the order form. Only the free-form address is required.
+  required(issues,'shipping.address',draft.shipping.address,200)
   if(!draft.lines.length) issues.push({path:'lines',message:'至少添加一个商品'})
   const pairs=new Set<string>()
   draft.lines.forEach((line,index)=>{const base=`lines.${index}`;required(issues,`${base}.skuId`,line.skuId,100);required(issues,`${base}.unitId`,line.unitId,100);if(!Number.isSafeInteger(line.quantity)||line.quantity<1)issues.push({path:`${base}.quantity`,message:'必须是大于等于1的整数'});if(!['sale','gift'].includes(line.lineKind))issues.push({path:`${base}.lineKind`,message:'行类型无效'});if(line.manualDealUnitPriceCents!==null)nonnegative(issues,`${base}.manualDealUnitPriceCents`,line.manualDealUnitPriceCents);if(line.reason&&line.reason.trim().length>500)issues.push({path:`${base}.reason`,message:'不能超过500个字符'});const pair=`${line.skuId}:${line.unitId}:${line.lineKind}`;if(pairs.has(pair))issues.push({path:base,message:'同一SKU、单位和行类型不能重复'});pairs.add(pair)})

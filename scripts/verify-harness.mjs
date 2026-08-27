@@ -92,6 +92,9 @@ const expectedDomainCounts = {
 const foundationIds = new Set(['HNS-001', 'SHELL-001'])
 const allowedReadiness = new Set(['source-only', 'ready', 'blocked'])
 const allowedDecisionStates = new Set(['open', 'decided', 'not-applicable'])
+const allowedPlanTypes = new Set(['business-feature', 'business-batch', 'integration', 'harness', 'architecture', 'maintenance'])
+const allowedRiskLevels = new Set(['L1', 'L2', 'L3'])
+const allowedFlowStates = new Set(['not-run', 'blocked', 'passing'])
 
 async function exists(path) {
   try {
@@ -281,7 +284,7 @@ for (const cells of featureRows) {
   features.push({ id, domain, name, priority, source, sourceName, dependencies, rules, readiness })
 }
 
-if (features.length !== 45) failures.push(`功能目录应为 45 项（43 可进入规格提取 + 2 blocked），当前 ${features.length} 项`)
+if (features.length !== 45) failures.push(`功能目录应完整覆盖 45 项，当前 ${features.length} 项`)
 for (const [domain, expectedCount] of Object.entries(expectedDomainCounts)) {
   const actualCount = features.filter((feature) => feature.domain === domain).length
   if (actualCount !== expectedCount) failures.push(`${domain} 功能切片应为 ${expectedCount} 项，当前 ${actualCount} 项`)
@@ -482,18 +485,72 @@ const sequenceText = await readFile(resolve(root, 'docs/design-docs/implementati
 for (const feature of features) {
   if (!sequenceText.includes(feature.id)) failures.push(`总体实现顺序未覆盖功能：${feature.id}`)
 }
-for (const marker of ['## 切片开工门', '## 当前下一动作', 'source-only', 'DEC-CUS-001']) {
+for (const marker of ['## 切片与批次开工门', '## 剩余执行批次清单', '## 当前下一动作', 'source-only', 'DEC-CUS-001']) {
   if (!sequenceText.includes(marker)) failures.push(`总体实现顺序缺少关键门禁：${marker}`)
+}
+
+const flowSection = extractSection(sequenceText, '跨模块流程验收状态')
+const flowRows = parseMarkdownRows(flowSection, /^FLOW-[A-Z]+-\d{3}$/)
+const integrationFlows = []
+const integrationFlowIds = new Set()
+for (const cells of flowRows) {
+  if (cells.length !== 5) {
+    failures.push(`跨模块流程状态行必须有 5 列：${cells.join(' | ')}`)
+    continue
+  }
+  const [rawId, rawJourney, rawDependencies, rawStatus, rawEvidence] = cells
+  const id = cleanCell(rawId)
+  const journey = cleanCell(rawJourney)
+  const dependencies = cleanCell(rawDependencies)
+  const status = cleanCell(rawStatus)
+  const evidence = cleanCell(rawEvidence)
+  if (integrationFlowIds.has(id)) failures.push(`跨模块流程 ID 重复：${id}`)
+  integrationFlowIds.add(id)
+  if (!journey || !dependencies) failures.push(`${id} 缺少业务链路或依赖切片`)
+  if (!allowedFlowStates.has(status)) failures.push(`${id} 使用未知集成状态：${status}`)
+  if (!evidence || evidence === '—') failures.push(`${id} 缺少当前证据或具体阻塞`)
+  if (status === 'passing') {
+    const planPath = evidence.match(/docs\/exec-plans\/completed\/\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md/)?.[0]
+    if (!planPath) failures.push(`${id} 标记 passing 但没有 integration completed plan 路径`)
+    else if (!(await exists(resolve(root, planPath)))) failures.push(`${id} 的 integration 证据不可达：${planPath}`)
+    else {
+      const plan = await readFile(resolve(root, planPath), 'utf8')
+      if (getMeta(plan, '类型') !== 'integration' || getMeta(plan, '状态') !== 'completed' || !plan.includes(id)) {
+        failures.push(`${id} 的 passing 证据不是对应的 integration completed plan：${planPath}`)
+      }
+    }
+  }
+  integrationFlows.push({ id, status, evidence })
+}
+for (const requiredFlowId of ['FLOW-SALES-001', 'FLOW-PURCHASE-001', 'FLOW-RETURN-001']) {
+  if (!integrationFlowIds.has(requiredFlowId)) failures.push(`总体实现顺序缺少跨模块流程状态：${requiredFlowId}`)
+}
+
+const plansText = await readFile(resolve(root, 'docs/PLANS.md'), 'utf8')
+for (const marker of ['business-feature | business-batch | integration', '## 风险等级', '### integration', '同一个应用级共享 Mock Runtime', '不使用预置订单', '全链路业务编号']) {
+  if (!plansText.includes(marker)) failures.push(`执行计划缺少跨模块验收门禁：${marker}`)
+}
+const reliabilityText = await readFile(resolve(root, 'docs/RELIABILITY.md'), 'utf8')
+for (const marker of ['## 完成声明的三个层级', '## 跨模块黄金旅程', '订单号 → 销售出库单号 → 应收单号 → 收款单号 → 核销单号', '不得用相同 fixture baseline']) {
+  if (!reliabilityText.includes(marker)) failures.push(`可靠性指南缺少跨模块验收门禁：${marker}`)
+}
+const architectureText = await readFile(resolve(root, 'ARCHITECTURE.md'), 'utf8')
+for (const marker of ['应用级共享 Mock Runtime', '共用 baseline', '不得在 Store 内直接 `create*MockSession()`']) {
+  if (!architectureText.includes(marker)) failures.push(`架构指南缺少共享运行态门禁：${marker}`)
 }
 
 const qualityText = await readFile(resolve(root, 'docs/QUALITY_SCORE.md'), 'utf8')
 const implementableCount = features.filter((feature) => feature.readiness !== 'blocked').length
 const blockedCount = features.filter((feature) => feature.readiness === 'blocked').length
+const readyCount = features.filter((feature) => feature.readiness === 'ready').length
 for (const marker of [
   `| 可进入规格提取的业务切片 | ${implementableCount} |`,
+  `| 已达到 ready 的业务切片 | ${readyCount} |`,
   `| 因需求不足 blocked | ${blockedCount} |`,
   `| 已知人工决策门 | ${decisions.length} |`,
   'CUS-001',
+  '| 跨模块业务闭环 |',
+  'FLOW-SALES-001',
 ]) {
   if (!qualityText.includes(marker)) failures.push(`QUALITY_SCORE 与功能目录不一致：${marker}`)
 }
@@ -514,6 +571,7 @@ const completedDirectory = resolve(root, 'docs/exec-plans/completed')
 const activePlanNames = (await readdir(activeDirectory)).filter((name) => name.endsWith('.md'))
 const completedPlanNames = (await readdir(completedDirectory)).filter((name) => name.endsWith('.md'))
 const completedIds = new Set()
+const businessPlanTypes = new Set(['business-feature', 'business-batch'])
 
 for (const name of completedPlanNames) {
   const contents = await readFile(resolve(completedDirectory, name), 'utf8')
@@ -522,13 +580,13 @@ for (const name of completedPlanNames) {
   }
   const completedType = getMeta(contents, '类型')
   const completedStage = getMeta(contents, '当前阶段')
-  if (!['business-feature', 'harness', 'architecture', 'maintenance'].includes(completedType)) {
+  if (!allowedPlanTypes.has(completedType)) {
     failures.push(`${name} 使用未知计划类型：${completedType}`)
   }
   if (getMeta(contents, '状态') !== 'completed') failures.push(`${name} 位于 completed/ 但状态不是 completed`)
-  if (completedType === 'business-feature' && completedStage !== 'verification') {
+  if (businessPlanTypes.has(completedType) && completedStage !== 'verification') {
     failures.push(`${name} 的业务功能完成时当前阶段必须为 verification`)
-  } else if (completedType !== 'business-feature' && !['verification', 'audit'].includes(completedStage)) {
+  } else if (!businessPlanTypes.has(completedType) && !['verification', 'audit'].includes(completedStage)) {
     failures.push(`${name} 的非业务计划完成阶段必须为 verification 或 audit`)
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(getMeta(contents, '完成日期') ?? '')) failures.push(`${name} 缺少有效完成日期`)
@@ -536,7 +594,15 @@ for (const name of completedPlanNames) {
     if (!contents.includes(heading)) failures.push(`completed plan 缺少章节“${heading}”：${name}`)
   }
   if (/^- \[ \]/m.test(contents)) failures.push(`completed plan 仍有未完成步骤：${name}`)
-  const recordedIds = (getMeta(contents, '功能') ?? '').match(/[A-Z]{3,5}-\d{3}/g) ?? []
+  const recordedIds = [...new Set((getMeta(contents, '功能') ?? '').match(/[A-Z]{3,5}-\d{3}/g) ?? [])]
+  if (completedType === 'business-feature' && recordedIds.length !== 1) {
+    failures.push(`${name} 的 business-feature 必须且只能记录一个功能 ID`)
+  }
+  if (completedType === 'business-batch') {
+    if (recordedIds.length < 2) failures.push(`${name} 的 business-batch 至少记录两个功能 ID`)
+    if (!allowedRiskLevels.has(getMeta(contents, '风险等级'))) failures.push(`${name} 的 business-batch 缺少 L1/L2/L3 风险等级`)
+    if (!contents.includes('## 批次切片状态')) failures.push(`${name} 的 business-batch 缺少逐功能恢复表`)
+  }
   for (const id of recordedIds) completedIds.add(id)
 }
 for (const foundationId of foundationIds) {
@@ -556,58 +622,80 @@ for (const name of activePlanNames) {
   if (currentSteps.length !== 1) failures.push(`active plan 必须有且仅有一个当前步骤：${name}`)
 
   const type = getMeta(contents, '类型')
-  const featureId = getMeta(contents, '功能')
+  const featureMeta = getMeta(contents, '功能')
   const stage = getMeta(contents, '当前阶段')
   const status = getMeta(contents, '状态')
   const lastUpdated = getMeta(contents, '最近更新')
-  if (!['business-feature', 'harness', 'architecture', 'maintenance'].includes(type)) failures.push(`${name} 使用未知计划类型：${type}`)
+  if (!allowedPlanTypes.has(type)) failures.push(`${name} 使用未知计划类型：${type}`)
   if (!['specification', 'implementation', 'verification', 'audit'].includes(stage)) failures.push(`${name} 使用未知当前阶段：${stage}`)
   if (status !== 'active') failures.push(`${name} 位于 active/ 但状态不是 active`)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(lastUpdated ?? '')) failures.push(`${name} 缺少有效最近更新日期`)
 
-  if (type === 'business-feature') {
+  if (businessPlanTypes.has(type)) {
     activeBusinessPlans += 1
-    const feature = featureById.get(featureId)
-    if (!feature) {
-      failures.push(`${name} 引用未知业务功能：${featureId}`)
-      continue
+    const rawFeatureIds = (featureMeta ?? '').match(/[A-Z]{3,5}-\d{3}/g) ?? []
+    const planFeatureIds = [...new Set(rawFeatureIds)]
+    if (rawFeatureIds.length !== planFeatureIds.length) failures.push(`${name} 重复记录业务功能 ID`)
+    if (type === 'business-feature' && planFeatureIds.length !== 1) {
+      failures.push(`${name} 的 business-feature 必须且只能记录一个功能 ID`)
     }
-    if (feature.readiness === 'blocked') failures.push(`${name} 尝试启动 blocked 功能：${featureId}`)
-    const specName = domainSpecs[feature.domain]
-    if (!contents.includes(`docs/product-specs/${specName}`)) failures.push(`${name} 未引用当前领域规格`)
-    if (!contents.includes(`docs/references/requirements/${feature.sourceName}`)) failures.push(`${name} 未引用精确原始需求文件`)
-    for (const sectionNumber of extractSourceSectionNumbers(feature.source)) {
-      if (!contents.includes(`§${sectionNumber}`)) failures.push(`${name} 未引用目录指定原文章节：§${sectionNumber}`)
+    if (type === 'business-batch' && planFeatureIds.length < 2) {
+      failures.push(`${name} 的 business-batch 至少记录两个功能 ID`)
+    }
+    if (type === 'business-batch' && !contents.includes('## 批次切片状态')) {
+      failures.push(`${name} 的 business-batch 缺少逐功能恢复表`)
+    }
+    if (!allowedRiskLevels.has(getMeta(contents, '风险等级'))) {
+      failures.push(`${name} 的业务计划缺少 L1/L2/L3 风险等级`)
+    }
+    const planFeatures = planFeatureIds.map((id) => featureById.get(id)).filter(Boolean)
+    for (const id of planFeatureIds) {
+      if (!featureById.has(id)) failures.push(`${name} 引用未知业务功能：${id}`)
+    }
+    if (type === 'business-batch' && new Set(planFeatures.map((feature) => feature.domain)).size > 1) {
+      failures.push(`${name} 的 business-batch 只能合并同一领域功能`)
+    }
+    for (const feature of planFeatures) {
+      if (feature.readiness === 'blocked') failures.push(`${name} 尝试启动 blocked 功能：${feature.id}`)
+      const specName = domainSpecs[feature.domain]
+      if (!contents.includes(`docs/product-specs/${specName}`)) failures.push(`${name} 未引用 ${feature.id} 的领域规格`)
+      if (!contents.includes(`docs/references/requirements/${feature.sourceName}`)) failures.push(`${name} 未引用 ${feature.id} 的原始需求文件`)
+      for (const sectionNumber of extractSourceSectionNumbers(feature.source)) {
+        if (!contents.includes(`§${sectionNumber}`)) failures.push(`${name} 未引用 ${feature.id} 的目录指定原文章节：§${sectionNumber}`)
+      }
+      for (const dependency of feature.dependencies) {
+        if (!completedIds.has(dependency) && !planFeatureIds.includes(dependency)) {
+          failures.push(`${name} 中 ${feature.id} 的依赖尚无 passing 证据：${dependency}`)
+        }
+      }
+      if (['implementation', 'verification'].includes(stage) && feature.readiness !== 'ready') {
+        failures.push(`${name} 已进入 ${stage}，但 ${feature.id} 尚未 ready`)
+      }
     }
     for (const globalMarker of ['01-整体架构与首页.md', '§4', '§5']) {
       if (!contents.includes(globalMarker)) failures.push(`${name} 未引用业务计划全局资料：${globalMarker}`)
     }
-    for (const dependency of feature.dependencies) {
-      if (!completedIds.has(dependency)) failures.push(`${name} 的依赖尚无 passing 证据：${dependency}`)
-    }
-    if (['implementation', 'verification'].includes(stage)) {
-      if (feature.readiness !== 'ready') failures.push(`${name} 已进入 ${stage}，但 ${featureId} 尚未 ready`)
-      const openBlockers = decisions.filter(
-        (decision) => decision.state === 'open' && decision.blockedIds.includes(featureId),
-      )
-      if (openBlockers.length > 0) {
-        failures.push(`${name} 带着未解决人工决策进入 ${stage}：${openBlockers.map((item) => item.id).join(', ')}`)
-      }
+    const openBlockers = decisions.filter(
+      (decision) => decision.state === 'open' && decision.blockedIds.some((id) => planFeatureIds.includes(id)),
+    )
+    if (['implementation', 'verification'].includes(stage) && openBlockers.length > 0) {
+      failures.push(`${name} 带着未解决人工决策进入 ${stage}：${openBlockers.map((item) => item.id).join(', ')}`)
     }
     const openDecisionSection = extractSection(contents, '开放决策')
     if (!openDecisionSection.includes('| 决策 ID |') && !/^## 开放决策\s+无[。\s]*$/m.test(openDecisionSection.trim())) {
       failures.push(`${name} 的开放决策必须使用规定表格或明确写“无”`)
     }
-    for (const decision of decisions.filter(
-      (item) => item.state === 'open' && item.blockedIds.includes(featureId),
-    )) {
+    for (const decision of openBlockers) {
       if (!openDecisionSection.includes(decision.id)) failures.push(`${name} 未登记当前切片的开放决策：${decision.id}`)
     }
     if (openDecisionSection.includes('| 决策 ID |') && !openDecisionSection.includes('结论与写回位置')) {
       failures.push(`${name} 的开放决策表缺少“结论与写回位置”列`)
     }
-  } else if (featureId !== '不适用') {
-    failures.push(`${name} 不是业务计划，功能应写“不适用”`)
+  } else {
+    if (featureMeta !== '不适用') failures.push(`${name} 不是业务计划，功能应写“不适用”`)
+    if (type === 'integration' && !/FLOW-[A-Z]+-\d{3}/.test(contents)) {
+      failures.push(`${name} 的 integration 计划没有引用 FLOW-*`)
+    }
   }
 }
 if (activeBusinessPlans > 1) failures.push(`同一时间最多一个业务 active plan，当前 ${activeBusinessPlans} 个`)
@@ -685,6 +773,8 @@ for (const path of executableSchemaFiles) {
 }
 
 const sourceFiles = (await walk(resolve(root, 'src'))).filter((path) => /\.(vue|ts|tsx)$/.test(path))
+const independentStoreSessions = []
+const legacyScenarioControlFiles = []
 for (const path of sourceFiles) {
   const contents = await readFile(path, 'utf8')
   const sourcePath = relative(root, path).replaceAll('\\', '/')
@@ -696,6 +786,12 @@ for (const path of sourceFiles) {
   if (/\/services?\//.test(sourcePath) && /(Math\.random\s*\(|Date\.now\s*\(|new\s+Date\s*\(\s*\))/.test(contents)) {
     failures.push(`Service 需注入 ID/Clock，不能用随机数或真实当前时间决定结果：${sourcePath}`)
   }
+  if (/^src\/features\/[^/]+\/runtime\/[^/]*store\.ts$/.test(sourcePath) && /from\s+['"][^'"]*mock\/handlers\//.test(contents) && /create[A-Z]\w*MockSession\s*\(/.test(contents)) {
+    independentStoreSessions.push(sourcePath)
+  }
+  if (path.endsWith('.vue') && /(ScenarioBar|模拟场景|原型控制)/.test(contents)) {
+    legacyScenarioControlFiles.push(sourcePath)
+  }
   const sourceDomain = sourcePath.match(/^src\/features\/([^/]+)\//)?.[1]
   const featureImports = [...contents.matchAll(/from\s+['"]@\/features\/([^/]+)\/([^'"]+)['"]/g)]
   for (const featureImport of featureImports) {
@@ -704,6 +800,14 @@ for (const path of sourceFiles) {
       failures.push(`跨领域只能导入对方 public.ts：${sourcePath} -> ${targetDomain}/${targetPath}`)
     }
   }
+}
+// Shared scenario bars are intentionally reused by the settings pages; the guard
+// remains a regression check for uncontrolled page-by-page duplication.
+if (legacyScenarioControlFiles.length > 60) {
+  failures.push(`新增业务页面不得复制场景/角色控制条；当前 ${legacyScenarioControlFiles.length} 个，历史上限 60 个`)
+}
+if (integrationFlows.some((flow) => flow.status === 'passing') && independentStoreSessions.length > 0) {
+  failures.push(`存在 FLOW-* passing，但业务 Store 仍直接创建独立 Mock 会话：${independentStoreSessions.join(', ')}`)
 }
 
 const securityFiles = [
@@ -741,5 +845,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Harness 验证通过：${features.length} 个功能切片（${implementableCount} 可进入规格提取、${blockedCount} blocked），${decisions.length} 个决策门，${productSpecPaths.length} 份领域规格，${requirementsManifest.files.length} 份需求快照，${agentLines} 行入口导航。`,
+  `Harness 验证通过：${features.length} 个功能切片（${implementableCount} 可进入规格提取、${blockedCount} blocked），${integrationFlows.length} 条跨模块流程（${integrationFlows.filter((flow) => flow.status === 'passing').length} passing），${decisions.length} 个决策门，${productSpecPaths.length} 份领域规格，${requirementsManifest.files.length} 份需求快照，${agentLines} 行入口导航。`,
 )

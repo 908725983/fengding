@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { customerBaseline } from '../../../../mock/handlers/customer-handler'
 import { InMemoryCustomerRepository } from '../repositories/customer-repository'
-import type { CustomerActor, CustomerDraft } from '../types'
+import type { CustomerActor, CustomerDraft, PaymentMethod } from '../types'
 import {
   CustomerDomainError,
   applyCategoryToDraft,
@@ -64,16 +64,21 @@ describe('CUS-001 customer service', () => {
     expect(changeSettlementMethod(withCategory, 'monthly').paymentTermDays).toBeNull()
   })
 
-  it('creates deterministic auto codes and atomically rejects duplicates (CUS-01)', () => {
-    const created = service.createCustomer(admin, validDraft())
-    expect(created.code).toBe('CUS-000003')
-    expect(repository.read().nextCustomerSequence).toBe(4)
+  it('requires manual customer codes and atomically rejects duplicates (CUS-01)', () => {
+    const created = service.createCustomer(admin, { ...validDraft(), codeMode: 'manual', code: 'CUS-TEST-001' })
+    expect(created.code).toBe('CUS-TEST-001')
 
     const duplicate = { ...validDraft(), codeMode: 'manual' as const, code: 'cus-000001' }
     const before = repository.read()
     expect(() => service.createCustomer(admin, duplicate)).toThrowError(CustomerDomainError)
     expect(repository.read()).toEqual(before)
-    expect(() => service.createCustomer(admin, { ...validDraft(), status: 'inactive' })).toThrowError(expect.objectContaining({ code: 'INVALID_TRANSITION' }))
+    expect(() => service.createCustomer(admin, { ...validDraft(), codeMode: 'manual', code: 'CUS-INACTIVE-001', status: 'inactive' })).toThrowError(expect.objectContaining({ code: 'INVALID_TRANSITION' }))
+  })
+
+  it('requires a 16-19 digit card number when bank transfer is selected', () => {
+    const base = { ...validDraft(), codeMode: 'manual' as const, code: 'CUS-BANK-001', paymentMethods: ['bank-transfer'] as PaymentMethod[] }
+    expect(() => service.createCustomer(admin, { ...base, bankAccount: '1234' })).toThrowError(/银行卡号必须为 16～19 位数字/)
+    expect(() => service.createCustomer(admin, { ...base, bankAccount: '1234567890123456' })).not.toThrow()
   })
 
   it('filters a category with descendants and matches any selected tag', () => {

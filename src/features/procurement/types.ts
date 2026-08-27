@@ -53,7 +53,7 @@ export interface SupplierProductRelation {
 export interface SupplierAuditLog {
   id: EntityId
   enterpriseId: EntityId
-  targetType: 'supplier' | 'supplier-product'
+  targetType: 'supplier' | 'supplier-product' | 'purchase-order' | 'purchase-return'
   targetId: EntityId
   action: string
   actorId: EntityId
@@ -66,7 +66,7 @@ export interface ProcurementRequestRecord {
   command: string
   targetId: EntityId
   resultVersion: number
-  result: Supplier | SupplierProductRelation | Supplier[]
+  result: Supplier | SupplierProductRelation | Supplier[] | PurchaseOrder | PurchaseReturn
 }
 
 export interface ProcurementFeatureState {
@@ -76,6 +76,291 @@ export interface ProcurementFeatureState {
   supplierProducts: SupplierProductRelation[]
   auditLogs: SupplierAuditLog[]
   requests: ProcurementRequestRecord[]
+  purchaseOrders?: PurchaseOrder[]
+  purchaseReturns?: PurchaseReturn[]
+  purchaseInbounds?: PurchaseInboundRecord[]
+}
+
+export type PurchaseOrderWorkflowStatus = 'pending-review' | 'approved' | 'voided' | 'cancelled'
+export type PurchaseOrderInboundStatus = 'not-received' | 'partially-received' | 'received'
+export type PurchaseOrderPaymentStatus = 'unavailable'
+
+export interface PurchaseOrderLine {
+  id: EntityId
+  skuId: EntityId
+  productNameSnapshot: string
+  productCodeSnapshot: string
+  skuCodeSnapshot: string
+  specificationSnapshot: string
+  barcodeSnapshot?: string | null
+  categoryIdSnapshot?: EntityId | null
+  categoryNameSnapshot?: string | null
+  baseUnitIdSnapshot?: EntityId | null
+  baseUnitNameSnapshot?: string | null
+  procurementUnitId: EntityId
+  procurementUnitNameSnapshot: string
+  procurementUnitRateMilli: number
+  quantity: number
+  baseQuantityMilli: number
+  unitPriceCents: number
+  amountCents: number
+  isGift: boolean
+  note: string | null
+  receivedQuantity: number
+  receivedBaseQuantityMilli: number
+  currentStockMilli: number | null
+  supplierRelationId: EntityId
+}
+
+export interface PurchaseOrder {
+  id: EntityId
+  enterpriseId: EntityId
+  code: string
+  createdAt: string
+  supplierId: EntityId
+  supplierNameSnapshot: string
+  warehouseId: EntityId
+  warehouseNameSnapshot?: string | null
+  receiverName: string | null
+  receiverPhone: string | null
+  receiverAddress: string | null
+  workflowStatus: PurchaseOrderWorkflowStatus
+  inboundStatus: PurchaseOrderInboundStatus
+  paymentStatus: PurchaseOrderPaymentStatus
+  lines: PurchaseOrderLine[]
+  totalQuantity: number
+  totalAmountCents: number
+  originalAmountCents: number
+  productDiscountCents: number
+  otherFeeCents: number
+  orderAmountCents: number
+  note: string | null
+  source: 'manual' | 'stock-analysis' | 'order-analysis'
+  sourceOrderIds: EntityId[]
+  version: number
+  updatedAt: string
+  auditLogIds: EntityId[]
+}
+
+export interface PurchaseOrderDraftLine {
+  skuId: EntityId
+  quantity: number
+  unitPriceCents: number
+  isGift?: boolean
+  note?: string | null
+  supplierRelationId?: EntityId
+}
+
+export interface PurchaseOrderDraft {
+  supplierId: EntityId
+  warehouseId: EntityId
+  lines: PurchaseOrderDraftLine[]
+  otherFeeCents?: number
+  productDiscountCents?: number
+  receiverName?: string | null
+  receiverPhone?: string | null
+  receiverAddress?: string | null
+  note?: string | null
+  source?: 'manual' | 'stock-analysis' | 'order-analysis'
+  sourceOrderIds?: EntityId[]
+}
+
+export interface PurchaseOrderListQuery { workflowStatus?: PurchaseOrderWorkflowStatus | 'all'; inboundStatus?: PurchaseOrderInboundStatus | 'all'; warehouseId?: EntityId; keyword?: string; page?: number; pageSize?: 10 | 30 | 50 | 100 }
+export interface PurchaseOrderInboundLine { lineId: EntityId; quantity: number; batchNumber?: string; productionDate?: string | null; expiresOn?: string | null; costPerBaseUnitCents?: number }
+export interface PurchaseOrderInboundInput { orderId: EntityId; warehouseId: EntityId; locationId: EntityId; lines: PurchaseOrderInboundLine[]; requestId: string; operatorId: EntityId; occurredAt: string }
+export interface PurchaseInboundRecordLine {
+  id: EntityId
+  purchaseOrderLineId: EntityId
+  skuId: EntityId
+  productNameSnapshot: string
+  productCodeSnapshot: string
+  skuCodeSnapshot: string
+  specificationSnapshot: string
+  barcodeSnapshot: string | null
+  categoryIdSnapshot: EntityId | null
+  categoryNameSnapshot: string | null
+  baseUnitIdSnapshot: EntityId | null
+  baseUnitNameSnapshot: string | null
+  procurementUnitId: EntityId
+  procurementUnitNameSnapshot: string
+  procurementUnitRateMilli: number
+  quantity: number
+  baseQuantityMilli: number
+  unitPriceCents: number
+  goodsAmountCents: number
+  allocatedDiscountCents: number
+  allocatedOtherFeeCents: number
+  amountCents: number
+  isGift: boolean
+}
+export interface PurchaseInboundRecord {
+  id: EntityId
+  code: string
+  requestId: string
+  purchaseOrderId: EntityId
+  purchaseOrderCodeSnapshot: string
+  supplierId: EntityId
+  supplierCodeSnapshot: string
+  supplierNameSnapshot: string
+  warehouseId: EntityId
+  warehouseNameSnapshot: string | null
+  occurredAt: string
+  operatorId: EntityId
+  lines: PurchaseInboundRecordLine[]
+  totalBaseQuantityMilli: number
+  goodsAmountCents: number
+  allocatedDiscountCents: number
+  allocatedOtherFeeCents: number
+  amountCents: number
+}
+export interface PurchaseInventoryProvider {
+  confirmInbound(actor: { actorId: EntityId; role: 'super-admin' | 'warehouse' }, input: { requestId: string; sourceType: string; sourceId: string; operatorId: EntityId; occurredAt: string; warehouseId: EntityId; locationId: EntityId; skuId: EntityId; quantityMilli: number; costPerBaseUnitCents: number; batchNumber?: string; productionDate?: string | null; expiresOn?: string | null }): unknown
+  confirmOutboundBatch?(actor: { actorId: EntityId; role: 'super-admin' | 'warehouse' }, input: { requestId: string; sourceType: string; sourceId: string; operatorId: EntityId; occurredAt: string; warehouseId: EntityId; lines: Array<{ referenceId: EntityId; skuId: EntityId; quantityMilli: number }> }): Array<{ referenceId: EntityId; skuId: EntityId; balanceId: EntityId; batchId: EntityId; batchNumber: string; locationId: EntityId; quantityMilli: number; movementId?: EntityId }>
+  snapshot?: () => unknown
+  restore?: (snapshot: unknown) => void
+  getWarehouse?: (actor: { actorId: EntityId; role: 'super-admin' | 'warehouse' }, warehouseId: EntityId) => { id: EntityId; name: string } | null
+}
+export interface PurchaseFinanceProvider {
+  checkpoint(): unknown
+  restore(snapshot: unknown): void
+  createPayableFromInbound(input: {
+    requestId: string; purchaseOrderId: EntityId; purchaseOrderNo: string; inboundId: EntityId; inboundNo: string
+    supplierSnapshot: { id: EntityId; code: string; name: string; contactName: string; phone: string; paymentTermDays: number | null }
+    items: Array<{ inboundLineId: EntityId; purchaseOrderLineId: EntityId; skuId: EntityId; skuCode: string; productName: string; specification: string; unitName: string; quantityMilli: number; unitPriceCents: number; subtotalCents: number; allocatedDiscountCents: number; allocatedOtherFeeCents: number; amountCents: number; isGift: boolean }>
+    goodsAmountCents: number; discountCents: number; otherFeeCents: number; amountCents: number; occurredAt: string; paymentTermDays: number | null
+    operator: { id: EntityId; name: string; role: ProcurementRole }
+  }): unknown
+  listPayablesForPurchaseOrder?(purchaseOrderId: EntityId): Array<{
+    id: EntityId
+    inboundId: EntityId
+    occurredAt: string
+    supplierId: EntityId
+    items: Array<{ purchaseOrderLineId: EntityId; quantityMilli: number; subtotalCents: number; allocatedDiscountCents: number; allocatedOtherFeeCents: number; amountCents: number }>
+  }>
+  createPayableCredit?(input: {
+    requestId: string
+    sourceId: EntityId
+    sourceNo: string
+    supplierId: EntityId
+    payableId: EntityId
+    amountCents: number
+    occurredAt: string
+    operator: { id: EntityId; name: string; role: ProcurementRole }
+  }): { id: EntityId; outstandingReductionCents: number; refundObligationCents: number }
+}
+
+export type PurchaseReturnWorkflowStatus = 'pending-review' | 'approved' | 'completed' | 'voided'
+export type PurchaseReturnOutboundStatus = 'not-shipped' | 'partially-shipped' | 'shipped'
+export type PurchaseReturnRefundStatus = 'not-required' | 'pending' | 'refunded'
+
+export interface PurchaseReturnLine {
+  id: EntityId
+  purchaseOrderLineId: EntityId
+  skuId: EntityId
+  productNameSnapshot: string
+  productCodeSnapshot: string
+  skuCodeSnapshot: string
+  specificationSnapshot: string
+  barcodeSnapshot?: string | null
+  categoryIdSnapshot?: EntityId | null
+  categoryNameSnapshot?: string | null
+  baseUnitIdSnapshot?: EntityId | null
+  baseUnitNameSnapshot?: string | null
+  procurementUnitId: EntityId
+  procurementUnitNameSnapshot: string
+  procurementUnitRateMilli: number
+  quantity: number
+  baseQuantityMilli: number
+  shippedQuantity: number
+  shippedBaseQuantityMilli: number
+  unitPriceCents: number
+  goodsAmountCents: number
+  allocatedDiscountCents: number
+  allocatedOtherFeeCents: number
+  amountCents: number
+  isGift: boolean
+  note: string | null
+}
+
+export interface PurchaseReturnCreditAllocation {
+  id: EntityId
+  lineId: EntityId
+  purchaseOrderLineId: EntityId
+  payableId: EntityId
+  quantityMilli: number
+  amountCents: number
+  financeCreditId: EntityId
+  outstandingReductionCents: number
+  refundObligationCents: number
+}
+
+export interface PurchaseReturnShipment {
+  id: EntityId
+  code?: string
+  requestId: string
+  occurredAt: string
+  operatorId: EntityId
+  warehouseNameSnapshot?: string | null
+  lines: Array<{ lineId: EntityId; quantity: number; baseQuantityMilli: number }>
+  inventoryMovementIds: EntityId[]
+  credits: PurchaseReturnCreditAllocation[]
+  amountCents: number
+}
+
+export interface PurchaseReturn {
+  id: EntityId
+  enterpriseId: EntityId
+  code: string
+  createdAt: string
+  returnDate: string
+  purchaseOrderId: EntityId
+  purchaseOrderCodeSnapshot: string
+  supplierId: EntityId
+  supplierCodeSnapshot: string
+  supplierNameSnapshot: string
+  supplierContactNameSnapshot: string
+  supplierContactPhoneSnapshot: string
+  warehouseId: EntityId
+  workflowStatus: PurchaseReturnWorkflowStatus
+  outboundStatus: PurchaseReturnOutboundStatus
+  refundStatus: PurchaseReturnRefundStatus
+  lines: PurchaseReturnLine[]
+  totalQuantity: number
+  totalBaseQuantityMilli: number
+  goodsAmountCents: number
+  allocatedDiscountCents: number
+  allocatedOtherFeeCents: number
+  amountCents: number
+  note: string | null
+  voidInfo: { reason: string; voidedAt: string; voidedBy: EntityId } | null
+  shipments: PurchaseReturnShipment[]
+  createdBy: EntityId
+  approvedBy: EntityId | null
+  approvedAt: string | null
+  version: number
+  updatedAt: string
+  auditLogIds: EntityId[]
+}
+
+export interface PurchaseReturnDraftLine { purchaseOrderLineId: EntityId; quantity: number; note?: string | null }
+export interface PurchaseReturnDraft { purchaseOrderId: EntityId; returnDate: string; lines: PurchaseReturnDraftLine[]; note?: string | null }
+export interface PurchaseReturnSourceLine extends PurchaseOrderLine { returnableQuantity: number }
+export interface PurchaseReturnSource extends Omit<PurchaseOrder, 'lines'> { lines: PurchaseReturnSourceLine[] }
+export interface PurchaseReturnListQuery {
+  workflowStatus?: PurchaseReturnWorkflowStatus | 'all'
+  dateFrom?: string
+  dateTo?: string
+  keyword?: string
+  page?: number
+  pageSize?: 10 | 30 | 50 | 100
+}
+export interface PurchaseReturnOutboundInput {
+  returnId: EntityId
+  lines: Array<{ lineId: EntityId; quantity: number }>
+  requestId: string
+  expectedVersion: number
+  operatorId: EntityId
+  occurredAt: string
 }
 
 export interface SupplierDraft {
@@ -120,6 +405,8 @@ export interface ProcurementSkuSnapshot {
   specification: string
   barcode: string | null
   categoryId: EntityId
+  baseUnitId?: EntityId
+  baseUnitName?: string
   productStatus: 'draft' | 'on-sale' | 'off-sale'
   deleted: boolean
   procurementUnitId: EntityId

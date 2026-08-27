@@ -1,5 +1,7 @@
 import { describe,expect,it } from 'vitest'
-import { createOrderMockSession } from '../../../../mock/handlers/order-handler'
+import { createOrderCatalogProvider, createOrderMockSession } from '../../../../mock/handlers/order-handler'
+import { createInventoryMockSession } from '../../../../mock/handlers/inventory-handler'
+import { createFinanceMockSession } from '../../../../mock/handlers/finance-handler'
 import { createEmptyOrderDraft } from './order-service'
 import type { OrderActor, OrderDraft } from '../types'
 
@@ -14,6 +16,7 @@ describe('order queries',()=>{
 })
 
 describe('order permissions and providers',()=>{
+  it('lists on-sale SKUs for assisted ordering without customer product authorization',()=>{const session=createOrderMockSession('boundary',false,undefined,{seedDemoData:false});expect(session.service.listOrderableSkus(admin,'customer-1').map((item)=>item.skuId)).toContain('sku-1')})
   it('masks finance and warehouse at service boundary',()=>{const {service}=setup();const warehouseOrder=service.listOrders(warehouse).items[0]!.order;expect(warehouseOrder.amounts.orderAmountCents).toBeNull();expect(warehouseOrder.lines[0]!.dealUnitPriceCents).toBeNull();const financeOrder=service.listOrders(finance).items[0]!.order;expect(financeOrder.shippingSnapshot.phone).toBeNull();expect(financeOrder.shippingSnapshot.address).toBeNull();expect(()=>service.exportOrdersCsv(warehouse)).toThrowError(expect.objectContaining({code:'PERMISSION_DENIED'}))})
   it('keeps available finance and provider error distinct from zero',()=>{const normal=setup().service.getOrderDetail(admin,'order-001');expect(normal.financials.creditLimitCents).toMatchObject({state:'available',value:200000});expect(normal.financials.receivablesCents).toMatchObject({state:'available',value:50000});expect(normal.inventoryRecommendation).toMatchObject({state:'unavailable',value:null});const partial=setup(true).service.getOrderDetail(admin,'order-001');expect(partial.financials.creditLimitCents.state).toBe('error');expect(partial.financials.receivablesCents.state).toBe('error')})
 })
@@ -25,6 +28,16 @@ describe('order outputs',()=>{
 })
 
 describe('order creation and editing',()=>{
+  it('uses a runtime SKU market price when the legacy price provider does not know the SKU',()=>{
+    const catalog=createOrderCatalogProvider()
+    const runtimeSku={...catalog.listSkus()[0]!,skuId:'sku-runtime-coco',skuCode:'SKU-COCO',productCode:'SPU-COCO',productName:'可口可乐（运行时）',marketPriceCents:880}
+    const session=createOrderMockSession('normal',false,{inventory:createInventoryMockSession('normal'),finance:createFinanceMockSession('normal'),catalog:{listSkus:()=>[...catalog.listSkus(),runtimeSku],getSku:(skuId)=>skuId===runtimeSku.skuId?structuredClone(runtimeSku):catalog.getSku(skuId)}})
+    const draft=validDraft(); draft.lines[0]={...draft.lines[0]!,skuId:runtimeSku.skuId,unitId:runtimeSku.baseUnitId,quantity:25}
+    const preview=session.service.previewDraft(admin,draft)
+    expect(preview.lines[0]).toMatchObject({skuId:runtimeSku.skuId,originalUnitPriceCents:880,dealUnitPriceCents:880,subtotalCents:22000})
+    const saved=session.service.saveOrder(admin,{requestId:'save-runtime-price',draft})
+    expect(saved.lines[0]).toMatchObject({skuId:runtimeSku.skuId,originalUnitPriceCents:880,dealUnitPriceCents:880})
+  })
   it('creates a pending-review order with a deterministic number, snapshots and prepayment hold',()=>{const {service,repository}=setup();const before=repository.read().orders.length;const order=service.saveOrder(admin,{requestId:'save-create-1',draft:validDraft()});expect(order).toMatchObject({orderNo:'CA-260810-00001',status:'pending-order-review',customerSnapshot:{id:'customer-1'},fulfillmentWarehouseSnapshot:{id:'warehouse-main'},salespersonSnapshot:{id:'staff-demo-1'}});expect(order.amounts.orderAmountCents).toBeGreaterThanOrEqual(20000);expect(order.occupiedPrepaymentCents).toBe(order.amounts.orderAmountCents);expect(repository.read().orders).toHaveLength(before+1);expect(repository.read().nextOrderSequenceByDate).toEqual({'260810':2})})
   it('replays the same save request without consuming another number',()=>{const {service,repository}=setup();const first=service.saveOrder(admin,{requestId:'save-idempotent',draft:validDraft()});const state=repository.read();const second=service.saveOrder(admin,{requestId:'save-idempotent',draft:{...validDraft(),remark:'该变化不得生效'}});expect(second).toEqual(first);expect(repository.read()).toEqual(state)})
   it('only edits pending-review orders and rejects a stale version',()=>{const {service,repository}=setup();const editable=service.getEditableDraft(admin,'order-001');editable.draft.lines[0]!.quantity=21;const updated=service.saveOrder(admin,{requestId:'save-edit-1',orderId:'order-001',expectedUpdatedAt:editable.updatedAt,draft:editable.draft});expect(updated.orderNo).toBe('CA000000-260710-60001');expect(updated.activityLogs.at(-1)?.action).toBe('order.updated');expect(()=>service.saveOrder(admin,{requestId:'save-edit-stale',orderId:'order-001',expectedUpdatedAt:'2026-01-01T00:00:00+08:00',draft:editable.draft})).toThrowError(expect.objectContaining({code:'CONFLICT'}));expect(()=>service.getEditableDraft(admin,'order-002')).toThrowError(expect.objectContaining({code:'INVALID_STATE'}));expect(repository.read().orders.find((item)=>item.id==='order-001')?.orderNo).toBe('CA000000-260710-60001')})

@@ -7,10 +7,15 @@ import CustomerFormView from '@/features/customers/views/CustomerFormView.vue'
 import CustomerCategoryView from '@/features/customers/views/CustomerCategoryView.vue'
 import CustomerTagView from '@/features/customers/views/CustomerTagView.vue'
 import CustomerSmartTagView from '@/features/customers/views/CustomerSmartTagView.vue'
+import CustomerOperationsView from '@/features/customers/views/CustomerOperationsView.vue'
+import CustomerMembershipPointsView from '@/features/customers/views/CustomerMembershipPointsView.vue'
+import CustomerMarketingView from '@/features/customers/views/CustomerMarketingView.vue'
+import CustomerChannelView from '@/features/customers/views/CustomerChannelView.vue'
 import { guardCustomerSubroute } from '@/features/customers/runtime/customer-access'
 import ProductListView from '@/features/products/views/ProductListView.vue'
 import ProductDetailView from '@/features/products/views/ProductDetailView.vue'
 import ProductFormView from '@/features/products/views/ProductFormView.vue'
+import ProductReferenceView from '@/features/products/views/ProductReferenceView.vue'
 import { guardProductSubroute } from '@/features/products/runtime/product-access'
 import PriceAdjustmentListView from '@/features/products/pricing/views/PriceAdjustmentListView.vue'
 import PriceHistoryView from '@/features/products/pricing/views/PriceHistoryView.vue'
@@ -37,6 +42,26 @@ import WarehouseListView from '@/features/inventory/views/WarehouseListView.vue'
 import WarehouseFormView from '@/features/inventory/views/WarehouseFormView.vue'
 import LocationListView from '@/features/inventory/views/LocationListView.vue'
 import LocationFormView from '@/features/inventory/views/LocationFormView.vue'
+import InventoryTransferView from '@/features/inventory/views/InventoryTransferView.vue'
+import InventoryOtherOutboundView from '@/features/inventory/views/InventoryOtherOutboundView.vue'
+import InventoryOtherInboundView from '@/features/inventory/views/InventoryOtherInboundView.vue'
+import InventoryStocktakeView from '@/features/inventory/views/InventoryStocktakeView.vue'
+import InventoryCostAdjustmentView from '@/features/inventory/views/InventoryCostAdjustmentView.vue'
+import InventoryClosingView from '@/features/inventory/views/InventoryClosingView.vue'
+import InventoryProcessingRecipeView from '@/features/inventory/views/InventoryProcessingRecipeView.vue'
+import InventoryProcessingPlanView from '@/features/inventory/views/InventoryProcessingPlanView.vue'
+import InventoryProcessingOrderView from '@/features/inventory/views/InventoryProcessingOrderView.vue'
+import InventoryMaterialPickView from '@/features/inventory/views/InventoryMaterialPickView.vue'
+import InventoryMaterialReturnView from '@/features/inventory/views/InventoryMaterialReturnView.vue'
+import InventoryProcessingYieldView from '@/features/inventory/views/InventoryProcessingYieldView.vue'
+import InventoryPendingOutboundView from '@/features/inventory/views/InventoryPendingOutboundView.vue'
+import InventoryOrderPickingView from '@/features/inventory/views/InventoryOrderPickingView.vue'
+import InventoryWavePickingView from '@/features/inventory/views/InventoryWavePickingView.vue'
+import InventoryDeliveryTaskView from '@/features/inventory/views/InventoryDeliveryTaskView.vue'
+import InventoryDeliveryRouteView from '@/features/inventory/views/InventoryDeliveryRouteView.vue'
+import InventoryDeliveryVehicleView from '@/features/inventory/views/InventoryDeliveryVehicleView.vue'
+import InventoryPickingLabelView from '@/features/inventory/views/InventoryPickingLabelView.vue'
+import InventoryStatisticsView from '@/features/inventory/views/InventoryStatisticsView.vue'
 import { guardInventorySubroute } from '@/features/inventory/runtime/inventory-access'
 import OrderListView from '@/features/orders/views/OrderListView.vue'
 import OrderDetailView from '@/features/orders/views/OrderDetailView.vue'
@@ -59,6 +84,9 @@ import FinanceCarryoverView from '@/features/finance/views/FinanceCarryoverView.
 import FinanceBankListView from '@/features/finance/views/FinanceBankListView.vue'
 import FinancePaymentChannelView from '@/features/finance/views/FinancePaymentChannelView.vue'
 import FinanceReceivableView from '@/features/finance/views/FinanceReceivableView.vue'
+import FinancePayableView from '@/features/finance/views/FinancePayableView.vue'
+import FinanceSupplierPaymentView from '@/features/finance/views/FinanceSupplierPaymentView.vue'
+import FinanceSupplierWriteoffView from '@/features/finance/views/FinanceSupplierWriteoffView.vue'
 import FinanceReceiptListView from '@/features/finance/views/FinanceReceiptListView.vue'
 import FinanceReceiptFormView from '@/features/finance/views/FinanceReceiptFormView.vue'
 import FinanceReceiptDetailView from '@/features/finance/views/FinanceReceiptDetailView.vue'
@@ -67,15 +95,28 @@ import FinanceWriteoffFormView from '@/features/finance/views/FinanceWriteoffFor
 import FinanceWriteoffDetailView from '@/features/finance/views/FinanceWriteoffDetailView.vue'
 import FinanceRefundListView from '@/features/finance/views/FinanceRefundListView.vue'
 import FinanceRefundDetailView from '@/features/finance/views/FinanceRefundDetailView.vue'
+import FinanceExtensionView from '@/features/finance/views/FinanceExtensionView.vue'
 import { guardFinanceSubroute } from '@/features/finance/runtime/finance-access'
+import SettingsCompanyView from '@/features/settings/views/SettingsCompanyView.vue'
+import SettingsDepartmentView from '@/features/settings/views/SettingsDepartmentView.vue'
+import SettingsAnnouncementView from '@/features/settings/views/SettingsAnnouncementView.vue'
+import SettingsRegionView from '@/features/settings/views/SettingsRegionView.vue'
+import SettingsWarehouseView from '@/features/settings/views/SettingsWarehouseView.vue'
+import SettingsRoleView from '@/features/settings/views/SettingsRoleView.vue'
+import SettingsEmployeeView from '@/features/settings/views/SettingsEmployeeView.vue'
+import SettingsLogView from '@/features/settings/views/SettingsLogView.vue'
+import { guardSettingsSubroute } from '@/features/settings/runtime/settings-access'
 import SupplierListView from '@/features/procurement/views/SupplierListView.vue'
 import SupplierDetailView from '@/features/procurement/views/SupplierDetailView.vue'
 import SupplierFormView from '@/features/procurement/views/SupplierFormView.vue'
 import SupplierProductView from '@/features/procurement/views/SupplierProductView.vue'
 import DirectDeliveryView from '@/features/procurement/views/DirectDeliveryView.vue'
+import PurchaseStatisticsView from '@/features/procurement/views/PurchaseStatisticsView.vue'
 import { guardProcurementSubroute } from '@/features/procurement/runtime/procurement-access'
 import ReplenishmentView from '@/features/procurement/views/ReplenishmentView.vue'
 import QuickPurchaseView from '@/features/procurement/views/QuickPurchaseView.vue'
+import PurchaseOrderView from '@/features/procurement/views/PurchaseOrderView.vue'
+import PurchaseReturnView from '@/features/procurement/views/PurchaseReturnView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -102,10 +143,35 @@ export const router = createRouter({
     { path: '/customers/categories', name: 'customer-categories', component: CustomerCategoryView },
     { path: '/customers/tags', name: 'customer-tags', component: CustomerTagView },
     { path: '/customers/smart-tags', name: 'customer-smart-tags', component: CustomerSmartTagView },
+    { path: '/customers/opportunities', name: 'customer-opportunities', component: CustomerOperationsView, props: { mode: 'opportunities' } },
+    { path: '/customers/frequent-products', name: 'customer-frequent-products', component: CustomerOperationsView, props: { mode: 'frequent-products' } },
+    { path: '/customers/map', name: 'customer-map', component: CustomerOperationsView, props: { mode: 'map' } },
+    { path: '/customers/public-sea', name: 'customer-public-sea', component: CustomerOperationsView, props: { mode: 'public-sea' } },
+    { path: '/customers/public-sea/rules', name: 'customer-public-sea-rules', component: CustomerOperationsView, props: { mode: 'public-sea-rules' } },
+    { path: '/customers/fieldwork/dashboard', name: 'customer-fieldwork-dashboard', component: CustomerOperationsView, props: { mode: 'fieldwork-dashboard' } },
+    { path: '/customers/fieldwork/visits', name: 'customer-fieldwork-visits', component: CustomerOperationsView, props: { mode: 'visits' } },
+    { path: '/customers/fieldwork/routes', name: 'customer-fieldwork-routes', component: CustomerOperationsView, props: { mode: 'routes' } },
+    { path: '/customers/fieldwork/plans', name: 'customer-fieldwork-plans', component: CustomerOperationsView, props: { mode: 'plans' } },
+    { path: '/customers/membership-levels', name: 'customer-membership-levels', component: CustomerMembershipPointsView, props: { mode: 'membership-levels' } },
+    { path: '/customers/points', name: 'customer-points', component: CustomerMembershipPointsView, props: { mode: 'points' } },
+    { path: '/customers/points/settings', name: 'customer-points-settings', component: CustomerMembershipPointsView, props: { mode: 'points-settings' } },
+    { path: '/customers/coupons', name: 'customer-coupons', component: CustomerMarketingView, props: { mode: 'coupons' } },
+    { path: '/customers/promotions', name: 'customer-promotions', component: CustomerMarketingView, props: { mode: 'promotions' } },
+    { path: '/customers/voucher-campaigns', name: 'customer-voucher-campaigns', component: CustomerMarketingView, props: { mode: 'voucher-campaigns' } },
+    { path: '/customers/articles', name: 'customer-articles', component: CustomerMarketingView, props: { mode: 'articles' } },
+    { path: '/customers/marketing-analysis', name: 'customer-marketing-analysis', component: CustomerMarketingView, props: { mode: 'marketing-analysis' } },
+    { path: '/customers/ai-marketing-analysis', name: 'customer-ai-marketing-analysis', component: CustomerMarketingView, props: { mode: 'ai-analysis' } },
+    { path: '/customers/referral-commission', name: 'customer-referral-commission', component: CustomerMarketingView, props: { mode: 'referral-commission' } },
+    { path: '/customers/wecom', name: 'customer-wecom', component: CustomerChannelView, props: { mode: 'wecom' } },
+    { path: '/customers/mall', name: 'customer-mall', component: CustomerChannelView, props: { mode: 'mall' } },
     { path: '/customers/:customerId/edit', name: 'customer-edit', component: CustomerFormView },
     { path: '/customers/:customerId', name: 'customer-detail', component: CustomerDetailView },
     { path: '/products', name: 'product-list', component: ProductListView },
     { path: '/products/new', name: 'product-new', component: ProductFormView },
+    { path: '/products/references/categories', name: 'product-reference-categories', component: ProductReferenceView, props: { kind: 'categories' } },
+    { path: '/products/references/brands', name: 'product-reference-brands', component: ProductReferenceView, props: { kind: 'brands' } },
+    { path: '/products/references/units', name: 'product-reference-units', component: ProductReferenceView, props: { kind: 'units' } },
+    { path: '/products/references/tags', name: 'product-reference-tags', component: ProductReferenceView, props: { kind: 'tags' } },
     { path: '/products/prices/level-adjustments', name: 'price-level-adjustments', component: PriceAdjustmentListView, props: { type: 'level' } },
     { path: '/products/prices/level-adjustments/new', name: 'price-level-new', component: PriceAdjustmentFormView, props: { type: 'level' } },
     { path: '/products/prices/level-adjustments/:adjustmentId/edit', name: 'price-level-edit', component: PriceAdjustmentFormView, props: { type: 'level' } },
@@ -150,8 +216,33 @@ export const router = createRouter({
     { path: '/inventory/locations', name: 'inventory-locations', component: LocationListView },
     { path: '/inventory/locations/new', name: 'inventory-location-new', component: LocationFormView },
     { path: '/inventory/locations/:locationId/edit', name: 'inventory-location-edit', component: LocationFormView },
+    { path: '/inventory/transfers', name: 'inventory-transfers', component: InventoryTransferView },
+    { path: '/inventory/other-outbounds', name: 'inventory-other-outbounds', component: InventoryOtherOutboundView },
+    { path: '/inventory/other-inbounds', name: 'inventory-other-inbounds', component: InventoryOtherInboundView },
+    { path: '/inventory/stocktakes', name: 'inventory-stocktakes', component: InventoryStocktakeView },
+    { path: '/inventory/cost-adjustments', name: 'inventory-cost-adjustments', component: InventoryCostAdjustmentView },
+    { path: '/inventory/closings', name: 'inventory-closings', component: InventoryClosingView },
+    { path: '/inventory/processing-recipes', name: 'inventory-processing-recipes', component: InventoryProcessingRecipeView },
+    { path: '/inventory/processing-plans', name: 'inventory-processing-plans', component: InventoryProcessingPlanView },
+    { path: '/inventory/processing-orders', name: 'inventory-processing-orders', component: InventoryProcessingOrderView },
+    { path: '/inventory/material-picks', name: 'inventory-material-picks', component: InventoryMaterialPickView },
+    { path: '/inventory/material-returns', name: 'inventory-material-returns', component: InventoryMaterialReturnView },
+    { path: '/inventory/processing-yields', name: 'inventory-processing-yields', component: InventoryProcessingYieldView },
+    { path: '/inventory/pending-outbound', name: 'inventory-pending-outbound', component: InventoryPendingOutboundView },
+    { path: '/inventory/order-picking', name: 'inventory-order-picking', component: InventoryOrderPickingView },
+    { path: '/inventory/wave-picking', name: 'inventory-wave-picking', component: InventoryWavePickingView },
+    { path: '/inventory/delivery-tasks', name: 'inventory-delivery-tasks', component: InventoryDeliveryTaskView },
+    { path: '/inventory/delivery-routes', name: 'inventory-delivery-routes', component: InventoryDeliveryRouteView },
+    { path: '/inventory/delivery-vehicles', name: 'inventory-delivery-vehicles', component: InventoryDeliveryVehicleView },
+    { path: '/inventory/picking-labels', name: 'inventory-picking-labels', component: InventoryPickingLabelView },
+    { path: '/inventory/statistics', name: 'inventory-statistics', component: InventoryStatisticsView },
     { path: '/procurement', redirect: '/procurement/suppliers' },
     { path: '/procurement/replenishment', name: 'procurement-replenishment', component: ReplenishmentView },
+    { path: '/procurement/purchase-orders', name: 'procurement-purchase-orders', component: PurchaseOrderView },
+    { path: '/procurement/purchase-returns', name: 'procurement-purchase-returns', component: PurchaseReturnView },
+    { path: '/procurement/purchase-returns/new', name: 'procurement-purchase-return-new', component: PurchaseReturnView },
+    { path: '/procurement/purchase-returns/:returnId', name: 'procurement-purchase-return-detail', component: PurchaseReturnView },
+    { path: '/procurement/statistics', name: 'procurement-statistics', component: PurchaseStatisticsView },
     { path: '/procurement/quick-purchase/stock', name: 'procurement-quick-stock', component: QuickPurchaseView, props: { kind: 'stock' } },
     { path: '/procurement/quick-purchase/order', name: 'procurement-quick-order', component: QuickPurchaseView, props: { kind: 'order' } },
     { path: '/procurement/suppliers', name: 'procurement-suppliers', component: SupplierListView },
@@ -165,6 +256,11 @@ export const router = createRouter({
     { path: '/finance/receivables/documents', name: 'finance-receivable-documents', component: FinanceReceivableView, props: { mode: 'documents' } },
     { path: '/finance/receivables/products', name: 'finance-receivable-products', component: FinanceReceivableView, props: { mode: 'products' } },
     { path: '/finance/receivables/aging', name: 'finance-receivable-aging', component: FinanceReceivableView, props: { mode: 'aging' } },
+    { path: '/finance/payables', name: 'finance-payables', component: FinancePayableView, props: { mode: 'documents' } },
+    { path: '/finance/payables/products', name: 'finance-payable-products', component: FinancePayableView, props: { mode: 'products' } },
+    { path: '/finance/payables/aging', name: 'finance-payable-aging', component: FinancePayableView, props: { mode: 'aging' } },
+    { path: '/finance/supplier-payments', name: 'finance-supplier-payments', component: FinanceSupplierPaymentView },
+    { path: '/finance/supplier-writeoffs', name: 'finance-supplier-writeoffs', component: FinanceSupplierWriteoffView },
     { path: '/finance/receipts', name: 'finance-receipts', component: FinanceReceiptListView },
     { path: '/finance/receipts/new', name: 'finance-receipt-new', component: FinanceReceiptFormView },
     { path: '/finance/receipts/:receiptId', name: 'finance-receipt-detail', component: FinanceReceiptDetailView },
@@ -173,6 +269,12 @@ export const router = createRouter({
     { path: '/finance/writeoffs/:writeoffId', name: 'finance-writeoff-detail', component: FinanceWriteoffDetailView },
     { path: '/finance/refunds', name: 'finance-refunds', component: FinanceRefundListView },
     { path: '/finance/refunds/:refundId', name: 'finance-refund-detail', component: FinanceRefundDetailView },
+    { path: '/finance/supplier-refunds', name: 'finance-supplier-refunds', component: FinanceExtensionView, props: { mode: 'supplier-refunds' } },
+    { path: '/finance/transfers', name: 'finance-transfers', component: FinanceExtensionView, props: { mode: 'transfers' } },
+    { path: '/finance/other-transactions', name: 'finance-other-transactions', component: FinanceExtensionView, props: { mode: 'other' } },
+    { path: '/finance/institution-receipts', name: 'finance-institution-receipts', component: FinanceExtensionView, props: { mode: 'institutions' } },
+    { path: '/finance/statistics', name: 'finance-statistics', component: FinanceExtensionView, props: { mode: 'statistics' } },
+    { path: '/finance/withdrawals', name: 'finance-withdrawals', component: FinanceExtensionView, props: { mode: 'withdrawals' } },
     { path: '/finance/accounts', name: 'finance-accounts', component: FinanceAccountListView },
     { path: '/finance/accounts/new', name: 'finance-account-new', component: FinanceAccountFormView },
     { path: '/finance/accounts/:accountId/edit', name: 'finance-account-edit', component: FinanceAccountFormView },
@@ -181,6 +283,15 @@ export const router = createRouter({
     { path: '/finance/carryovers', name: 'finance-carryovers', component: FinanceCarryoverView },
     { path: '/finance/banks', name: 'finance-banks', component: FinanceBankListView },
     { path: '/finance/payment-channels', name: 'finance-payment-channels', component: FinancePaymentChannelView },
+    { path: '/settings', redirect: '/settings/company' },
+    { path: '/settings/company', name: 'settings-company', component: SettingsCompanyView },
+    { path: '/settings/departments', name: 'settings-departments', component: SettingsDepartmentView },
+    { path: '/settings/announcements', name: 'settings-announcements', component: SettingsAnnouncementView },
+    { path: '/settings/regions', name: 'settings-regions', component: SettingsRegionView },
+    { path: '/settings/warehouses', name: 'settings-warehouses', component: SettingsWarehouseView },
+    { path: '/settings/roles', name: 'settings-roles', component: SettingsRoleView },
+    { path: '/settings/employees', name: 'settings-employees', component: SettingsEmployeeView },
+    { path: '/settings/logs', name: 'settings-logs', component: SettingsLogView },
     { path: '/:module(orders|products|procurement|inventory|customers|finance|settings)', name: 'module', component: ModulePlaceholderView },
   ],
 })
@@ -196,5 +307,7 @@ router.beforeEach((to) => {
   if (inventoryResult !== true) return inventoryResult
   const procurementResult = guardProcurementSubroute(to.path)
   if (procurementResult !== true) return procurementResult
-  return guardFinanceSubroute(to.path)
+  const financeResult = guardFinanceSubroute(to.path)
+  if (financeResult !== true) return financeResult
+  return guardSettingsSubroute(to.path)
 })

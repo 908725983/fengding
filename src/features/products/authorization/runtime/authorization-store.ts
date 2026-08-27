@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { createAuthorizationMockSession, type AuthorizationScenarioName } from '../../../../../mock/handlers/authorization-handler'
+import { getApplicationMockRuntimeController } from '../../../../app/runtime/app-mock-runtime'
 import { setCurrentProductRole } from '../../runtime/product-access'
 import type {
   AuthorizationActor, AuthorizationPage, AuthorizationPlan, AuthorizationPlanDraft, AuthorizationPlanListItem, AuthorizationPlanQuery,
@@ -15,6 +16,7 @@ const emptyPage = <T>(): AuthorizationPage<T> => ({ items: [], total: 0, page: 1
 const emptyOptions = (): AuthorizationWorkspaceOptions => ({ products: [], categories: [], brands: [], customers: [], clock: '' })
 
 export const useAuthorizationStore = defineStore('product-authorization', () => {
+  const runtimeController = getApplicationMockRuntimeController()
   const scenario = ref<AuthorizationRuntimeScenario>('normal')
   const actor = ref<AuthorizationActor>({ role: 'super-admin', actorId: 'admin-demo' })
   const activeView = ref<AuthorizationView>('plans')
@@ -30,7 +32,7 @@ export const useAuthorizationStore = defineStore('product-authorization', () => 
   const productDetail = ref<ProductAuthorizationDetail | null>(null)
   const resolution = ref<AuthorizationResolution | null>(null)
   const loading = ref(false); const saving = ref(false); const error = ref<string | null>(null); const referenceError = ref<string | null>(null)
-  let session = createAuthorizationMockSession('normal')
+  let session = runtimeController.authorization
   const canWrite = computed(() => actor.value.role === 'super-admin')
   const isEmpty = computed(() => !loading.value && !error.value && (activeView.value === 'plans' ? plans.value.total === 0 : activeView.value === 'rules' ? rules.value.total === 0 : specials.value.total === 0))
 
@@ -50,7 +52,7 @@ export const useAuthorizationStore = defineStore('product-authorization', () => 
   }
   async function setScenario(next: AuthorizationRuntimeScenario): Promise<void> {
     scenario.value = next; actor.value = next === 'permission-denied' ? { role: 'finance', actorId: 'finance-demo' } : { role: 'super-admin', actorId: 'admin-demo' }; setCurrentProductRole(actor.value.role)
-    session = createAuthorizationMockSession(next === 'partial-failure' || next === 'boundary' ? 'normal' : next)
+    session = next === 'normal' ? runtimeController.authorization : createAuthorizationMockSession(next === 'partial-failure' || next === 'boundary' ? 'normal' : next)
     if (next === 'boundary') session.setClock('2026-08-10T10:00:00+08:00')
     await load()
   }

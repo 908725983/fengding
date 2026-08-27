@@ -53,11 +53,11 @@ describe("order views", () => {
     expect(wrapper.text()).toContain("订单审核通过");
     expect(wrapper.text()).not.toContain("急 / 赠 / 退 / 锁");
   });
-  it("renders detail snapshots, deterministic finance and unavailable inventory", async () => {
+  it("renders detail snapshots, shared finance and unavailable inventory", async () => {
     const { wrapper } = await setup(OrderDetailView, "/orders/order-001");
     expect(wrapper.text()).toContain("CA000000-260710-60001");
     expect(wrapper.text()).toContain("演示基础商品");
-    expect(wrapper.text()).toContain("¥500.00");
+    expect(wrapper.text()).toContain("¥36.00");
     expect(wrapper.text()).toContain("库荐算法尚未接入");
   });
   it("renders create entry and all explicit provider-driven sections", async () => {
@@ -67,7 +67,8 @@ describe("order views", () => {
     );
     expect(wrapper.text()).toContain("新建客户订单");
     expect(wrapper.text()).toContain("请选择启用客户");
-    expect(wrapper.text()).toContain("粘贴商品（skuCode,quantity,unitCode）");
+    expect(wrapper.find('input[placeholder*="搜索商品名称"]').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain("粘贴商品（skuCode,quantity,unitCode）");
     expect(wrapper.text()).toContain("保存并结算出库（F8）");
     expect(
       wrapper.find('button[title*="ORD-004"]').attributes("disabled"),

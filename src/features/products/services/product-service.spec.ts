@@ -45,6 +45,14 @@ describe('PRD-001 product service', () => {
     })
   })
 
+  it('skips stale runtime product and SKU IDs after browser state restoration', () => {
+    service.createProduct(admin, validDraft('缓存 ID 商品一'))
+    sequence = 1
+    const second = service.createProduct(admin, validDraft('缓存 ID 商品二'))
+    expect(second.id).not.toBe('product-generated-1')
+    expect(second.skus[0]?.id).not.toBe('sku-generated-2')
+  })
+
   it('creates draft products with deterministic non-reused SPU and SKU codes', () => {
     const created = service.createProduct(admin, validDraft())
     expect(created).toMatchObject({ code: 'SPU-000004', status: 'draft' })
@@ -145,5 +153,73 @@ describe('PRD-001 product service', () => {
     expect(csv).toContain('SKU-000001')
     expect(csv).not.toContain('SKU-000002')
     expect(csv).not.toContain('明显虚构的演示商品')
+  })
+})
+
+describe('PRD-005 product reference data', () => {
+  let repository: InMemoryProductRepository
+  let sequence: number
+  let service: ReturnType<typeof createProductService>
+
+  beforeEach(() => {
+    repository = new InMemoryProductRepository(productBaseline)
+    sequence = 1
+    service = createProductService({
+      repository,
+      now: () => '2026-08-25T10:00:00+08:00',
+      nextId: (kind) => `${kind}-reference-${sequence++}`,
+    })
+  })
+
+  it('enforces three-level categories, unique names and cycle protection', () => {
+    const levelOne = service.saveReference(admin, 'categories', { name: '新增一级分类' })
+    const levelTwo = service.saveReference(admin, 'categories', { name: '新增二级分类', parentId: String(levelOne.id) })
+    const levelThree = service.saveReference(admin, 'categories', { name: '新增三级分类', parentId: String(levelTwo.id) })
+    expect(() => service.saveReference(admin, 'categories', { name: '新增四级分类', parentId: String(levelThree.id) })).toThrowError(expect.objectContaining({ code: 'INVALID_REFERENCE' }))
+    expect(() => service.saveReference(admin, 'categories', { name: '新增一级分类' })).toThrowError(expect.objectContaining({ code: 'DUPLICATE_CODE' }))
+    expect(() => service.saveReference(admin, 'categories', { name: '新增一级分类', parentId: String(levelThree.id) }, String(levelOne.id))).toThrowError(expect.objectContaining({ code: 'INVALID_REFERENCE' }))
+  })
+
+  it('skips an obsolete reference sequence after persisted browser state is restored', () => {
+    const first = service.saveReference(admin, 'categories', { name: '缓存序号分类一' })
+    repository.transact((state) => { state.nextReferenceSequences = { categories: 1 } })
+    const second = service.saveReference(admin, 'categories', { name: '缓存序号分类二' })
+    expect(second.id).not.toBe(first.id)
+    expect(second.code).not.toBe(first.code)
+  })
+
+  it('validates unit conversion and preserves inactive references for history', () => {
+    expect(() => service.saveReference(admin, 'units', { name: '错误基本单位', type: 'basic', conversionRate: 2 })).toThrowError(expect.objectContaining({ code: 'INVALID_REFERENCE' }))
+    expect(() => service.saveReference(admin, 'units', { name: '精度过高单位', type: 'auxiliary', conversionRate: 1.1234567 })).toThrowError(expect.objectContaining({ code: 'INVALID_REFERENCE' }))
+    const created = service.saveReference(admin, 'units', { name: '可停用单位', type: 'auxiliary', conversionRate: 12.5 })
+    service.setReferenceStatus(admin, 'units', String(created.id), 'inactive')
+    expect(service.listReferenceRecords(admin, 'units').some((item) => item.id === created.id && item.status === 'inactive')).toBe(true)
+    expect(service.listReferenceRecords(salesperson, 'units').some((item) => item.id === created.id)).toBe(false)
+  })
+
+  it('protects referenced records and rejects inactive records for new product assignments', () => {
+    expect(() => service.deleteReference(admin, 'categories', 'product-category-food')).toThrowError(expect.objectContaining({ code: 'REFERENCE_CONFLICT' }))
+    service.setReferenceStatus(admin, 'categories', 'product-category-food', 'inactive')
+    const draft = validDraft('引用停用分类的新商品')
+    draft.categoryId = 'product-category-food'
+    expect(() => service.createProduct(admin, draft)).toThrowError(expect.objectContaining({ code: 'INACTIVE_REFERENCE' }))
+  })
+
+  it('keeps finance out of reference configuration at the service boundary', () => {
+    expect(() => service.listReferenceRecords(finance, 'categories')).toThrowError(expect.objectContaining({ code: 'PERMISSION_DENIED' }))
+    expect(() => service.saveReference(finance, 'categories', { name: '财务不应创建' })).toThrowError(expect.objectContaining({ code: 'PERMISSION_DENIED' }))
+  })
+
+  it('keeps fake smart-tag analysis advisory until confirmation and detects version conflicts', () => {
+    service.saveReference(admin, 'tags', { name: '演示推荐', color: '#5B8FF9', aiAllowed: true }, 'product-tag-featured')
+    expect(() => service.analyzeSmartTags(admin, Array.from({ length: 1001 }, () => 'product-2'))).toThrowError(expect.objectContaining({ code: 'INVALID_REFERENCE' }))
+    const [analysis] = service.analyzeSmartTags(admin, ['product-2'])
+    expect(analysis?.status).toBe('pending')
+    expect(service.getProduct(admin, 'product-2').tagIds).not.toContain('product-tag-featured')
+    repository.transact((state) => { state.products.find((item) => item.id === 'product-2')!.updatedAt = '2026-08-25T10:01:00+08:00' })
+    expect(() => service.confirmSmartTags(admin, analysis!.id)).toThrowError(expect.objectContaining({ code: 'VERSION_CONFLICT' }))
+    const [fresh] = service.analyzeSmartTags(admin, ['product-2'])
+    expect(service.confirmSmartTags(admin, fresh!.id).status).toBe('confirmed')
+    expect(service.getProduct(admin, 'product-2').tagIds).toContain('product-tag-featured')
   })
 })

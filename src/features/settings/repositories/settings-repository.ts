@@ -1,0 +1,4 @@
+import { assertSettingsFeatureState } from '../schemas/settings-schema'
+import type { SettingsFeatureState } from '../types'
+export interface SettingsRepository { read(): SettingsFeatureState; transact<T>(mutation: (draft: SettingsFeatureState) => T): T; reset(state: SettingsFeatureState): void }
+export class InMemorySettingsRepository implements SettingsRepository { private state: SettingsFeatureState; constructor(initial: SettingsFeatureState) { assertSettingsFeatureState(initial); this.state = structuredClone(initial) } read() { return structuredClone(this.state) } transact<T>(mutation: (draft: SettingsFeatureState) => T): T { const draft = structuredClone(this.state); const result = mutation(draft); assertSettingsFeatureState(draft); this.state = draft; return structuredClone(result) } reset(state: SettingsFeatureState) { assertSettingsFeatureState(state); this.state = structuredClone(state) } }

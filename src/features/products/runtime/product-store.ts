@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { createProductMockSession, type ProductScenarioName } from '../../../../mock/handlers/product-handler'
+import type { ProductScenarioName } from '../../../../mock/handlers/product-handler'
+import { getApplicationMockRuntimeController } from '../../../app/runtime/app-mock-runtime'
 import { setCurrentProductRole } from './product-access'
 import type {
   PageResult,
@@ -12,6 +13,9 @@ import type {
   ProductListQuery,
   ProductImportResult,
   ProductReferenceData,
+  ProductReferenceDraft,
+  ProductReferenceKind,
+  SmartTagAnalysis,
   ProductStatus,
 } from '../types'
 
@@ -22,7 +26,8 @@ const emptyReferences = (): ProductReferenceData => ({
 })
 
 export const useProductStore = defineStore('products', () => {
-  const scenario = ref<ProductRuntimeScenario>('normal')
+  const runtimeController = getApplicationMockRuntimeController(); const session = runtimeController.product
+  const scenario = computed<ProductRuntimeScenario>(() => runtimeController.runtime.value.scenario === 'partial-failure' ? 'partial-failure' : session.scenarioName)
   const actor = ref<ProductActor>({ role: 'super-admin', actorId: 'admin-demo' })
   const query = ref<ProductListQuery>({ view: 'spu', page: 1, pageSize: 30 })
   const result = ref<PageResult<ProductListItem>>({ items: [], total: 0, page: 1, pageSize: 30 })
@@ -33,7 +38,8 @@ export const useProductStore = defineStore('products', () => {
   const saving = ref(false)
   const error = ref<string | null>(null)
   const referenceError = ref<string | null>(null)
-  let session = createProductMockSession('normal')
+  const referenceRows = ref<Array<Record<string, unknown>>>([])
+  const smartTagAnalyses = ref<SmartTagAnalysis[]>([])
 
   const isEmpty = computed(() => !loading.value && !error.value && result.value.total === 0)
   const canWrite = computed(() => actor.value.role === 'super-admin')
@@ -55,10 +61,9 @@ export const useProductStore = defineStore('products', () => {
   }
 
   async function setScenario(next: ProductRuntimeScenario): Promise<void> {
-    scenario.value = next
     actor.value = next === 'permission-denied' ? { role: 'finance', actorId: 'finance-demo' } : { role: 'super-admin', actorId: 'admin-demo' }
     setCurrentProductRole(actor.value.role)
-    session = createProductMockSession(next === 'partial-failure' ? 'normal' : next)
+    runtimeController.reset(next)
     await load()
   }
 
@@ -68,7 +73,7 @@ export const useProductStore = defineStore('products', () => {
   }
 
   async function setView(view: 'spu' | 'sku'): Promise<void> { await applyQuery({ ...query.value, view }) }
-  async function resetQuery(): Promise<void> { query.value = { view: 'spu', page: 1, pageSize: 30 }; await load() }
+  async function resetQuery(): Promise<void> { query.value = { view: 'sku', page: 1, pageSize: 30 }; await load() }
   async function setPage(page: number): Promise<void> { query.value = { ...query.value, page: Math.max(1, page) }; await load() }
 
   async function loadProduct(id: string): Promise<void> {
@@ -106,9 +111,29 @@ export const useProductStore = defineStore('products', () => {
   }
   function exportCsv(selectedIds: string[]): string { return session.service.exportProductsCsv(actor.value, query.value, selectedIds) }
 
+  async function loadReferenceRecords(kind: ProductReferenceKind): Promise<void> {
+    loading.value = true; error.value = null
+    try {
+      const rows = await session.run(() => session.service.listReferenceRecords(actor.value, kind))
+      referenceRows.value = rows
+      references.value = { ...references.value, [kind]: rows } as ProductReferenceData
+    } catch (caught) { error.value = caught instanceof Error ? caught.message : '辅助资料加载失败'; referenceRows.value = [] }
+    finally { loading.value = false }
+  }
+  async function saveReference(kind: ProductReferenceKind, draft: ProductReferenceDraft, id?: string): Promise<void> { saving.value = true; error.value = null; try { await session.run(() => session.service.saveReference(actor.value, kind, draft, id)); await loadReferenceRecords(kind) } catch (caught) { error.value = caught instanceof Error ? caught.message : '辅助资料保存失败'; throw caught } finally { saving.value = false } }
+  async function setReferenceStatus(kind: ProductReferenceKind, id: string, status: 'active' | 'inactive'): Promise<void> { await session.run(() => session.service.setReferenceStatus(actor.value, kind, id, status)); await loadReferenceRecords(kind) }
+  async function deleteReference(kind: ProductReferenceKind, id: string): Promise<void> { await session.run(() => session.service.deleteReference(actor.value, kind, id)); await loadReferenceRecords(kind) }
+  async function loadSmartTagAnalyses(): Promise<void> {
+    error.value = null
+    try { smartTagAnalyses.value = await session.run(() => session.service.listSmartTagAnalyses(actor.value)) }
+    catch (caught) { error.value = caught instanceof Error ? caught.message : '智能标签分析加载失败'; smartTagAnalyses.value = [] }
+  }
+  async function analyzeSmartTags(productIds: string[]): Promise<void> { await session.run(() => session.service.analyzeSmartTags(actor.value, productIds)); await loadSmartTagAnalyses() }
+  async function confirmSmartTags(id: string): Promise<void> { await session.run(() => session.service.confirmSmartTags(actor.value, id)); await loadSmartTagAnalyses(); await load() }
+
   return {
     scenario, actor, query, result, references, selectedProduct, changeLogs, loading, saving, error, referenceError, isEmpty, canWrite,
     load, setScenario, applyQuery, setView, resetQuery, setPage, loadProduct, createProduct, updateProduct, changeStatus, deleteProduct,
-    batchChangeStatus, importProducts, exportCsv,
+    batchChangeStatus, importProducts, exportCsv, referenceRows, smartTagAnalyses, loadReferenceRecords, saveReference, setReferenceStatus, deleteReference, loadSmartTagAnalyses, analyzeSmartTags, confirmSmartTags,
   }
 })

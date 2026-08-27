@@ -1,85 +1,31 @@
 <script setup lang="ts">
-import { businessModules } from '@/app/module-catalog'
+import { computed, ref } from 'vue'
+import { getDashboardSnapshot, type DashboardRole, type DashboardScenario } from '../services/dashboard-service'
 
-const harnessChecks = [
-  { name: '产品与范围', detail: '目标、角色、边界已进入仓库' },
-  { name: '业务规格', detail: '八个领域均有规则与验收入口' },
-  { name: 'Mock 约束', detail: '确定性场景与重置机制已定义' },
-  { name: '完成判定', detail: '状态、验证和证据可机械检查' },
-]
+const role = ref<DashboardRole>('super-admin')
+const scenario = ref<DashboardScenario>('normal')
+const dismissed = ref<string[]>([])
+const readIds = ref<string[]>([])
+const snapshot = computed(() => { try { return getDashboardSnapshot(role.value, scenario.value) } catch { return null } })
+const metricText = (item: { value: number | null; unit: string; reason: string | null }): string => item.value === null ? `unavailable（${item.reason ?? '来源未接入'}）` : `${item.value}${item.unit}`
+function dismiss(id: string): void { dismissed.value = [...dismissed.value, id] }
+function markRead(id: string): void { readIds.value = [...new Set([...readIds.value, id])] }
+function markAllRead(): void { readIds.value = snapshot.value?.notifications.map((item) => item.id) ?? [] }
 </script>
 
 <template>
-  <section class="page" aria-labelledby="overview-title">
-    <header class="page-header">
-      <div>
-        <p class="eyebrow">Prototype foundation</p>
-        <h1 id="overview-title">原型工程总览</h1>
-        <p class="page-header__description">当前完成的是 Harness 与应用壳基线，业务切片按产品规格索引、准备门和执行计划逐项实施。</p>
-      </div>
-      <span class="status-badge status-badge--success">Harness Ready</span>
-    </header>
-
-    <div class="notice" role="status">
-      <span class="notice__icon" aria-hidden="true">i</span>
-      <div>
-        <strong>此页面不是经营 Dashboard</strong>
-        <p>这里用于确认原型环境、规格入口与模块状态。经营指标会在 DASH-001 实现后替换。</p>
-      </div>
-    </div>
-
-    <section aria-labelledby="checks-title">
-      <div class="section-heading">
-        <div>
-          <h2 id="checks-title">Harness 检查项</h2>
-          <p>帮助后续开发在动手前找到确定事实。</p>
-        </div>
-        <span class="section-heading__count">4 / 4 已建立</span>
-      </div>
-      <div class="check-grid">
-        <article v-for="check in harnessChecks" :key="check.name" class="check-card">
-          <span class="check-card__icon" aria-hidden="true">✓</span>
-          <div>
-            <h3>{{ check.name }}</h3>
-            <p>{{ check.detail }}</p>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section aria-labelledby="modules-title">
-      <div class="section-heading">
-        <div>
-          <h2 id="modules-title">业务模块规划</h2>
-          <p>点击模块可查看范围和对应规格位置。</p>
-        </div>
-        <span class="section-heading__count">0 / 8 业务模块已实现</span>
-      </div>
-      <div class="module-table-wrap">
-        <table class="module-table">
-          <thead>
-            <tr>
-              <th scope="col">模块</th>
-              <th scope="col">本阶段职责</th>
-              <th scope="col">规格</th>
-              <th scope="col">状态</th>
-              <th scope="col"><span class="sr-only">操作</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in businessModules" :key="item.key">
-              <td>
-                <span class="module-name__icon" aria-hidden="true">{{ item.shortLabel }}</span>
-                <strong>{{ item.label }}</strong>
-              </td>
-              <td>{{ item.description }}</td>
-              <td><code>{{ item.spec }}</code></td>
-              <td><span class="status-badge status-badge--neutral">字段契约待提取</span></td>
-              <td><RouterLink class="table-link" :to="item.path">查看入口</RouterLink></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+  <section class="dashboard-page" aria-labelledby="dashboard-title">
+    <header class="page-header"><div><p class="eyebrow">工作台 · 原型模拟</p><h1 id="dashboard-title">首页经营概览</h1><p>数据来自各领域只读 provider；未接入指标保持 unavailable，不替换为猜测数值。</p></div><div class="controls"><label>模拟角色<select v-model="role"><option value="super-admin">超级管理员</option><option value="sales-supervisor">销售主管</option><option value="warehouse">仓库</option><option value="finance">财务</option></select></label><label>场景<select v-model="scenario"><option value="normal">正常</option><option value="empty">空数据</option><option value="error">错误</option><option value="permission-denied">无权限</option></select></label></div></header>
+    <div v-if="!snapshot" class="state" role="alert">{{ scenario === 'permission-denied' ? '当前角色不可访问首页经营数据' : '首页聚合服务暂时不可用' }}</div>
+    <template v-else>
+      <p class="date-label">统计日期：{{ snapshot.dateLabel }}</p>
+      <section class="section" aria-labelledby="todo-title"><div class="section-heading"><div><h2 id="todo-title">待办事项</h2><p>点击卡片进入对应模块处理。</p></div><span>{{ snapshot.todos.length }} 项</span></div><div v-if="snapshot.todos.length" class="todo-grid"><RouterLink v-for="item in snapshot.todos" :key="item.id" class="todo-card" :to="item.path"><span>{{ item.label }}</span><strong>{{ item.count }}</strong></RouterLink></div><div v-else class="empty">暂无待办事项</div></section>
+      <section class="section" aria-labelledby="metrics-title"><div class="section-heading"><div><h2 id="metrics-title">营业情况</h2><p>今日口径按 Asia/Shanghai 自然日。</p></div></div><div class="metric-grid"><article v-for="(item, key) in snapshot.metrics" :key="key" class="metric-card"><span>{{ key === 'todayOrders' ? '今日订单数' : key === 'todaySalesCents' ? '今日销售额' : key === 'todayReceiptsCents' ? '今日收款额' : '待收金额' }}</span><strong>{{ metricText(item) }}</strong></article></div><p class="hint">趋势同比/环比：{{ snapshot.unavailable.join('、') }}</p></section>
+      <section class="split"><section class="section" aria-labelledby="warning-title"><div class="section-heading"><div><h2 id="warning-title">预警中心</h2><p>已处理项与未处理项使用文字区分。</p></div></div><div v-if="snapshot.warnings.length" class="warning-list"><article v-for="item in snapshot.warnings" v-show="!dismissed.includes(item.id)" :key="item.id" class="warning"><div><span class="warning-type">{{ item.type }}</span><strong>{{ item.title }}</strong><p>{{ item.detail }}</p></div><div><RouterLink class="table-link" :to="item.path">查看</RouterLink><button class="link" type="button" @click="dismiss(item.id)">标记已处理</button></div></article></div><div v-else class="empty">暂无预警</div></section><section class="section" aria-labelledby="notice-title"><div class="section-heading"><div><h2 id="notice-title">通知公告</h2><p>通知阅读状态为原型本地状态。</p></div><button class="link" type="button" @click="markAllRead">全部已读</button></div><div v-if="snapshot.notifications.length" class="notice-list"><article v-for="item in snapshot.notifications" :key="item.id" :class="['notice', { 'notice--read': readIds.includes(item.id) || item.read }]" @click="markRead(item.id)"><strong>{{ item.title }}</strong><time>{{ item.createdAt }}</time><p>{{ item.detail }}</p></article></div><div v-else class="empty">暂无通知</div></section></section>
+    </template>
   </section>
 </template>
+
+<style scoped>
+.dashboard-page{max-width:1680px;margin:0 auto}.page-header{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:14px}.page-header h1{margin:3px 0}.page-header p{margin-bottom:0;color:var(--color-muted)}.controls{display:flex;gap:10px}.controls label{display:grid;gap:4px;color:var(--color-muted);font-size:12px}.controls select{min-height:36px;padding:0 8px;border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);background:#fff}.date-label{color:var(--color-muted);font-size:12px}.section{padding:16px;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-md);margin-bottom:14px}.section-heading{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}.section-heading h2{margin:0;font-size:16px}.section-heading p{margin:4px 0 0;color:var(--color-muted);font-size:12px}.todo-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}.todo-card{display:flex;min-height:96px;flex-direction:column;justify-content:space-between;padding:14px;color:var(--color-text);background:#f8fafc;border:1px solid var(--color-border);text-decoration:none}.todo-card:hover{border-color:var(--color-primary)}.todo-card strong{font-size:28px}.metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric-card{padding:16px;background:#f8fafc;border:1px solid var(--color-border)}.metric-card span{color:var(--color-muted);font-size:12px}.metric-card strong{display:block;margin-top:10px;font-size:18px;overflow-wrap:anywhere}.split{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.warning-list,.notice-list{display:grid;gap:8px}.warning,.notice{display:flex;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--color-border);background:#fff}.warning-type{display:inline-block;margin-right:8px;padding:2px 6px;color:#9a5a00;background:#fff4d6;font-size:11px}.warning strong,.notice strong{display:block}.warning p,.notice p{margin:5px 0 0;color:var(--color-muted);font-size:12px}.notice{display:block;cursor:pointer}.notice time{float:right;color:var(--color-muted);font-size:11px}.notice--read{opacity:.65}.link,.table-link{padding:0;color:var(--color-primary-strong);background:transparent;border:0;cursor:pointer;text-decoration:none}.empty,.state{display:grid;min-height:120px;place-items:center;color:var(--color-muted)}.state{min-height:280px}.hint{margin:10px 0 0;color:var(--color-muted);font-size:12px}@media(max-width:1000px){.page-header{align-items:flex-start;flex-direction:column}.todo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.split{grid-template-columns:1fr}}@media(max-width:600px){.controls{width:100%;flex-wrap:wrap}.controls label{flex:1}.todo-grid,.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>

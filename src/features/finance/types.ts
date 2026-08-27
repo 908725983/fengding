@@ -7,6 +7,14 @@ export type FinancePermission =
   | 'finance.view-receipts' | 'finance.manage-receipts'
   | 'finance.view-writeoffs' | 'finance.manage-writeoffs' | 'finance.export-receivables'
   | 'finance.view-refunds' | 'finance.manage-refunds'
+  | 'finance.view-payables' | 'finance.view-payable-details' | 'finance.view-payable-aging'
+  | 'finance.view-supplier-payments' | 'finance.manage-supplier-payments'
+  | 'finance.view-supplier-writeoffs' | 'finance.manage-supplier-writeoffs'
+  | 'finance.export-payables'
+  | 'finance.view-transfers' | 'finance.manage-transfers'
+  | 'finance.view-other-transactions' | 'finance.manage-other-transactions'
+  | 'finance.view-supplier-refunds' | 'finance.manage-supplier-refunds'
+  | 'finance.view-statistics' | 'finance.export-statistics' | 'finance.view-institutions'
 export type FundAccountType = 'cash' | 'bank' | 'wechat' | 'alipay'
 export type FinanceEntityStatus = 'enabled' | 'disabled'
 export type FundMovementDirection = 'income' | 'expense'
@@ -65,7 +73,7 @@ export interface CustomerReceivable {
   customerSnapshot: FinanceCustomerSnapshot; items: ReceivableItemSnapshot[]
   goodsAmountCents: number; freightCents: number; amountCents: number
   settlementMethod: CustomerSettlementMethod; paymentTermDays: number | null; dueDate: string
-  occurredAt: string; requestId: string; createdBy: ActorSnapshot; version: number
+  orderedAt?: string | null; occurredAt: string; requestId: string; createdBy: ActorSnapshot; version: number
 }
 export interface PrototypeAttachment {
   id: EntityId; name: string; mimeType: 'application/pdf' | 'image/jpeg' | 'image/png'; sizeBytes: number
@@ -107,6 +115,7 @@ export interface ReceivableCreditAdjustment {
   amountCents: number; outstandingReductionCents: number; refundObligationCents: number; nonRefundableDiscountCents: number; occurredAt: string
   requestId: string; operatorSnapshot: ActorSnapshot; status: 'active' | 'reversed'
   reversalInfo: { reason: string; reversedAt: string; reversedBy: ActorSnapshot; requestId: string } | null; version: number
+  correctionOfRefundId?: EntityId | null
 }
 export interface RefundSourceAllocation {
   id: EntityId; sourceKind: RefundSourceKind; sourceId: EntityId; accountId: EntityId | null
@@ -118,16 +127,135 @@ export interface CustomerRefund {
   requestedAmountCents: number; refundedAmountCents: number; method: RefundMethod; status: RefundStatus
   allocations: RefundSourceAllocation[]; requestedAt: string; resolvedAt: string | null; reason: string | null
   requestId: string; operatorSnapshot: ActorSnapshot; version: number
+  correctionOfRefundId?: EntityId | null
 }
-export interface FinanceDailySequence { date: string; receivable: number; receipt: number; writeoff: number; refund?: number }
+export interface FinanceSupplierSnapshot {
+  id: EntityId; code: string; name: string; contactName: string; phone: string; paymentTermDays: number | null
+}
+export interface SupplierPayableItemSnapshot {
+  inboundLineId: EntityId; purchaseOrderLineId: EntityId; skuId: EntityId; skuCode: string; productName: string
+  specification: string; unitName: string; quantityMilli: number; unitPriceCents: number; subtotalCents: number
+  allocatedDiscountCents: number; allocatedOtherFeeCents: number; amountCents: number; isGift: boolean
+}
+export type SupplierPayableStatus = 'unpaid' | 'partially-paid' | 'paid' | 'voided'
+export interface SupplierPayable {
+  id: EntityId; enterpriseId: EntityId; payableNo: string; source: 'purchase-inbound'; purchaseOrderId: EntityId
+  purchaseOrderNo: string; inboundId: EntityId; inboundNo: string; supplierSnapshot: FinanceSupplierSnapshot
+  items: SupplierPayableItemSnapshot[]; goodsAmountCents: number; discountCents: number; otherFeeCents: number
+  amountCents: number; occurredAt: string; dueDate: string; status: SupplierPayableStatus
+  requestId: string; createdBy: ActorSnapshot; version: number
+}
+export type SupplierPaymentMethod = 'cash' | 'bank'
+export type SupplierPaymentStatus = 'normal' | 'void'
+export interface SupplierPaymentVoidInfo { reason: string; voidedAt: string; voidedBy: ActorSnapshot; reversalMovementId: EntityId | null }
+export interface SupplierPayment {
+  id: EntityId; enterpriseId: EntityId; paymentNo: string; supplierSnapshot: FinanceSupplierSnapshot
+  occurredAt: string; amountCents: number; method: SupplierPaymentMethod; accountId: EntityId; movementId: EntityId
+  attachment: PrototypeAttachment | null; note: string | null; status: SupplierPaymentStatus
+  voidInfo: SupplierPaymentVoidInfo | null; requestId: string; operatorSnapshot: ActorSnapshot; version: number
+}
+export interface SupplierPaymentWriteoffAllocation { id: EntityId; paymentId: EntityId; payableId: EntityId; amountCents: number }
+export type SupplierPaymentWriteoffStatus = 'active' | 'cancelled'
+export interface SupplierPaymentWriteoffCancelInfo { reason: string; cancelledAt: string; cancelledBy: ActorSnapshot }
+export interface SupplierPaymentWriteoff {
+  id: EntityId; enterpriseId: EntityId; writeoffNo: string; supplierId: EntityId; occurredAt: string
+  allocations: SupplierPaymentWriteoffAllocation[]; amountCents: number; status: SupplierPaymentWriteoffStatus
+  cancelInfo: SupplierPaymentWriteoffCancelInfo | null; requestId: string; operatorSnapshot: ActorSnapshot; version: number
+}
+export type SupplierPayableCreditSource = 'purchase-return' | 'manual'
+export interface SupplierPayableCredit {
+  id: EntityId; enterpriseId: EntityId; sourceType: SupplierPayableCreditSource; sourceId: EntityId; sourceNo: string
+  supplierId: EntityId; payableId: EntityId | null; amountCents: number; outstandingReductionCents: number
+  refundObligationCents: number; occurredAt: string; requestId: string; operatorSnapshot: ActorSnapshot
+  status: 'active' | 'reversed'; reversalInfo: { reason: string; reversedAt: string; reversedBy: ActorSnapshot } | null; version: number
+}
+export type FinanceTransferStatus = 'pending-review' | 'completed' | 'cancelled'
+export interface FinanceTransfer {
+  id: EntityId; enterpriseId: EntityId; transferNo: string; occurredAt: string; fromAccountId: EntityId; toAccountId: EntityId
+  amountCents: number; attachment: PrototypeAttachment | null; note: string | null; status: FinanceTransferStatus
+  sourceTransferId: EntityId | null; movementIds: EntityId[]; requestId: string; operatorSnapshot: ActorSnapshot
+  reviewedAt: string | null; reviewedBy: ActorSnapshot | null; cancelReason: string | null; version: number
+}
+export type FinanceOtherDirection = 'income' | 'expense'
+export interface FinanceIncomeExpenseItem {
+  id: EntityId; enterpriseId: EntityId; direction: FinanceOtherDirection; name: string; status: FinanceEntityStatus
+  createdAt: string; updatedAt: string; version: number
+}
+export type FinanceOtherTransactionStatus = 'pending-review' | 'approved' | 'rejected'
+export interface FinanceOtherTransaction {
+  id: EntityId; enterpriseId: EntityId; documentNo: string; direction: FinanceOtherDirection; occurredAt: string
+  counterpartySnapshot: string; itemId: EntityId; itemNameSnapshot: string; amountCents: number; accountId: EntityId
+  attachment: PrototypeAttachment | null; note: string | null; status: FinanceOtherTransactionStatus; correctionOfId: EntityId | null
+  movementId: EntityId | null; requestId: string; operatorSnapshot: ActorSnapshot; reviewedAt: string | null
+  reviewedBy: ActorSnapshot | null; rejectionReason: string | null; version: number
+}
+export interface SupplierRefundReceipt {
+  id: EntityId; enterpriseId: EntityId; receiptNo: string; creditId: EntityId; supplierId: EntityId; sourceNo: string
+  amountCents: number; method: SupplierPaymentMethod; accountId: EntityId; movementId: EntityId; occurredAt: string
+  requestId: string; operatorSnapshot: ActorSnapshot; version: number
+}
+export interface SupplierRefundDetail {
+  obligation: SupplierRefundObligation
+  receipt: SupplierRefundReceipt | null
+  accountName: string | null
+  movement: FundMovement | null
+  audit: FinanceAuditLog[]
+}
+export interface SupplierRefundObligation {
+  credit: SupplierPayableCredit; supplier: FinanceSupplierSnapshot | null; receivedCents: number; outstandingCents: number
+  status: 'pending' | 'refunded'
+}
+export interface FinanceMethodStatisticRow { method: Exclude<CustomerReceiptMethod, 'balance'>; amountCents: number; receiptCount: number; ratioBasisPoints: number | null }
+export interface FinanceOrderPaymentStatisticRow {
+  receivableId: EntityId; orderedAt: string | null; orderNo: string; returnNos: string[]; customerSnapshot: FinanceCustomerSnapshot
+  goodsAmountCents: number; freightCents: number; netReceivableCents: number; netReceivedCents: number; outstandingCents: number
+}
+export interface FinanceOrderPaymentStatistics { rows: FinanceOrderPaymentStatisticRow[]; receivableCents: number; receivedCents: number; outstandingCents: number; snapshotVersion: number }
+export interface FinanceOtherSummaryRow { itemId: EntityId; itemName: string; incomeCents: number; expenseCents: number; netCents: number }
+export interface FinanceLedgerStatisticRow { occurredAt: string; accountName: string; kind: FundMovementKind; sourceNo: string; counterparty: string | null; direction: FundMovementDirection; amountCents: number; balanceAfterCents: number }
+export interface SupplierPayableProjection extends SupplierPayable {
+  paidCents: number; creditedCents: number; outstandingCents: number; ageDays: number; overdue: boolean
+}
+export interface SupplierPayableAgingRow {
+  supplier: FinanceSupplierSnapshot; outstandingCents: number; bucket0To30Cents: number; bucket31To60Cents: number
+  bucket61To90Cents: number; bucket91To180Cents: number; bucket181To365Cents: number; bucketOver365Cents: number
+}
+export interface SupplierPayableProductRow extends SupplierPayableItemSnapshot {
+  payableId: EntityId; payableNo: string; purchaseOrderNo: string; occurredAt: string; supplier: FinanceSupplierSnapshot; status: SupplierPayableStatus
+}
+export interface CreateSupplierPayableInput {
+  requestId: string; purchaseOrderId: EntityId; purchaseOrderNo: string; inboundId: EntityId; inboundNo: string
+  supplierSnapshot: FinanceSupplierSnapshot; items: SupplierPayableItemSnapshot[]; goodsAmountCents: number
+  discountCents: number; otherFeeCents: number; amountCents: number; occurredAt: string; paymentTermDays: number | null
+  operator: { id: EntityId; name: string; role: FinanceRole }
+}
+export interface CreateSupplierPaymentInput {
+  requestId: string; supplierSnapshot: FinanceSupplierSnapshot; occurredAt: string; amountCents: number
+  method: SupplierPaymentMethod; accountId: EntityId; attachment?: PrototypeAttachment | null; note?: string | null
+  immediateAllocations?: Array<{ payableId: EntityId; amountCents: number }>
+}
+export interface VoidSupplierPaymentInput { requestId: string; paymentId: EntityId; expectedVersion: number; reason: string }
+export interface CreateSupplierPaymentWriteoffInput {
+  requestId: string; supplierId: EntityId; occurredAt: string; allocations: Array<Omit<SupplierPaymentWriteoffAllocation, 'id'>>
+}
+export interface CancelSupplierPaymentWriteoffInput { requestId: string; writeoffId: EntityId; expectedVersion: number; reason: string }
+export interface CreateSupplierPayableCreditInput {
+  requestId: string; sourceType: SupplierPayableCreditSource; sourceId: EntityId; sourceNo: string; supplierId: EntityId
+  payableId?: EntityId | null; amountCents: number; occurredAt: string; operator: { id: EntityId; name: string; role: FinanceRole }
+}
+export interface FinanceDailySequence { date: string; receivable: number; receipt: number; writeoff: number; refund?: number; payable?: number; payment?: number; transfer?: number; otherReceipt?: number; otherPayment?: number; supplierRefund?: number }
 export interface FinanceRequestRecord {
   requestId: string; kind: 'account-save' | 'movement-post' | 'period-close' | 'period-reverse' | 'bank-save' | 'payment-apply'
-    | 'receivable-create' | 'receipt-create' | 'receipt-void' | 'writeoff-create' | 'writeoff-cancel' | 'credit-create' | 'credit-reverse' | 'refund-confirm' | 'refund-reject' | 'refund-reapply'
+    | 'receivable-create' | 'receipt-create' | 'receipt-void' | 'writeoff-create' | 'writeoff-cancel' | 'credit-create' | 'credit-reverse' | 'refund-confirm' | 'refund-reject' | 'refund-reapply' | 'refund-correct'
+    | 'payable-create' | 'supplier-payment-create' | 'supplier-payment-void' | 'supplier-writeoff-create' | 'supplier-writeoff-cancel' | 'supplier-credit-create'
+    | 'transfer-create' | 'transfer-approve' | 'transfer-cancel' | 'other-item-save' | 'other-create' | 'other-review' | 'supplier-refund-confirm'
   targetIds: EntityId[]; appliedAt: string
 }
 export interface FinanceAuditLog {
   id: EntityId; enterpriseId: EntityId; action: 'account.saved' | 'period.closed' | 'period.reversed' | 'bank.saved' | 'payment.application-created'
     | 'receivable.created' | 'receipt.created' | 'receipt.voided' | 'writeoff.created' | 'writeoff.cancelled' | 'credit.created' | 'credit.reversed' | 'refund.created' | 'refund.confirmed' | 'refund.rejected'
+    | 'payable.created' | 'supplier-payment.created' | 'supplier-payment.voided' | 'supplier-writeoff.created' | 'supplier-writeoff.cancelled' | 'supplier-credit.created'
+    | 'transfer.created' | 'transfer.approved' | 'transfer.cancelled' | 'other-item.saved' | 'other.created' | 'other.approved' | 'other.rejected' | 'supplier-refund.confirmed'
   targetId: EntityId; operatorSnapshot: ActorSnapshot; detail: string; createdAt: string
 }
 export interface FinanceFeatureState {
@@ -138,6 +266,8 @@ export interface FinanceFeatureState {
   prepaymentLedger: CustomerPrepaymentLedgerEntry[]; dailySequences: FinanceDailySequence[]
   requests: FinanceRequestRecord[]; auditLogs: FinanceAuditLog[]
   creditAdjustments: ReceivableCreditAdjustment[]; refunds: CustomerRefund[]
+  payables: SupplierPayable[]; supplierPayments: SupplierPayment[]; supplierPaymentWriteoffs: SupplierPaymentWriteoff[]; supplierPayableCredits: SupplierPayableCredit[]
+  transfers: FinanceTransfer[]; incomeExpenseItems: FinanceIncomeExpenseItem[]; otherTransactions: FinanceOtherTransaction[]; supplierRefundReceipts: SupplierRefundReceipt[]
 }
 
 export interface FinanceAccountDraft { name: string; type: FundAccountType; status: FinanceEntityStatus; openingMonth: string; openingBalanceCents: number }
@@ -158,7 +288,7 @@ export interface SubmitPaymentApplicationInput { requestId: string; channelId: E
 export interface CreateOrderReceivableInput {
   requestId: string; orderId: EntityId; orderNo: string; customerSnapshot: FinanceCustomerSnapshot
   items: ReceivableItemSnapshot[]; goodsAmountCents: number; freightCents: number; amountCents: number
-  settlementMethod: CustomerSettlementMethod; paymentTermDays: number | null; occurredAt: string
+  settlementMethod: CustomerSettlementMethod; paymentTermDays: number | null; orderedAt?: string | null; occurredAt: string
   operator: { id: EntityId; name: string; role: FinanceRole }
 }
 export interface CreateCustomerReceiptInput {
@@ -180,6 +310,14 @@ export interface CreateReturnCreditInput {
 export interface ConfirmCustomerRefundInput { requestId: string; refundId: EntityId; expectedVersion: number; method: RefundMethod; cashAccountId?: EntityId | null; reason?: string | null; occurredAt: string }
 export interface RejectCustomerRefundInput { requestId: string; refundId: EntityId; expectedVersion: number; reason: string; occurredAt: string }
 export interface ReapplyCustomerRefundInput { requestId: string; refundId: EntityId; expectedVersion: number; occurredAt: string }
+export interface CorrectCustomerRefundInput {
+  requestId: string; refundId: EntityId; expectedVersion: number; expectedAmountCents: number
+  sourceNo: string; occurredAt: string; operator: { id: EntityId; name: string; role: FinanceRole }; reason: string
+}
+export interface CreateRefundRecoveryInput {
+  requestId: string; refundId: EntityId; expectedVersion: number; amountCents: number
+  occurredAt: string; itemId: EntityId; accountId: EntityId; reason: string
+}
 export interface ReverseReturnCreditInput { requestId: string; sourceType: 'customer-return'; sourceId: EntityId; reason: string; occurredAt: string; operator: { id: EntityId; name: string; role: FinanceRole } }
 
 export interface ReceivableProjection extends CustomerReceivable {
@@ -213,3 +351,11 @@ export interface FinanceAccountPeriodRow {
 export interface FinanceAccountDetail extends FinanceAccountPeriodRow { movements: FundMovement[]; bank: BankProfile | null }
 export interface VisibleBankProfile extends Omit<BankProfile, 'bankAccount'> { bankAccount: string }
 export interface FinancePeriodCard { month: string; status: 'unavailable' | 'open' | 'closed'; period: FinancePeriod | null }
+
+export interface CreateFinanceTransferInput { requestId: string; fromAccountId: EntityId; toAccountId: EntityId; amountCents: number; occurredAt: string; attachment?: PrototypeAttachment | null; note?: string | null; sourceTransferId?: EntityId | null }
+export interface ReviewFinanceTransferInput { requestId: string; transferId: EntityId; expectedVersion: number }
+export interface CancelFinanceTransferInput { requestId: string; transferId: EntityId; expectedVersion: number; reason: string }
+export interface SaveFinanceIncomeExpenseItemInput { requestId: string; itemId?: EntityId; expectedVersion?: number; direction: FinanceOtherDirection; name: string; status: FinanceEntityStatus }
+export interface CreateFinanceOtherTransactionInput { requestId: string; direction: FinanceOtherDirection; occurredAt: string; counterparty: string; itemId: EntityId; amountCents: number; accountId: EntityId; attachment?: PrototypeAttachment | null; note?: string | null; correctionOfId?: EntityId | null }
+export interface ReviewFinanceOtherTransactionInput { requestId: string; transactionId: EntityId; expectedVersion: number; decision: 'approve' | 'reject'; reason?: string | null }
+export interface ConfirmSupplierRefundInput { requestId: string; creditId: EntityId; accountId: EntityId; occurredAt: string }

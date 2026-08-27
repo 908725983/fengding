@@ -4,7 +4,7 @@ $env:npm_config_cache = Join-Path $repoRoot '.npm-cache'
 
 Push-Location $repoRoot
 try {
-  npm run dev
+  npm start
 } finally {
   Pop-Location
 }

@@ -209,7 +209,7 @@ export interface OrderUnitOption { id: EntityId; code: string; name: string; con
 export interface OrderSkuOption {
   skuId: EntityId; spuId: EntityId; productCode: string; productName: string; skuCode: string; barcode: string | null
   specification: string; image: string | null; productStatus: 'draft' | 'on-sale' | 'off-sale'; deleted: boolean
-  baseUnitId: EntityId; units: OrderUnitOption[]; minimumOrderQuantityMilli: number | null; orderMultipleMilli: number
+  baseUnitId: EntityId; marketPriceCents: number | null; units: OrderUnitOption[]; minimumOrderQuantityMilli: number | null; orderMultipleMilli: number
   weightPerBaseUnitGrams: number | null
 }
 export interface OrderCatalogProvider { listSkus(): OrderSkuOption[]; getSku(skuId: EntityId): OrderSkuOption | null }

@@ -28,14 +28,14 @@ export type AuthorizationScenarioName = 'normal' | 'empty' | 'error' | 'slow' | 
 const scenarioDefinitions = { normal: normalScenario, empty: emptyScenario, error: errorScenario, slow: slowScenario, 'permission-denied': permissionScenario } as const
 export class AuthorizationMockError extends Error { constructor(readonly code: string, message: string) { super(message); this.name = 'AuthorizationMockError' } }
 
-export function createAuthorizationMockSession(scenarioName: AuthorizationScenarioName = 'normal') {
+export function createAuthorizationMockSession(scenarioName: AuthorizationScenarioName = 'normal', catalogProvider?: () => AuthorizationCatalog) {
   const state = structuredClone(authorizationBaseline)
   if (scenarioName === 'empty') { state.plans = []; state.rules = []; state.specials = []; state.changeLogs = [] }
   const repository = new InMemoryAuthorizationRepository(state)
   const catalog = createBaselineAuthorizationCatalog()
   let sequence = 1
   let clock = baseline.clock
-  const service = createAuthorizationService({ repository, getCatalog: () => catalog, now: () => clock, nextId: (kind) => `authorization-${kind}-runtime-${sequence++}` })
+  const service = createAuthorizationService({ repository, getCatalog: () => catalogProvider ? catalogProvider() : catalog, now: () => clock, nextId: (kind) => `authorization-${kind}-runtime-${sequence++}` })
   const definition = scenarioDefinitions[scenarioName]
   async function run<T>(operation: () => T): Promise<T> { await new Promise((resolve) => setTimeout(resolve, definition.latencyMs)); if (scenarioName === 'error') throw new AuthorizationMockError('MOCK_INTERNAL_ERROR', '原型模拟：商品授权服务暂时不可用'); return operation() }
   function setClock(value: string): void { if (value < clock) throw new AuthorizationMockError('CLOCK_REWIND', '模拟时钟不能倒退'); clock = value }

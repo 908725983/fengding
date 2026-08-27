@@ -6,7 +6,7 @@
 
 - 产品：蜂订全渠道营销系统 PC 管理后台原型。
 - 前端：Vue 3 单页应用。
-- 数据：浏览器内 Mock API、固定 fixture 与可切换场景；当前无真实后端和数据库。
+- 数据：浏览器内应用级共享 Mock Runtime、固定 fixture 与可切换场景；当前无真实后端和数据库。
 - 领域：首页、订单、商品、采购、库存、客户、资金、设置。
 - 原型目标：验证信息架构、页面交互和关键业务闭环，不证明生产安全、性能或第三方可用性。
 
@@ -43,6 +43,7 @@ Types -> Config -> Repository -> Service -> Runtime(Store/Composable) -> UI(View
 - 低层不得反向依赖高层；`shared/` 不包含具体业务规则。
 - UI 不得直接导入 fixture、访问浏览器存储或自行实现业务状态机。
 - 跨领域调用只通过对方 `public.ts` 暴露的稳定 service/provider；不得访问其他领域的 store、view 或内部 repository。
+- 需要形成业务闭环的领域必须连接同一个应用级 Mock Runtime；业务 Store 不得各自复制 fixture 或创建互不相通的领域会话来冒充跨域集成。
 - 金额内部统一使用“分”，数量显式携带单位；换算经过商品单位规则。
 - 数据变化必须通过 repository；测试通过注入 clock、ID 和场景保持确定性。
 - 新领域、外部依赖、跨领域状态流转或分层例外，必须先进入 active plan 与设计文档。
@@ -50,7 +51,7 @@ Types -> Config -> Repository -> Service -> Runtime(Store/Composable) -> UI(View
 
 ## 横切接口
 
-- Mock：`mock/fixtures/` 保存基准，`mock/scenarios/` 表达 normal/empty/error/slow/permission-denied，`mock/handlers/` 暴露接口，`mock/schemas/` 校验契约。
+- Mock：`mock/fixtures/` 只保存可重置基准，`mock/scenarios/` 表达共享的 normal/empty/error/slow/permission-denied 基础能力，`mock/handlers/` 暴露接口，`mock/schemas/` 校验契约；应用启动时由唯一组合根创建共享 Runtime 和各领域 Repository，Store 只消费已注入的公开能力。场景/角色切换是应用壳的开发能力，业务页面不各自复制控制条。
 - 外部能力：导入导出、打印、消息、支付、地图、企微、AI 默认走 fake adapter，并在界面标明“原型模拟”。
 - 权限：原型通过路由、UI 与 service command 三层模拟；它不是生产安全边界。
 - 可观测性：异步失败必须形成可理解的页面错误；调试和黄金旅程入口见 `docs/RELIABILITY.md`。
@@ -66,9 +67,19 @@ Types -> Config -> Repository -> Service -> Runtime(Store/Composable) -> UI(View
 
 高风险热点：金额精度、库存原子性、状态回退、权限范围、删除与作废语义、跨单据追溯。修改这些区域必须同时更新产品规格、规则测试和 active plan 验证路径。
 
+## Mock 运行态与跨模块所有权
+
+- `baseline.json` 相同只说明重置来源相同，不证明运行中的数据共享；“共用 baseline”和“共用 Runtime”必须分别验收。
+- 应用内同一次业务旅程只能有一份客户、商品、库存、订单、采购和资金运行状态。页面路由切换不得重新克隆领域 fixture；场景切换和显式 Mock reset 才能按契约重建状态。
+- 跨领域写入由主领域 Service 经对方 `public.ts` command 协调；成功后所有消费方读取同一事实，失败时相关 Repository 一起回滚。
+- 领域 Store 可以维护加载、筛选和弹窗等页面状态，但不得拥有另一套 canonical 业务数据，也不得在 Store 内直接 `create*MockSession()`。
+- 原型是否要求浏览器刷新后保存运行状态由具体计划决定；同一 SPA 会话内跨路由共享是业务闭环验收的最低要求。
+- 具体组合根位于 `mock/runtime/application-mock-runtime.ts`；`src/app/runtime/app-mock-runtime.ts` 为每个 Pinia 根实例持有唯一 controller。Store 使用稳定领域 proxy，应用级场景 reset 会一次替换 Customer、Product、Order、Inventory、Procurement、Finance 六个 canonical session，已有 Store 引用自动转向新 Runtime；新 Pinia 仍获得隔离状态供组件测试使用。
+
 ## 变更检查
 
-- 新页面：确认所属领域、产品规格、全部页面状态和验收路径。
+- 新页面：确认所属领域、产品规格、风险等级、适用页面状态和批次验收路径；不为凑齐场景数制造无业务意义的状态。
 - 新数据流：确认不绕过 Repository/Service，并能在 Mock 中稳定复现。
-- 新跨领域调用：确认只依赖公开接口且失败不会留下半完成状态。
+- 新跨领域调用：确认只依赖公开接口、使用同一共享 Runtime，且失败不会留下半完成状态。
+- 新完成声明：确认是模块通过、集成通过还是阶段闭环通过；没有同一新建业务单据的关联编号和守恒证据时不得宣称闭环。
 - 新第三方或真实接口：先更新 active plan、`docs/SECURITY.md` 与 `docs/RELIABILITY.md`。

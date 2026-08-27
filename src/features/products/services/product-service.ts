@@ -11,6 +11,9 @@ import type {
   ProductListItem,
   ProductListQuery,
   ProductReferenceData,
+  ProductReferenceDraft,
+  ProductReferenceKind,
+  SmartTagAnalysis,
   ProductSku,
   ProductSkuDraft,
   ProductStatus,
@@ -25,6 +28,8 @@ export type ProductDomainErrorCode =
   | 'INACTIVE_REFERENCE'
   | 'INVALID_TRANSITION'
   | 'REFERENCE_CONFLICT'
+  | 'INVALID_REFERENCE'
+  | 'VERSION_CONFLICT'
   | 'DATA_PROVIDER_UNAVAILABLE'
 
 export class ProductDomainError extends Error {
@@ -53,6 +58,10 @@ function assertWrite(actor: ProductActor): void {
 }
 
 function normalize(value: string): string { return value.trim().toLocaleLowerCase() }
+
+const referenceCollections: ProductReferenceKind[] = ['categories', 'brands', 'units', 'tags', 'displayCategories']
+function referenceCollection(kind: ProductReferenceKind): 'categories' | 'brands' | 'units' | 'tags' | 'displayCategories' { return kind }
+function assertReferenceKind(kind: string): asserts kind is ProductReferenceKind { if (!referenceCollections.includes(kind as ProductReferenceKind)) throw new ProductDomainError('NOT_FOUND', '商品辅助资料类型无效') }
 
 function findProduct(state: ProductFeatureState, id: EntityId): Product {
   const product = state.products.find((item) => item.id === id && item.deletedAt === null)
@@ -164,6 +173,13 @@ export function createProductService(dependencies: ProductServiceDependencies) {
     return code
   }
 
+  function nextUniqueEntityId(state: ProductFeatureState, kind: 'product' | 'sku', assigned: Set<string> = new Set()): string {
+    const used = new Set(state.products.flatMap((product) => kind === 'product' ? [product.id] : product.skus.map((sku) => sku.id)))
+    let id = dependencies.nextId(kind)
+    while (used.has(id) || assigned.has(id)) id = dependencies.nextId(kind)
+    return id
+  }
+
   function materializeSkus(state: ProductFeatureState, productId: string, drafts: ProductSkuDraft[], previous?: Product): ProductSku[] {
     const assigned: ProductSku[] = []
     for (const draft of drafts) {
@@ -179,7 +195,7 @@ export function createProductService(dependencies: ProductServiceDependencies) {
       }
       const previousSku = previous?.skus.find((sku) => normalize(sku.code) === normalize(code))
       const { codeMode: _mode, ...fields } = structuredClone(draft)
-      assigned.push({ ...fields, id: previousSku?.id ?? dependencies.nextId('sku'), enterpriseId: state.enterpriseId, productId, code, barcode })
+      assigned.push({ ...fields, id: previousSku?.id ?? nextUniqueEntityId(state, 'sku', new Set(assigned.map((item) => item.id))), enterpriseId: state.enterpriseId, productId, code, barcode })
     }
     return assigned
   }
@@ -190,7 +206,7 @@ export function createProductService(dependencies: ProductServiceDependencies) {
     const code = previous && input.codeMode === 'auto' ? previous.code : input.codeMode === 'auto' ? nextUniqueProductCode(state) : input.code!.trim()
     if (state.products.some((item) => item.id !== previous?.id && normalize(item.code) === normalize(code))) throw new ProductDomainError('DUPLICATE_CODE', `SPU 编码 ${code} 已存在`)
     const timestamp = dependencies.now()
-    const id = previous?.id ?? dependencies.nextId('product')
+    const id = previous?.id ?? nextUniqueEntityId(state, 'product')
     const { codeMode: _mode, skus: skuDrafts, ...fields } = structuredClone(input)
     const product: Product = {
       ...fields, id, enterpriseId: state.enterpriseId, code, skus: materializeSkus(state, id, skuDrafts, previous),
@@ -336,11 +352,80 @@ export function createProductService(dependencies: ProductServiceDependencies) {
   function getReferenceData(actor: ProductActor): ProductReferenceData {
     assertRead(actor)
     const state = repository.read()
+    const visible = <T extends { deletedAt?: string | null }>(items: T[]): T[] => items.filter((item) => !item.deletedAt)
     return {
-      categories: state.categories, brands: state.brands, units: state.units, tags: state.tags, displayCategories: state.displayCategories,
+      categories: visible(state.categories), brands: visible(state.brands), units: visible(state.units), tags: visible(state.tags), displayCategories: visible(state.displayCategories),
       supplierProvider: dependencies.supplierProvider ? 'available' : 'unavailable', suppliers: dependencies.supplierProvider?.listEnabledSuppliers() ?? [], freightTemplateProvider: 'unavailable',
     }
   }
+
+  function ensureReferenceState(state: ProductFeatureState): void {
+    state.nextReferenceSequences ??= {}
+    state.smartTagAnalyses ??= []
+  }
+
+  function assertReferenceWrite(actor: ProductActor): void { assertWrite(actor) }
+
+  function listReferenceRecords(actor: ProductActor, kind: ProductReferenceKind): Array<Record<string, unknown>> {
+    assertRead(actor); assertReferenceKind(kind)
+    const state = repository.read(); const records = state[referenceCollection(kind)] as unknown as Array<Record<string, unknown>>
+    return records.filter((item) => !item.deletedAt).filter((item) => actor.role === 'super-admin' || item.status === 'active').sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0) || String(a.name).localeCompare(String(b.name)))
+  }
+
+  function validateReferenceDraft(kind: ProductReferenceKind, draft: ProductReferenceDraft): void {
+    if (!draft.name?.trim() || draft.name.trim().length > (kind === 'units' || kind === 'tags' ? 20 : 40)) throw new ProductDomainError('INVALID_REFERENCE', '辅助资料名称不能为空且长度无效')
+    if (draft.sortOrder !== undefined && (!Number.isInteger(draft.sortOrder) || draft.sortOrder < 0)) throw new ProductDomainError('INVALID_REFERENCE', '排序必须是非负整数')
+    if (kind === 'categories' && draft.parentId === undefined) draft.parentId = null
+    if (kind === 'units') { if (!draft.type || !['basic', 'auxiliary'].includes(draft.type)) throw new ProductDomainError('INVALID_REFERENCE', '单位类型无效'); const rate = draft.type === 'basic' ? (draft.conversionRate ?? 1) : draft.conversionRate; if (rate === undefined || !Number.isFinite(rate) || rate <= 0 || String(rate).split('.')[1]?.length > 6) throw new ProductDomainError('INVALID_REFERENCE', '单位换算率必须是正数且最多 6 位小数'); if (draft.type === 'basic' && rate !== 1) throw new ProductDomainError('INVALID_REFERENCE', '基本单位换算率必须为 1') }
+    if (kind === 'tags' && draft.color && !/^#[0-9a-f]{6}$/i.test(draft.color)) throw new ProductDomainError('INVALID_REFERENCE', '标签颜色必须是 #RRGGBB')
+  }
+
+  function nextReferenceCode(state: ProductFeatureState, kind: ProductReferenceKind): string {
+    ensureReferenceState(state)
+    const prefix = { categories: 'CAT', brands: 'BRAND', units: 'UNIT', tags: 'TAG', displayCategories: 'DISPLAY' }[kind]
+    const collection = state[referenceCollection(kind)] as unknown as Array<Record<string, unknown>>
+    let next = state.nextReferenceSequences![kind] ?? 1
+    // Browser-persisted prototypes can outlive the sequence metadata. Skip any
+    // code already present instead of reusing a stale sequence value.
+    while (collection.some((item) => String(item.code ?? '').toLocaleLowerCase() === `${prefix}-${String(next).padStart(6, '0')}`.toLocaleLowerCase())) next += 1
+    state.nextReferenceSequences![kind] = next + 1
+    return `${prefix}-${String(next).padStart(6, '0')}`
+  }
+
+  function assertCategoryDepth(state: ProductFeatureState, id: string | undefined, parentId: string | null): void {
+    if (!parentId) return; const seen = new Set<string>(); let cursor: string | null = parentId; let depth = 1
+    while (cursor) { if (cursor === id || seen.has(cursor)) throw new ProductDomainError('INVALID_REFERENCE', '分类层级不能形成循环'); seen.add(cursor); const parent = state.categories.find((item) => item.id === cursor && !item.deletedAt); if (!parent) throw new ProductDomainError('NOT_FOUND', '上级分类不存在'); depth += 1; cursor = parent.parentId; if (depth > 3) throw new ProductDomainError('INVALID_REFERENCE', '分类最多支持三级') }
+  }
+
+  function saveReference(actor: ProductActor, kind: ProductReferenceKind, draft: ProductReferenceDraft, id?: string): Record<string, unknown> {
+    assertReferenceWrite(actor); assertReferenceKind(kind); validateReferenceDraft(kind, draft)
+    return repository.transact((state) => {
+      ensureReferenceState(state); const collection = state[referenceCollection(kind)] as unknown as Array<Record<string, unknown>>; const current = id ? collection.find((item) => item.id === id && !item.deletedAt) : undefined
+      if (id && !current) throw new ProductDomainError('NOT_FOUND', '辅助资料不存在')
+      const duplicate = collection.some((item) => item.id !== id && !item.deletedAt && normalize(String(item.name)) === normalize(draft.name))
+      if (duplicate) throw new ProductDomainError('DUPLICATE_CODE', '辅助资料名称已存在')
+      if (kind === 'categories') assertCategoryDepth(state, id, draft.parentId ?? null)
+      if (kind === 'categories' && draft.parentId === id) throw new ProductDomainError('INVALID_REFERENCE', '分类不能选择自身')
+      const code = current?.code ? String(current.code) : nextReferenceCode(state, kind)
+      const value: Record<string, unknown> = { ...(current ?? {}), id: current?.id ?? `${kind.slice(0, -1)}-${code.toLocaleLowerCase()}`, enterpriseId: state.enterpriseId, code, status: draft.status ?? current?.status ?? 'active', sortOrder: draft.sortOrder ?? current?.sortOrder ?? 0, updatedAt: dependencies.now(), createdAt: current?.createdAt ?? dependencies.now(), ...structuredClone(draft), name: draft.name.trim() }
+      if (kind === 'units') value.conversionRate = draft.type === 'basic' ? 1 : draft.conversionRate
+      if (kind === 'tags') { value.color = draft.color ?? current?.color ?? '#5B8FF9'; value.aiAllowed = draft.aiAllowed ?? current?.aiAllowed ?? false }
+      if (current) collection[collection.findIndex((item) => item.id === id)] = value; else collection.push(value)
+      appendLog(state, dependencies, `reference:${kind}:${value.id}`, 'product.updated', current ? `编辑${kind}辅助资料` : `新增${kind}辅助资料`); return value
+    })
+  }
+
+  function setReferenceStatus(actor: ProductActor, kind: ProductReferenceKind, id: string, status: 'active' | 'inactive'): void {
+    assertReferenceWrite(actor); assertReferenceKind(kind); repository.transact((state) => { const collection = state[referenceCollection(kind)] as unknown as Array<Record<string, unknown>>; const value = collection.find((item) => item.id === id && !item.deletedAt); if (!value) throw new ProductDomainError('NOT_FOUND', '辅助资料不存在'); value.status = status; value.updatedAt = dependencies.now(); appendLog(state, dependencies, `reference:${kind}:${id}`, 'product.updated', `${status === 'active' ? '启用' : '停用'}${kind}辅助资料`) })
+  }
+
+  function deleteReference(actor: ProductActor, kind: ProductReferenceKind, id: string): void {
+    assertReferenceWrite(actor); assertReferenceKind(kind); repository.transact((state) => { const collection = state[referenceCollection(kind)] as unknown as Array<Record<string, unknown>>; const value = collection.find((item) => item.id === id && !item.deletedAt); if (!value) throw new ProductDomainError('NOT_FOUND', '辅助资料不存在'); const referenced = state.products.some((product) => product.categoryId === id || product.baseUnitId === id || product.freightUnitId === id || product.brandId === id || product.displayCategoryId === id || product.tagIds.includes(id) || Object.values(product.sceneUnits).some((scene) => scene.unitId === id)); const child = kind === 'categories' && state.categories.some((category) => category.parentId === id && !category.deletedAt); if (referenced || child) throw new ProductDomainError('REFERENCE_CONFLICT', '辅助资料存在商品或层级引用，不能删除'); value.deletedAt = dependencies.now(); value.status = 'inactive'; value.updatedAt = value.deletedAt; appendLog(state, dependencies, `reference:${kind}:${id}`, 'product.updated', `删除${kind}辅助资料`) })
+  }
+
+  function listSmartTagAnalyses(actor: ProductActor): SmartTagAnalysis[] { assertRead(actor); return structuredClone(repository.read().smartTagAnalyses ?? []) }
+  function analyzeSmartTags(actor: ProductActor, productIds: string[]): SmartTagAnalysis[] { assertReferenceWrite(actor); if (!productIds.length || productIds.length > 1000) throw new ProductDomainError('INVALID_REFERENCE', '智能分析一次最多 1000 个商品'); return repository.transact((state) => { ensureReferenceState(state); const allowed = state.tags.filter((tag) => tag.status === 'active' && tag.aiAllowed).map((tag) => tag.id); const result = productIds.map((productId) => { const product = findProduct(state, productId); const addTagIds = allowed.filter((tagId) => !product.tagIds.includes(tagId)).slice(0, 1); const item: SmartTagAnalysis = { id: dependencies.nextId('log'), productId, productVersion: product.updatedAt, addTagIds, removeTagIds: [], reasons: addTagIds.length ? ['原型 fake 分析：商品资料命中允许使用的标签'] : ['原型 fake 分析：没有新的白名单标签'], status: 'pending', createdAt: dependencies.now(), confirmedAt: null }; state.smartTagAnalyses!.push(item); return item }); return result }) }
+  function confirmSmartTags(actor: ProductActor, analysisId: string): SmartTagAnalysis { assertReferenceWrite(actor); return repository.transact((state) => { ensureReferenceState(state); const analysis = state.smartTagAnalyses!.find((item) => item.id === analysisId); if (!analysis || analysis.status !== 'pending') throw new ProductDomainError('NOT_FOUND', '智能标签建议不存在或已确认'); const product = findProduct(state, analysis.productId); if (product.updatedAt !== analysis.productVersion) throw new ProductDomainError('VERSION_CONFLICT', '商品资料已变化，请重新分析'); product.tagIds = [...new Set([...product.tagIds.filter((id) => !analysis.removeTagIds.includes(id)), ...analysis.addTagIds])]; product.updatedAt = dependencies.now(); analysis.status = 'confirmed'; analysis.confirmedAt = dependencies.now(); appendLog(state, dependencies, product.id, 'product.updated', '人工确认智能标签建议'); return analysis }) }
 
   function listOrderableProducts(): Product[] {
     return repository.read().products.filter((product) => product.deletedAt === null && product.status === 'on-sale')
@@ -348,7 +433,7 @@ export function createProductService(dependencies: ProductServiceDependencies) {
 
   return {
     listProducts, getProduct, createProduct, updateProduct, changeProductStatus, batchChangeStatus, deleteProduct,
-    importProducts, exportProductsCsv, getReferenceData, listOrderableProducts,
+    importProducts, exportProductsCsv, getReferenceData, listOrderableProducts, listReferenceRecords, saveReference, setReferenceStatus, deleteReference, listSmartTagAnalyses, analyzeSmartTags, confirmSmartTags,
     listChangeLogs: (actor: ProductActor, productId: EntityId) => { assertRead(actor); return repository.read().changeLogs.filter((item) => item.productId === productId) },
   }
 }

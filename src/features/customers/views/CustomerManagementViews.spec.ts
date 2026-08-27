@@ -25,6 +25,13 @@ describe('CUS-001 category, tag and smart-tag views', () => {
     expect(wrapper.text()).toContain('演示华东零售')
     expect(wrapper.text()).toContain('默认账期')
 
+    const editButton = wrapper.findAll('td button').find((button) => button.text() === '编辑')
+    expect(editButton).toBeDefined()
+    await editButton!.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.edit-card h2').text()).toBe('编辑分类')
+    expect((wrapper.find('.edit-card input').element as HTMLInputElement).value).toBe('演示零售客户')
+
     await router.push('/customers/tags')
     await vi.advanceTimersByTimeAsync(120)
     await wrapper.vm.$nextTick()

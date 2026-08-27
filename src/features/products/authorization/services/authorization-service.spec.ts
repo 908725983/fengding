@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createAuthorizationMockSession } from '../../../../../mock/handlers/authorization-handler'
+import { createApplicationMockRuntime } from '../../../../../mock/runtime/application-mock-runtime'
+import { applyBaseUnit, createEmptyProductDraft } from '../../services/product-service'
 import type { AuthorizationActor, AuthorizationPlanDraft, AuthorizationRuleDraft } from '../types'
 
 const admin: AuthorizationActor = { role: 'super-admin', actorId: 'admin-test' }
@@ -11,6 +13,16 @@ const finance: AuthorizationActor = { role: 'finance', actorId: 'finance-test' }
 describe('PRD-003 authorization service', () => {
   let session = createAuthorizationMockSession('normal')
   beforeEach(() => { session = createAuthorizationMockSession('normal') })
+
+  it('reads products created in the shared application catalog', () => {
+    const runtime = createApplicationMockRuntime('normal')
+    const draft = applyBaseUnit(createEmptyProductDraft(), 'unit-piece')
+    draft.name = '授权详情回归商品'
+    draft.categoryId = 'product-category-food'
+    const created = runtime.product.service.createProduct({ role: 'super-admin', actorId: 'admin-demo' }, draft)
+    const detail = runtime.authorization.service.getProductAuthorizationDetail({ role: 'super-admin', actorId: 'admin-demo' }, created.id)
+    expect(detail.productId).toBe(created.id)
+  })
 
   it('resolves category descendants, brand intersection and explicit product union', () => {
     const item = session.service.listPlans(admin).items.find((plan) => plan.code === 'AUTH-000001')!

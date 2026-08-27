@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useProductStore, type ProductRuntimeScenario } from '../runtime/product-store'
 import type { ProductListQuery, ProductStatus } from '../types'
 import { parseProductCsv, productCsvTemplate, productImportHeaders, type ProductCsvPreview } from '../services/product-csv'
 
 const router = useRouter()
+const route = useRoute()
 const store = useProductStore()
 const { result, references, loading, saving, error, referenceError, isEmpty, scenario, query, canWrite } = storeToRefs(store)
 const showMore = ref(false)
@@ -39,7 +40,7 @@ function togglePage(): void {
 
 function buildQuery(): ProductListQuery {
   return {
-    view: query.value.view ?? 'spu', categoryId: filters.categoryId || undefined, brandId: filters.brandId || undefined,
+    view: 'sku', categoryId: filters.categoryId || undefined, brandId: filters.brandId || undefined,
     status: (filters.status || undefined) as ProductStatus | undefined, keyword: filters.keyword || undefined,
     tagIds: filters.tagIds.length ? [...filters.tagIds] : undefined,
     supplierId: filters.supplierId || undefined,
@@ -59,10 +60,6 @@ async function search(): Promise<void> {
 async function reset(): Promise<void> {
   Object.assign(filters, { categoryId: '', brandId: '', status: '', keyword: '', supplierId: '', tagIds: [], priceMin: '', priceMax: '' })
   await router.replace({ query: {} }); selectedIds.value = []; await store.resetQuery()
-}
-
-async function switchView(view: 'spu' | 'sku'): Promise<void> {
-  await store.setView(view); selectedIds.value = []
 }
 
 async function switchScenario(event: Event): Promise<void> {
@@ -100,20 +97,30 @@ function money(min: number | null, max: number | null): string {
   return `¥ ${(min / 100).toFixed(2)}～${(max / 100).toFixed(2)}`
 }
 
-onMounted(() => store.load())
+async function ensureSkuView(): Promise<void> {
+  if (query.value.view !== 'sku') await store.setView('sku')
+  else await store.load()
+  if (route.query.view) {
+    const nextQuery = { ...route.query }
+    delete nextQuery.view
+    await router.replace({ query: nextQuery })
+  }
+}
+
+onMounted(() => ensureSkuView())
 </script>
 
 <template>
   <section class="product-page" aria-labelledby="product-title">
     <header class="product-header">
-      <div><p class="eyebrow">PRD-001 · 商品、SKU 与多单位</p><h1 id="product-title">商品列表</h1><p>统一管理 SPU、SKU、基础价格资料和四维场景单位。最终客户价格与授权属于后续切片。</p></div>
+      <div><p class="eyebrow">PRD-001 · 商品规格与多单位</p><h1 id="product-title">商品列表</h1><p>统一管理可销售的商品规格、基础价格资料和四维场景单位。</p></div>
       <div class="header-actions">
         <label class="scenario"><span>模拟场景</span><select :value="scenario" @change="switchScenario"><option value="normal">正常</option><option value="empty">空数据</option><option value="error">服务错误</option><option value="slow">慢响应</option><option value="permission-denied">无权限</option><option value="partial-failure">部分资料失败</option></select></label>
         <RouterLink v-if="canWrite" class="button primary link" to="/products/new">新增商品</RouterLink>
       </div>
     </header>
 
-    <div class="product-subnav"><strong>商品管理</strong><RouterLink to="/products/prices/level-adjustments">价格管理 · PRD-002</RouterLink><RouterLink to="/products/authorizations/plans">商品授权 · PRD-003</RouterLink><RouterLink to="/products/distribution/plans">铺货与模板 · PRD-004</RouterLink><span>辅助资料 · PRD-005 规划中</span></div>
+    <div class="product-subnav"><strong>商品管理</strong><RouterLink to="/products/prices/level-adjustments">价格管理 · PRD-002</RouterLink><RouterLink to="/products/authorizations/plans">商品授权 · PRD-003</RouterLink><RouterLink to="/products/distribution/plans">铺货与模板 · PRD-004</RouterLink><RouterLink to="/products/references/categories">辅助资料 · PRD-005</RouterLink></div>
 
     <div v-if="importOpen" class="import-mask" role="dialog" aria-modal="true" aria-labelledby="import-title"><section class="import-dialog"><header><div><h2 id="import-title">UTF-8 CSV 导入</h2><p>先逐行预览；任何错误或编码冲突都会拒绝整批数据。</p></div><button type="button" aria-label="关闭导入" @click="importOpen=false">×</button></header><label><span>选择 CSV 文件</span><input type="file" accept=".csv,text/csv" @change="readImportFile"></label><label><span>CSV 内容（原型可直接编辑）</span><textarea v-model="importSource" rows="9"></textarea></label><p>必需列：{{ productImportHeaders.join('、') }}</p><ul v-if="importPreview?.errors.length" class="import-errors"><li v-for="issue in importPreview.errors" :key="issue">{{issue}}</li></ul><p v-else-if="importPreview" class="import-ok">预览通过：{{importPreview.rows}} 行、{{importPreview.drafts.length}} 个商品，提交后整体成功或整体回滚。</p><p v-if="importSuccess" class="import-ok">{{importSuccess}}</p><footer><button class="button" type="button" @click="importOpen=false">取消</button><button class="button" type="button" @click="previewImport">预览校验</button><button class="button primary" type="button" :disabled="!importPreview||Boolean(importPreview.errors.length)||saving" @click="submitImport">确认整批导入</button></footer></section></div>
 
@@ -148,8 +155,7 @@ onMounted(() => store.load())
 
         <template v-else>
           <div class="table-toolbar">
-            <div class="view-toggle"><button :class="{ active: query.view !== 'sku' }" type="button" @click="switchView('spu')">按 SPU 展示</button><button :class="{ active: query.view === 'sku' }" type="button" @click="switchView('sku')">按 SKU 展示</button></div>
-            <div class="toolbar-actions"><button class="button" type="button" @click="store.load">刷新</button><button v-if="canWrite" class="button" type="button" @click="showImport">导入</button><button v-if="canWrite" class="button" type="button" @click="exportCsv">导出</button></div>
+            <div class="toolbar-title"><strong>商品规格列表</strong></div><div class="toolbar-actions"><button class="button" type="button" @click="store.load">刷新</button><button v-if="canWrite" class="button" type="button" @click="showImport">导入</button><button v-if="canWrite" class="button" type="button" @click="exportCsv">导出</button></div>
           </div>
           <div v-if="selectedIds.length && canWrite" class="batch-bar"><strong>已选 {{ selectedIds.length }} 个商品</strong><button type="button" @click="batchStatus('on-sale')">批量上架</button><button type="button" @click="batchStatus('off-sale')">批量下架</button><button type="button" @click="exportCsv">批量导出</button><span>任一不合法则整体拒绝</span></div>
           <div class="table-wrap"><table><thead><tr><th><input type="checkbox" :checked="allCurrentSelected" aria-label="选择当前页" @change="togglePage"></th><th>图片</th><th>名称 / 规格</th><th>编码 / 条码</th><th>单位</th><th>基准进货价</th><th>市场价</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody>

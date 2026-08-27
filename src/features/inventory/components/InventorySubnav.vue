@@ -6,6 +6,13 @@ import { RouterLink } from 'vue-router'
     <RouterLink to="/inventory/stocks">库存查询</RouterLink><RouterLink to="/inventory/batches">批次库存</RouterLink>
     <RouterLink to="/inventory/movements">出入库明细</RouterLink><RouterLink to="/inventory/batch-movements">批次出入明细</RouterLink>
     <RouterLink to="/inventory/warehouses">仓库管理</RouterLink><RouterLink to="/inventory/locations">库位管理</RouterLink>
+    <RouterLink to="/inventory/pending-outbound">待分拣订单</RouterLink><RouterLink to="/inventory/order-picking">按订单分拣</RouterLink><RouterLink to="/inventory/wave-picking">波次分拣</RouterLink>
+    <RouterLink to="/inventory/delivery-tasks">配送任务</RouterLink><RouterLink to="/inventory/delivery-routes">配送线路</RouterLink><RouterLink to="/inventory/delivery-vehicles">车辆管理</RouterLink><RouterLink to="/inventory/picking-labels">分拣标签</RouterLink>
+    <RouterLink to="/inventory/transfers">转仓单</RouterLink><RouterLink to="/inventory/other-outbounds">其他出库</RouterLink><RouterLink to="/inventory/other-inbounds">其他入库</RouterLink>
+    <RouterLink to="/inventory/stocktakes">盘点记录</RouterLink><RouterLink to="/inventory/cost-adjustments">成本调整</RouterLink><RouterLink to="/inventory/closings">库存结转</RouterLink>
+    <RouterLink to="/inventory/statistics">库存统计</RouterLink>
+    <RouterLink to="/inventory/processing-recipes">加工配方</RouterLink><RouterLink to="/inventory/processing-plans">加工计划</RouterLink><RouterLink to="/inventory/processing-orders">加工单</RouterLink>
+    <RouterLink to="/inventory/material-picks">加工领料</RouterLink><RouterLink to="/inventory/material-returns">加工退料</RouterLink><RouterLink to="/inventory/processing-yields">出成率</RouterLink>
   </nav>
 </template>
 <style scoped>

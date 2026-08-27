@@ -32,9 +32,10 @@ describe("order store", () => {
     expect(store.formOptions?.warehouses.map((item) => item.id)).toEqual([
       "warehouse-main",
     ]);
+    expect(store.draft.warehouseId).toBe("warehouse-main");
     await store.selectCustomer("customer-1");
     expect(store.skus.map((item) => item.skuId)).toEqual(["sku-1"]);
-    store.draft.warehouseId = "warehouse-main";
+    expect(store.draft.warehouseId).toBe("warehouse-main");
     store.draft.deliveryMethod = "logistics";
     store.draft.requestedDeliveryAt = "2026-08-10T18:00:00+08:00";
     store.addSku("sku-1");
@@ -86,6 +87,7 @@ describe("order store", () => {
     expect(await store.reviewOrders(rows.map((row)=>({orderId:row.order.id,expectedUpdatedAt:row.order.updatedAt})))).toBe(true);
     expect(store.result.items.filter((row)=>["order-009","order-017"].includes(row.order.id)).every((row)=>row.order.status==="pending-finance-review")).toBe(true);
   });
+  it("refreshes an already loaded fulfillment projection after review",async()=>{const store=useOrderStore();await store.loadDetail('order-001');await store.loadFulfillment('order-001');expect(store.fulfillmentDetail?.order.status).toBe('pending-order-review');await store.setRole('sales-supervisor');await store.loadDetail('order-001');await store.loadFulfillment('order-001');expect(await store.reviewOrder('order-001','approve-order',store.detail!.order.updatedAt)).toBe(true);expect(store.fulfillmentDetail?.order.status).toBe('pending-finance-review')});
   it("surfaces a concurrent review without changing the stale screen", async () => {
     const store = useOrderStore();
     await store.setScenario("concurrent");
@@ -95,6 +97,6 @@ describe("order store", () => {
     expect(store.error).toContain("其他会话修改");
     expect(store.detail?.order.status).toBe("pending-order-review");
   });
-  it("runs outbound, shipment and receipt through one recoverable store session",async()=>{const store=useOrderStore();await store.setRole('warehouse');await store.loadFulfillment('order-003');const line=store.fulfillmentDetail!.order.lines[0]!;const input={orderId:'order-003',warehouseId:'warehouse-main',lines:[{orderLineId:line.id,quantity:line.quantityMilli/line.unitSnapshot.conversionRateMilli}],finishShort:false};expect(await store.previewFulfillment(input)).toBe(true);expect(store.outboundPreview?.lines[0]?.allocations.length).toBeGreaterThan(0);expect(await store.confirmFulfillment(input)).toBe(true);expect(store.fulfillmentDetail?.order.status).toBe('outbound');expect(await store.shipOrder({orderId:'order-003',logisticsCode:'MOCK-STORE-003'})).toBe(true);expect(store.fulfillmentDetail?.receivable).toBeNull();expect(await store.receiveOrder({orderId:'order-003',signedAt:'2026-08-10T10:00:00+08:00',signer:'演示签收人'})).toBe(true);expect(store.fulfillmentDetail?.order.status).toBe('completed')});
+  it("runs outbound, shipment and receipt through one recoverable store session",async()=>{const store=useOrderStore();await store.setRole('warehouse');await store.loadFulfillment('order-003');const line=store.fulfillmentDetail!.order.lines[0]!;const input={orderId:'order-003',warehouseId:'warehouse-main',lines:[{orderLineId:line.id,quantity:line.quantityMilli/line.unitSnapshot.conversionRateMilli}],finishShort:false};expect(await store.previewFulfillment(input)).toBe(true);expect(store.outboundPreview?.lines[0]?.allocations.length).toBeGreaterThan(0);expect(await store.confirmFulfillment(input),store.error??'确认出库失败').toBe(true);expect(store.fulfillmentDetail?.order.status).toBe('outbound');expect(await store.shipOrder({orderId:'order-003',logisticsCode:'MOCK-STORE-003'})).toBe(true);expect(store.fulfillmentDetail?.receivable).toBeNull();expect(await store.receiveOrder({orderId:'order-003',signedAt:'2026-08-10T10:00:00+08:00',signer:'演示签收人'})).toBe(true);expect(store.fulfillmentDetail?.order.status).toBe('completed')});
   it("loads six explainable ORD-005 return states and a pending finance refund",async()=>{const store=useOrderStore();await store.loadReturns();expect(store.returnResult.total).toBe(6);expect(new Set(store.returnResult.items.map((item)=>item.value.status))).toEqual(new Set(['pending-review','returned','approved','completed','cancelled']));await store.loadRefunds();expect(store.refunds.some((item)=>item.status==='pending')).toBe(true);expect(store.refunds.some((item)=>item.status==='refunded')).toBe(true)});
 });

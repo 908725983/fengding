@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { businessModules, findBusinessModule } from '@/app/module-catalog'
+import { moduleNavigation } from '@/app/module-navigation'
 import { currentProcurementRole } from '@/features/procurement/runtime/procurement-access'
 
 const route = useRoute()
@@ -11,6 +12,37 @@ const currentModule = computed(() => {
   return findBusinessModule(key)
 })
 const visibleModules = computed(() => businessModules.filter((item) => item.key !== 'procurement' || ['super-admin', 'warehouse'].includes(currentProcurementRole.value)))
+const openMenuKey = ref<string | null>(null)
+let closeTimer: number | undefined
+const activeMenu = computed(() => openMenuKey.value ? moduleNavigation[openMenuKey.value] ?? [] : [])
+const activeMenuModule = computed(() => openMenuKey.value ? findBusinessModule(openMenuKey.value) : undefined)
+
+function openModuleMenu(key: string): void {
+  if (closeTimer !== undefined) window.clearTimeout(closeTimer)
+  openMenuKey.value = key
+}
+
+function scheduleClose(): void {
+  if (closeTimer !== undefined) window.clearTimeout(closeTimer)
+  closeTimer = window.setTimeout(() => { openMenuKey.value = null; closeTimer = undefined }, 120)
+}
+
+function cancelClose(): void {
+  if (closeTimer !== undefined) { window.clearTimeout(closeTimer); closeTimer = undefined }
+}
+
+function closeModuleMenu(): void { cancelClose(); openMenuKey.value = null }
+
+function closeOnEscape(event: KeyboardEvent): void {
+  if (event.key === 'Escape') closeModuleMenu()
+}
+
+function isMenuItemActive(path: string): boolean {
+  return route.path === path || route.path.startsWith(`${path}/`)
+}
+
+onMounted(() => window.addEventListener('keydown', closeOnEscape))
+onBeforeUnmount(() => { window.removeEventListener('keydown', closeOnEscape); cancelClose() })
 </script>
 
 <template>
@@ -32,6 +64,10 @@ const visibleModules = computed(() => businessModules.filter((item) => item.key 
           :to="item.path"
           class="navigation__item"
           :aria-label="`${item.label}：${item.description}`"
+          @mouseenter="openModuleMenu(item.key)"
+          @focus="openModuleMenu(item.key)"
+          @mouseleave="scheduleClose"
+          @blur="scheduleClose"
         >
           <span class="navigation__icon" aria-hidden="true">{{ item.icon }}</span>
           <span>{{ item.label }}</span>
@@ -44,7 +80,7 @@ const visibleModules = computed(() => businessModules.filter((item) => item.key 
       </div>
     </aside>
 
-    <section class="workspace">
+    <section class="workspace" @click="closeModuleMenu">
       <header class="topbar">
         <div class="topbar__location">
           <span class="eyebrow">蜂订业务原型</span>
@@ -56,6 +92,19 @@ const visibleModules = computed(() => businessModules.filter((item) => item.key 
           <div class="avatar" aria-label="当前模拟用户：系统管理员">管</div>
         </div>
       </header>
+
+      <div v-if="activeMenu.length" class="module-mega-menu" role="dialog" :aria-label="`${activeMenuModule?.label ?? '模块'}菜单`" @mouseenter="cancelClose" @mouseleave="scheduleClose" @click.stop>
+        <header class="module-mega-menu__header">
+          <div><strong>{{ activeMenuModule?.label }}</strong><small>{{ activeMenuModule?.description }}</small></div>
+          <button class="module-mega-menu__close" type="button" aria-label="关闭模块菜单" @click="closeModuleMenu">×</button>
+        </header>
+        <div class="module-mega-menu__grid">
+          <section v-for="group in activeMenu" :key="group.label" class="module-mega-menu__group">
+            <h2>{{ group.label }}</h2>
+            <RouterLink v-for="item in group.items" :key="item.path" :to="item.path" :class="{ active: isMenuItemActive(item.path) }" @click="closeModuleMenu">{{ item.label }}</RouterLink>
+          </section>
+        </div>
+      </div>
 
       <main class="content">
         <RouterView />

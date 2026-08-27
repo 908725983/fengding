@@ -1,0 +1,18 @@
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useSettingsStore } from '../runtime/settings-store'
+import SettingsSubnav from '../components/SettingsSubnav.vue'
+import SettingsScenarioBar from '../components/SettingsScenarioBar.vue'
+import './settings-views.css'
+const store = useSettingsStore(); const { departments, loading, error, saving, scenario, actor } = storeToRefs(store)
+const editing = ref<string | null>(null); const showForm = ref(false); const formError = ref('')
+const form = reactive({ name: '', parentId: null as string | null, managerId: null as string | null, status: 'enabled' as 'enabled' | 'disabled' })
+const rows = computed(() => departments.value.map((item) => ({ ...item, level: item.parentId ? 1 : 0 })))
+onMounted(() => store.load())
+function open(row?: any) { showForm.value = true; editing.value = row?.id ?? null; Object.assign(form, row ? { name: row.name, parentId: row.parentId, managerId: row.managerId, status: row.status } : { name: '', parentId: null, managerId: null, status: 'enabled' }); formError.value = '' }
+function close() { showForm.value = false; editing.value = null; form.name = ''; form.managerId = ''; form.parentId = null }
+async function submit() { try { await store.saveDepartment({ ...form }, editing.value ?? undefined); close() } catch (e) { formError.value = e instanceof Error ? e.message : '保存失败' } }
+async function remove(id: string) { if (confirm('确认删除该部门？')) try { await store.deleteDepartment(id) } catch (e) { formError.value = e instanceof Error ? e.message : '删除失败' } }
+</script>
+<template><section class="settings-page"><header class="settings-header"><div><p class="eyebrow">SET-001 · 组织资料</p><h1>部门管理</h1><p>多级组织树；存在子部门、员工、客户或公告引用时不能删除。</p></div><SettingsScenarioBar :scenario="scenario" :role="actor.role" @scenario="store.setScenario" @role="store.setRole"/></header><SettingsSubnav/><div v-if="error||formError" class="settings-warning">{{error||formError}}</div><section class="settings-panel"><div class="settings-toolbar"><strong>部门树（{{departments.length}}）</strong><button class="set-button primary" :disabled="!store.canWrite" @click="open()">新增部门</button></div><div v-if="loading" class="settings-state">正在加载部门…</div><div v-else-if="!rows.length" class="settings-state">暂无部门资料</div><div v-else class="settings-tree"><div v-for="row in rows" :key="row.id" class="settings-tree-row" :class="`level-${row.level}`"><div class="settings-tree-main"><strong>{{row.name}}</strong><small>{{row.code}} · {{row.managerId??'未指定负责人'}}</small><span class="settings-status" :class="{disabled:row.status==='disabled'}">{{row.status==='enabled'?'启用':'停用'}}</span></div><div><button class="set-button" @click="open(row)">编辑</button><button class="set-button danger" :disabled="saving" @click="remove(row.id)">删除</button></div></div></div></section><section v-if="showForm" class="settings-panel"><form class="settings-form" @submit.prevent="submit"><label>部门名称<input v-model.trim="form.name" required maxlength="100"></label><label>上级部门<select v-model="form.parentId"><option :value="null">无（根部门）</option><option v-for="row in departments.filter(x=>x.id!==editing)" :key="row.id" :value="row.id">{{row.name}}</option></select></label><label>负责人<input v-model.trim="form.managerId" maxlength="60"></label><label>状态<select v-model="form.status"><option value="enabled">启用</option><option value="disabled">停用</option></select></label><div class="settings-actions"><button type="button" class="set-button" @click="close">取消</button><button class="set-button primary" :disabled="saving">保存</button></div></form></section></section></template>

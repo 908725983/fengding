@@ -7,6 +7,7 @@ import slowScenario from '../scenarios/slow.json'
 import type { CustomerFeatureState } from '../../src/features/customers/types'
 import { InMemoryCustomerRepository } from '../../src/features/customers/repositories/customer-repository'
 import { createCustomerService } from '../../src/features/customers/services/customer-service'
+import { createCustomerOperationsService } from '../../src/features/customers/services/customer-operations-service'
 
 const featureData = baseline.featureData as Record<string, unknown>
 
@@ -16,7 +17,7 @@ export function createBaselineCustomerRepository(): InMemoryCustomerRepository {
   return new InMemoryCustomerRepository(customerBaseline)
 }
 
-export type CustomerScenarioName = 'normal' | 'empty' | 'error' | 'slow' | 'permission-denied'
+export type CustomerScenarioName = 'normal' | 'empty' | 'error' | 'slow' | 'permission-denied' | 'partial-failure'
 
 const scenarioDefinitions = {
   normal: normalScenario,
@@ -24,6 +25,7 @@ const scenarioDefinitions = {
   error: errorScenario,
   slow: slowScenario,
   'permission-denied': permissionScenario,
+  'partial-failure': normalScenario,
 } as const
 
 export class CustomerMockError extends Error {
@@ -39,10 +41,27 @@ export function createCustomerMockSession(scenarioName: CustomerScenarioName = '
     state.customers = []
     state.suggestions = []
     state.changeLogs = []
+    state.membershipLevels = []
+    state.memberships = []
+    state.pointAccounts = []
+    state.pointLedger = []
+    state.coupons = []
+    state.couponInstances = []
+    state.promotions = []
+    state.voucherCampaigns = []
+    state.voucherIssues = []
+    state.marketingArticles = []
+    state.channelState = { wecomSyncRecords: [], wecomBroadcasts: [], wecomTagMappings: [], wecomScripts: [], wecomWelcomeMessages: [], wecomGroups: [], wecomMoments: [], mallCustomers: [], mallEmployees: [], mallDesigns: [], mallExtensions: [], mallAds: [], mallPopups: [], mallMessages: [] }
   }
   const repository = new InMemoryCustomerRepository(state)
   let sequence = 1
   const service = createCustomerService({
+    repository,
+    now: () => baseline.clock,
+    nextId: (kind) => `${kind}-runtime-${sequence++}`,
+    staffNames: { 'staff-demo-1': '演示业务员甲', 'staff-demo-2': '演示业务员乙' },
+  })
+  const operations = createCustomerOperationsService({
     repository,
     now: () => baseline.clock,
     nextId: (kind) => `${kind}-runtime-${sequence++}`,
@@ -56,5 +75,5 @@ export function createCustomerMockSession(scenarioName: CustomerScenarioName = '
     return operation()
   }
 
-  return { scenarioName, repository, service, run }
+  return { scenarioName, repository, service, operations, run }
 }

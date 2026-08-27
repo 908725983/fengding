@@ -1,0 +1,2 @@
+<script setup lang="ts">import { RouterLink } from 'vue-router'</script>
+<template><nav class="settings-subnav" aria-label="设置二级导航"><RouterLink to="/settings/company">公司信息</RouterLink><RouterLink to="/settings/departments">部门管理</RouterLink><RouterLink to="/settings/announcements">内部公告</RouterLink><RouterLink to="/settings/regions">区域管理</RouterLink><RouterLink to="/settings/warehouses">共享仓库</RouterLink><RouterLink to="/settings/roles">角色权限</RouterLink><RouterLink to="/settings/employees">员工账号</RouterLink><RouterLink to="/settings/logs">系统日志</RouterLink></nav></template>

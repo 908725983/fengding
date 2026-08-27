@@ -6,7 +6,7 @@ import permissionScenario from '../scenarios/permission-denied.json'
 import slowScenario from '../scenarios/slow.json'
 import type { ProductFeatureState } from '../../src/features/products/types'
 import { InMemoryProductRepository } from '../../src/features/products/repositories/product-repository'
-import { createProductService } from '../../src/features/products/services/product-service'
+import { createProductService, type ProductServiceDependencies } from '../../src/features/products/services/product-service'
 import { createProcurementMockSession } from './procurement-handler'
 
 const featureData = baseline.featureData as Record<string, unknown>
@@ -14,6 +14,49 @@ export const productBaseline = structuredClone(featureData['PRD-001']) as Produc
 
 export function createBaselineProductRepository(): InMemoryProductRepository {
   return new InMemoryProductRepository(productBaseline)
+}
+
+const browserProductStateKey = 'fengding:mock:product-state:v1'
+function browserPersistenceAvailable(): boolean {
+  return typeof window !== 'undefined' && !/jsdom/i.test(window.navigator.userAgent)
+}
+
+class BrowserSharedProductRepository extends InMemoryProductRepository {
+  constructor(initialState: ProductFeatureState) {
+    super(BrowserSharedProductRepository.load(initialState))
+  }
+
+  private static load(fallback: ProductFeatureState): ProductFeatureState {
+    if (!browserPersistenceAvailable()) return fallback
+    try {
+      const raw = window.localStorage.getItem(browserProductStateKey)
+      return raw ? JSON.parse(raw) as ProductFeatureState : fallback
+    } catch {
+      return fallback
+    }
+  }
+
+  private persist(): void {
+    if (!browserPersistenceAvailable()) return
+    try { window.localStorage.setItem(browserProductStateKey, JSON.stringify(super.read())) } catch { /* storage is optional in the prototype */ }
+  }
+
+  override read(): ProductFeatureState {
+    const latest = BrowserSharedProductRepository.load(super.read())
+    super.reset(latest)
+    return super.read()
+  }
+
+  override transact<T>(mutation: (draft: ProductFeatureState) => T): T {
+    const result = super.transact(mutation)
+    this.persist()
+    return result
+  }
+
+  override reset(state: ProductFeatureState): void {
+    super.reset(state)
+    this.persist()
+  }
 }
 
 export type ProductScenarioName = 'normal' | 'empty' | 'error' | 'slow' | 'permission-denied'
@@ -28,16 +71,18 @@ export class ProductMockError extends Error {
   }
 }
 
-export function createProductMockSession(scenarioName: ProductScenarioName = 'normal') {
+export function createProductMockSession(scenarioName: ProductScenarioName = 'normal', supplierProvider?: ProductServiceDependencies['supplierProvider']) {
   const state = structuredClone(productBaseline)
   if (scenarioName === 'empty') {
     state.products = []
     state.changeLogs = []
   }
-  const repository = new InMemoryProductRepository(state)
+  const repository = scenarioName === 'normal' && browserPersistenceAvailable()
+    ? new BrowserSharedProductRepository(state)
+    : new InMemoryProductRepository(state)
   let sequence = 1
-  const supplierProvider = createProcurementMockSession('normal').service.createSupplyProvider()
-  const service = createProductService({ repository, supplierProvider, now: () => baseline.clock, nextId: (kind) => `${kind}-runtime-${sequence++}` })
+  const effectiveSupplierProvider = supplierProvider ?? createProcurementMockSession('normal').service.createSupplyProvider()
+  const service = createProductService({ repository, supplierProvider: effectiveSupplierProvider, now: () => baseline.clock, nextId: (kind) => `${kind}-runtime-${sequence++}` })
   const definition = scenarioDefinitions[scenarioName]
 
   async function run<T>(operation: () => T): Promise<T> {

@@ -43,7 +43,7 @@ export class CustomerDomainError extends Error {
 export interface CustomerServiceDependencies {
   repository: CustomerRepository
   now: () => string
-  nextId: (kind: 'customer' | 'category' | 'tag' | 'suggestion' | 'log') => string
+  nextId: (kind: string) => string
   staffNames: Readonly<Record<string, string>>
 }
 
@@ -109,7 +109,7 @@ function appendLog(state: CustomerFeatureState, dependencies: CustomerServiceDep
 
 export function createEmptyCustomerDraft(): CustomerDraft {
   return {
-    codeMode: 'auto', code: null, name: '', categoryId: '', customerType: null, source: null, importanceLevel: null,
+    codeMode: 'manual', code: '', name: '', categoryId: '', customerType: null, source: null, importanceLevel: null,
     primaryContactName: '', primaryPhone: '', backupPhone: null, provinceCode: '', cityCode: '', districtCode: '', address: '', addressLabel: null,
     longitude: null, latitude: null, email: null, wechatId: null, salespersonId: '', creditLimitCents: null,
     settlementMethod: 'cash', paymentTermDays: null, paymentMethods: [], bankName: null, bankAccount: null, taxId: null, invoiceTitle: null,

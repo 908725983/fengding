@@ -5,6 +5,7 @@ let currentRole: ProductRole = 'super-admin'
 export function setCurrentProductRole(role: ProductRole): void { currentRole = role }
 export function canCurrentRoleAccessProducts(): boolean { return currentRole !== 'finance' }
 export function guardProductSubroute(path: string): true | string {
+  if (path.startsWith('/products/references') && currentRole === 'finance') return '/products?denied=1'
   const priceWriteRoute = /^\/products\/prices\/(level|purchase|customer)-adjustments\/(new|[^/]+\/edit)$/.test(path)
     || /^\/products\/prices\/(order-unit-prices|strategies)\/(new|[^/]+\/edit)$/.test(path)
   const authorizationWriteRoute = /^\/products\/authorizations\/(plans|rules)\/(new|[^/]+\/edit)$/.test(path)

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import HarnessOverviewView from './HarnessOverviewView.vue'
 
 describe('HarnessOverviewView', () => {
-  it('clearly separates the harness baseline from business completion', () => {
+  it('renders role-filtered workbench regions and unavailable provider boundaries', () => {
     const wrapper = mount(HarnessOverviewView, {
       global: {
         stubs: {
@@ -12,8 +12,11 @@ describe('HarnessOverviewView', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('此页面不是经营 Dashboard')
-    expect(wrapper.text()).toContain('0 / 8 业务模块已实现')
-    expect(wrapper.findAll('tbody tr')).toHaveLength(8)
+    expect(wrapper.text()).toContain('首页经营概览')
+    expect(wrapper.text()).toContain('待办事项')
+    expect(wrapper.text()).toContain('营业情况')
+    expect(wrapper.text()).toContain('预警中心')
+    expect(wrapper.text()).toContain('通知公告')
+    expect(wrapper.text()).toContain('unavailable')
   })
 })

@@ -7,7 +7,7 @@ import type { CustomerListQuery } from '../types'
 import type { CustomerScenarioName } from '../../../../mock/handlers/customer-handler'
 
 const store = useCustomerStore()
-const { result, categories, tags, loading, error, isEmpty, scenario } = storeToRefs(store)
+const { result, categories, tags, loading, error, isEmpty, scenario, canWrite } = storeToRefs(store)
 const showMore = ref(false)
 const filters = reactive({
   categoryId: '', tagIds: [] as string[], salespersonId: '', status: '', keyword: '',
@@ -15,6 +15,7 @@ const filters = reactive({
 })
 
 const statusLabels = { pending: '待审核', active: '启用', inactive: '停用', frozen: '冻结' } as const
+const actionError = ref<string | null>(null)
 
 function toggleTag(tagId: string): void {
   const index = filters.tagIds.indexOf(tagId)
@@ -45,6 +46,13 @@ async function switchScenario(event: Event): Promise<void> {
   await store.setScenario((event.target as HTMLSelectElement).value as CustomerScenarioName)
 }
 
+async function approve(customerId: string, customerName: string): Promise<void> {
+  if (!window.confirm(`确认审核启用客户“${customerName}”吗？`)) return
+  actionError.value = null
+  try { await store.changeCustomerStatus(customerId, 'active') }
+  catch (caught) { actionError.value = caught instanceof Error ? caught.message : '审核启用失败' }
+}
+
 onMounted(() => store.load())
 </script>
 
@@ -65,6 +73,7 @@ onMounted(() => store.load())
             <option value="error">服务错误</option>
             <option value="slow">慢响应</option>
             <option value="permission-denied">无权限</option>
+            <option value="partial-failure">部分失败</option>
           </select>
         </label>
         <RouterLink class="button button--primary button-link" to="/customers/new">新增客户</RouterLink>
@@ -107,6 +116,7 @@ onMounted(() => store.load())
       </div>
     </form>
 
+    <p v-if="actionError" class="action-error" role="alert">{{ actionError }}</p>
     <div v-if="error" class="state-panel state-panel--error" role="alert">
       <strong>客户数据加载失败</strong><p>{{ error }}</p><button class="button" type="button" @click="store.load">重试</button>
     </div>
@@ -124,11 +134,11 @@ onMounted(() => store.load())
               <td><RouterLink class="customer-name-link" :to="`/customers/${customer.id}`">{{ customer.name }}</RouterLink></td>
               <td><span class="soft-tag">{{ customer.categoryName }}</span></td>
               <td>{{ customer.primaryContactName }}</td><td>{{ customer.primaryPhone }}</td>
-              <td>{{ [customer.provinceCode, customer.cityCode, customer.districtCode].join(' / ') }}</td>
+              <td>{{ customer.cityCode }}</td>
               <td>{{ customer.salespersonName }}</td>
               <td><span class="unavailable">未接入</span></td><td><span class="unavailable">未接入</span></td><td><span class="unavailable">未接入</span></td>
               <td><span class="customer-status" :class="`customer-status--${customer.status}`">{{ statusLabels[customer.status] }}</span></td>
-              <td><RouterLink class="table-action" :to="`/customers/${customer.id}`">详情</RouterLink><RouterLink class="table-action" :to="`/customers/${customer.id}/edit`">编辑</RouterLink></td>
+              <td><RouterLink class="table-action" :to="`/customers/${customer.id}`">详情</RouterLink><RouterLink class="table-action" :to="`/customers/${customer.id}/edit`">编辑</RouterLink><button v-if="canWrite && customer.status === 'pending'" class="table-action table-action--button" type="button" @click="approve(customer.id, customer.name)">审核启用</button></td>
             </tr>
           </tbody>
         </table>
@@ -170,6 +180,7 @@ select, input { min-height: 36px; padding: 6px 10px; color: var(--color-text); b
 .more-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border); }
 .filter-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; }
 .link-button, .table-action, .customer-name-link { padding: 0; color: var(--color-primary-strong); cursor: pointer; background: transparent; border: 0; text-decoration: none; }
+.table-action--button { font: inherit; }
 .customer-name-link { font-weight: 700; }
 .table-action + .table-action { margin-left: 10px; }
 .table-action:disabled { color: #9aa4b1; cursor: not-allowed; }

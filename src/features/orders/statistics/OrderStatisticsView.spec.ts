@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -14,8 +14,9 @@ async function mountStatistics(path: string, area: 'order' | 'sales') {
   ] })
   await router.push(path); await router.isReady()
   const wrapper = mount(OrderStatisticsView, { props: { area }, global: { plugins: [pinia, router] } })
-  await new Promise((resolve) => setTimeout(resolve, 260)); await flushPromises()
-  return { wrapper, router, store: useOrderStatisticsStore() }
+  const store = useOrderStatisticsStore()
+  await vi.waitFor(() => expect(store.loading).toBe(false), { timeout: 5000 }); await flushPromises()
+  return { wrapper, router, store }
 }
 
 describe('ORD-006 statistics view', () => {

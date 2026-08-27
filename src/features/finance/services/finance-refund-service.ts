@@ -2,7 +2,7 @@ import type { FinanceRepository } from '../repositories/finance-repository'
 import { FinanceDomainError } from './finance-service'
 import { FinanceValidationError } from '../schemas/finance-schema'
 import type {
-  ActorSnapshot, ConfirmCustomerRefundInput, CreateReturnCreditInput, CustomerRefund, FinanceActor, FinanceFeatureState,
+  ActorSnapshot, ConfirmCustomerRefundInput, CorrectCustomerRefundInput, CreateReturnCreditInput, CustomerRefund, FinanceActor, FinanceFeatureState,
   FinancePermission, FundAccount, FundMovement, ReceivableCreditAdjustment, ReapplyCustomerRefundInput,
   RefundSourceAllocation, RejectCustomerRefundInput, ReverseReturnCreditInput, WriteoffAllocation,
 } from '../types'
@@ -29,12 +29,38 @@ const nextRefundNo = (state: FinanceFeatureState, at: string) => { const date = 
 const record = (state: FinanceFeatureState, requestId: string, kind: FinanceFeatureState['requests'][number]['kind'], targetIds: string[], at: string) => state.requests.push({ requestId, kind, targetIds, appliedAt: at })
 
 export function createFinanceRefundService(deps: FinanceRefundServiceDependencies) {
-  function makePending(state: FinanceFeatureState, credit: ReceivableCreditAdjustment, method: CustomerRefund['method'], at: string, requestId: string, operator: ActorSnapshot): CustomerRefund | null {
+  function makePending(state: FinanceFeatureState, credit: ReceivableCreditAdjustment, method: CustomerRefund['method'], at: string, requestId: string, operator: ActorSnapshot, correctionOfRefundId: string | null = null): CustomerRefund | null {
     const already = state.refunds.filter((item) => item.creditAdjustmentId === credit.id && item.status === 'refunded').reduce((sum, item) => sum + item.refundedAmountCents, 0)
     const remaining = credit.refundObligationCents - already; if (remaining <= 0) return null
     if (state.refunds.some((item) => item.creditAdjustmentId === credit.id && item.status === 'pending')) throw new FinanceDomainError('CONFLICT', '该贷项已有待审核退款')
-    const value: CustomerRefund = { id: deps.nextId('refund'), enterpriseId: state.enterpriseId, refundNo: nextRefundNo(state, at), sourceType: credit.sourceType, sourceId: credit.sourceId, sourceNo: credit.sourceNo, creditAdjustmentId: credit.id, receivableId: credit.receivableId, orderId: credit.orderId, orderNo: credit.orderNo, customerSnapshot: structuredClone(credit.customerSnapshot), requestedAmountCents: remaining, refundedAmountCents: 0, method, status: 'pending', allocations: [], requestedAt: at, resolvedAt: null, reason: null, requestId, operatorSnapshot: operator, version: 1 }
+    const value: CustomerRefund = { id: deps.nextId('refund'), enterpriseId: state.enterpriseId, refundNo: nextRefundNo(state, at), sourceType: credit.sourceType, sourceId: credit.sourceId, sourceNo: credit.sourceNo, creditAdjustmentId: credit.id, receivableId: credit.receivableId, orderId: credit.orderId, orderNo: credit.orderNo, customerSnapshot: structuredClone(credit.customerSnapshot), requestedAmountCents: remaining, refundedAmountCents: 0, method, status: 'pending', allocations: [], requestedAt: at, resolvedAt: null, reason: null, requestId, operatorSnapshot: operator, version: 1, correctionOfRefundId }
     state.refunds.push(value); state.auditLogs.push({ id: deps.nextId('audit'), enterpriseId: state.enterpriseId, action: 'refund.created', targetId: value.id, operatorSnapshot: operator, detail: `创建待审核退款 ${value.refundNo}`, createdAt: at }); return value
+  }
+
+  function correctRefund(actor: FinanceActor, input: CorrectCustomerRefundInput): { credit: ReceivableCreditAdjustment; refund: CustomerRefund } {
+    permission(actor, 'finance.manage-refunds'); assertTime(input.occurredAt, deps.now())
+    const reason = input.reason.trim(); const sourceNo = input.sourceNo.trim()
+    if (!reason || reason.length > 200 || !sourceNo || sourceNo.length > 80) throw new FinanceValidationError([{ path: 'reason', message: '更正原因和来源单号不能为空且长度有效' }])
+    if (!Number.isSafeInteger(input.expectedAmountCents) || input.expectedAmountCents <= 0) throw new FinanceValidationError([{ path: 'expectedAmountCents', message: '应退金额必须是正整数分' }])
+    return deps.repository.transact((state) => {
+      const prior = state.requests.find((item) => item.requestId === input.requestId)
+      if (prior) { if (prior.kind !== 'refund-correct') throw new FinanceDomainError('CONFLICT', 'requestId 已被其他操作使用'); const credit = state.creditAdjustments.find((item) => item.id === prior.targetIds[0])!; const refund = state.refunds.find((item) => item.id === prior.targetIds[1])!; return { credit, refund } }
+      const original = state.refunds.find((item) => item.id === input.refundId)
+      if (!original) throw new FinanceDomainError('NOT_FOUND', '原退款单不存在')
+      if (original.version !== input.expectedVersion) throw new FinanceDomainError('CONFLICT', '原退款单已变化，请刷新')
+      if (original.status !== 'refunded') throw new FinanceDomainError('INVALID_STATE', '只有已完成退款可以更正')
+      const shortfall = input.expectedAmountCents - original.refundedAmountCents
+      if (shortfall <= 0) throw new FinanceDomainError('INVALID_STATE', '当前退款不存在少退金额')
+      if (state.refunds.some((item) => item.correctionOfRefundId === original.id && item.status !== 'rejected')) throw new FinanceDomainError('CONFLICT', '原退款已有未完成更正')
+      const sourceId = `${original.sourceId}:correction:${input.requestId}`
+      const operatorSnapshot = actorSnapshot(actor, deps)
+      const credit: ReceivableCreditAdjustment = { id: deps.nextId('credit'), enterpriseId: state.enterpriseId, sourceType: original.sourceType, sourceId, sourceNo, receivableId: original.receivableId, orderId: original.orderId, orderNo: original.orderNo, customerSnapshot: structuredClone(original.customerSnapshot), amountCents: shortfall, outstandingReductionCents: 0, refundObligationCents: shortfall, nonRefundableDiscountCents: 0, occurredAt: input.occurredAt, requestId: input.requestId, operatorSnapshot, status: 'active', reversalInfo: null, version: 1, correctionOfRefundId: original.id }
+      state.creditAdjustments.push(credit)
+      const refund = makePending(state, credit, original.method, input.occurredAt, `${input.requestId}:refund`, operatorSnapshot, original.id)!
+      state.version += 1; record(state, input.requestId, 'refund-correct', [credit.id, refund.id], input.occurredAt)
+      state.auditLogs.push({ id: deps.nextId('audit'), enterpriseId: state.enterpriseId, action: 'refund.created', targetId: refund.id, operatorSnapshot, detail: `少退更正 ${original.refundNo}，新增退款 ${refund.refundNo}：${reason}`, createdAt: input.occurredAt })
+      return { credit, refund }
+    })
   }
 
   function createReturnCredit(input: CreateReturnCreditInput): { credit: ReceivableCreditAdjustment; refund: CustomerRefund | null } {
@@ -110,5 +136,5 @@ export function createFinanceRefundService(deps: FinanceRefundServiceDependencie
   function listRefunds(actor: FinanceActor) { permission(actor, 'finance.view-refunds'); return deps.repository.read().refunds.sort((a, b) => b.requestedAt.localeCompare(a.requestedAt) || b.id.localeCompare(a.id)).map((item) => structuredClone(item)) }
   function getRefund(actor: FinanceActor, refundId: string) { const value = listRefunds(actor).find((item) => item.id === refundId); if (!value) throw new FinanceDomainError('NOT_FOUND', '退款单不存在'); return value }
   function getSourceResult(sourceType: ReceivableCreditAdjustment['sourceType'], sourceId: string) { const state = deps.repository.read(); const credit = state.creditAdjustments.filter((item) => item.sourceType === sourceType && item.sourceId === sourceId).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt) || a.id.localeCompare(b.id)).at(-1); if (!credit) return null; return { credit: structuredClone(credit), refunds: state.refunds.filter((item) => item.creditAdjustmentId === credit.id).map((item) => structuredClone(item)) } }
-  return { createReturnCredit, reverseReturnCredit, listRefunds, getRefund, confirmRefund, rejectRefund, reapplyRefund, getSourceResult }
+  return { createReturnCredit, correctRefund, reverseReturnCredit, listRefunds, getRefund, confirmRefund, rejectRefund, reapplyRefund, getSourceResult }
 }

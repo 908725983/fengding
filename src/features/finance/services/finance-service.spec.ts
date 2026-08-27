@@ -9,11 +9,22 @@ const admin: FinanceActor = { actorId: 'admin-demo', role: 'super-admin' }
 const finance: FinanceActor = { actorId: 'finance-demo', role: 'finance' }
 const supervisor: FinanceActor = { actorId: 'supervisor-demo', role: 'sales-supervisor' }
 const salesperson: FinanceActor = { actorId: 'sales-demo', role: 'salesperson' }
+const supplier = { id: 'supplier-test', code: 'SUP-TEST', name: '测试供应商', contactName: '测试联系人', phone: '000-3000-0001', paymentTermDays: null }
 
 function setup() {
   const repository = new InMemoryFinanceRepository(financeBaseline); let sequence = 1
   const service = createFinanceService({ repository, now: () => '2026-08-10T09:00:00+08:00', nextId: (kind) => `${kind}-test-${sequence++}`, actorName: (actor) => `姓名-${actor.actorId}` })
   return { repository, service }
+}
+
+function supplierPayableInput(suffix: string, occurredAt: string, amountCents = 100, supplierSnapshot = supplier) {
+  return {
+    requestId: `request-payable-${suffix}`, purchaseOrderId: `purchase-order-${suffix}`, purchaseOrderNo: `CG-${suffix}`,
+    inboundId: `inbound-${suffix}`, inboundNo: `RK-${suffix}`, supplierSnapshot,
+    items: [{ inboundLineId: `inbound-line-${suffix}`, purchaseOrderLineId: `purchase-line-${suffix}`, skuId: 'sku-1', skuCode: 'SKU-000001', productName: '测试商品', specification: '默认', unitName: '件', quantityMilli: 1000, unitPriceCents: amountCents, subtotalCents: amountCents, allocatedDiscountCents: 0, allocatedOtherFeeCents: 0, amountCents, isGift: amountCents === 0 }],
+    goodsAmountCents: amountCents, discountCents: 0, otherFeeCents: 0, amountCents, occurredAt, paymentTermDays: supplierSnapshot.paymentTermDays,
+    operator: { id: 'finance-demo', name: '演示财务', role: 'finance' as const },
+  }
 }
 
 describe('finance service', () => {
@@ -179,5 +190,59 @@ describe('finance service', () => {
     const { service, repository } = setup(); const before = repository.read()
     expect(() => service.createWriteoff(finance, { requestId: 'request-excess-writeoff', customerId: 'customer-1', occurredAt: '2026-08-10T09:00:00+08:00', allocations: [{ sourceKind: 'receipt', sourceId: 'customer-receipt-001', receivableId: 'receivable-order-007', cashCents: 0, discountCents: 1001 }] })).toThrow()
     expect(repository.read()).toEqual(before)
+  })
+
+  it('forms supplier payable from an inbound snapshot and derives aging/status', () => {
+    const { service, repository } = setup(); const supplier = { id: 'supplier-1', code: 'SUP-000001', name: '演示供应商', contactName: '联系人', phone: '000-0000-0001', paymentTermDays: 30 }
+    const input = { requestId: 'request-payable-1', purchaseOrderId: 'purchase-order-1', purchaseOrderNo: 'CG-260810-00001', inboundId: 'inbound-1', inboundNo: 'RK-260810-00001', supplierSnapshot: supplier, items: [{ inboundLineId: 'inbound-line-1', purchaseOrderLineId: 'purchase-line-1', skuId: 'sku-1', skuCode: 'SKU-000001', productName: '演示商品', specification: '默认', unitName: '件', quantityMilli: 2000, unitPriceCents: 500, subtotalCents: 1000, allocatedDiscountCents: 100, allocatedOtherFeeCents: 0, amountCents: 900, isGift: false }], goodsAmountCents: 1000, discountCents: 100, otherFeeCents: 0, amountCents: 900, occurredAt: '2026-08-10T08:30:00+08:00', paymentTermDays: 30, operator: { id: 'finance-demo', name: '演示财务', role: 'finance' as const } }
+    const payable = service.createSupplierPayable(finance, input); expect(payable.payableNo).toBe('YF-260810-00001'); expect(payable.dueDate).toBe('2026-09-09'); expect(service.createSupplierPayable(finance, input).id).toBe(payable.id)
+    expect(service.listSupplierPayables(finance).find((item) => item.id === payable.id)).toMatchObject({ outstandingCents: 900, status: 'unpaid' }); expect(repository.read().payables.some((item) => item.id === payable.id)).toBe(true)
+  })
+
+  it('creates, allocates, cancels and voids a supplier payment atomically', () => {
+    const { service, repository } = setup(); const supplier = { id: 'supplier-1', code: 'SUP-000001', name: '演示供应商', contactName: '联系人', phone: '000-0000-0001', paymentTermDays: null }
+    const payable = service.createSupplierPayable(finance, { requestId: 'request-payable-2', purchaseOrderId: 'purchase-order-2', purchaseOrderNo: 'CG-260810-00002', inboundId: 'inbound-2', inboundNo: 'RK-260810-00002', supplierSnapshot: supplier, items: [{ inboundLineId: 'inbound-line-2', purchaseOrderLineId: 'purchase-line-2', skuId: 'sku-1', skuCode: 'SKU-000001', productName: '演示商品', specification: '默认', unitName: '件', quantityMilli: 1000, unitPriceCents: 1200, subtotalCents: 1200, allocatedDiscountCents: 0, allocatedOtherFeeCents: 0, amountCents: 1200, isGift: false }], goodsAmountCents: 1200, discountCents: 0, otherFeeCents: 0, amountCents: 1200, occurredAt: '2026-08-10T08:30:00+08:00', paymentTermDays: null, operator: { id: 'finance-demo', name: '演示财务', role: 'finance' as const } })
+    const result = service.createSupplierPayment(finance, { requestId: 'request-payment-1', supplierSnapshot: supplier, occurredAt: '2026-08-10T09:00:00+08:00', amountCents: 700, method: 'cash', accountId: 'account-cash', immediateAllocations: [{ payableId: payable.id, amountCents: 700 }] }); expect(result.payment.paymentNo).toBe('FK-260810-00001'); expect(result.writeoff?.amountCents).toBe(700); expect(service.listSupplierPayables(finance)[0]).toMatchObject({ paidCents: 700, outstandingCents: 500, status: 'partially-paid' })
+    expect(() => service.voidSupplierPayment(finance, { requestId: 'request-void-payment-blocked', paymentId: result.payment.id, expectedVersion: result.payment.version, reason: '仍有核销' })).toThrowError(FinanceDomainError)
+    const cancelled = service.cancelSupplierPaymentWriteoff(finance, { requestId: 'request-cancel-supplier-writeoff', writeoffId: result.writeoff!.id, expectedVersion: result.writeoff!.version, reason: '演示取消' }); expect(cancelled.status).toBe('cancelled')
+    const voided = service.voidSupplierPayment(finance, { requestId: 'request-void-payment', paymentId: result.payment.id, expectedVersion: result.payment.version, reason: '演示录入错误' }); expect(voided.status).toBe('void'); expect(repository.read().movements.filter((item) => item.sourceId === result.payment.id)).toHaveLength(2); expect(service.listSupplierPayables(finance)[0]!.outstandingCents).toBe(1200)
+  })
+
+  it('rejects supplier payment account mismatch and preserves state on failure', () => {
+    const { service, repository } = setup(); const before = repository.read(); const supplier = { id: 'supplier-1', code: 'SUP-000001', name: '演示供应商', contactName: '联系人', phone: '000-0000-0001', paymentTermDays: null }
+    expect(() => service.createSupplierPayment(finance, { requestId: 'request-bad-payment', supplierSnapshot: supplier, occurredAt: '2026-08-10T09:00:00+08:00', amountCents: 100, method: 'bank', accountId: 'account-cash' })).toThrowError(FinanceDomainError); expect(repository.read()).toEqual(before)
+  })
+
+  it('keeps supplier aging boundaries in the confirmed six buckets', () => {
+    const repository = new InMemoryFinanceRepository({ ...structuredClone(financeBaseline), payables: [] }); let sequence = 1
+    const now = '2026-08-20T09:00:00+08:00'; const service = createFinanceService({ repository, now: () => now, nextId: (kind) => `${kind}-aging-${sequence++}` })
+    const dateDaysAgo = (days: number) => { const value = new Date(Date.UTC(2026, 7, 20 - days)); return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}T08:00:00+08:00` }
+    for (const days of [0, 30, 31, 60, 61, 90, 91, 180, 181, 365, 366]) service.createSupplierPayable(finance, supplierPayableInput(`aging-${days}`, dateDaysAgo(days), 1))
+    expect(service.listSupplierPayableAging(finance)[0]).toMatchObject({ outstandingCents: 11, bucket0To30Cents: 2, bucket31To60Cents: 2, bucket61To90Cents: 2, bucket91To180Cents: 2, bucket181To365Cents: 2, bucketOver365Cents: 1 })
+  })
+
+  it('rejects insufficient balance and closed-period supplier payments atomically', () => {
+    const { service, repository } = setup(); const before = repository.read()
+    expect(() => service.createSupplierPayment(finance, { requestId: 'request-payment-insufficient', supplierSnapshot: supplier, occurredAt: '2026-08-10T09:00:00+08:00', amountCents: Number.MAX_SAFE_INTEGER, method: 'cash', accountId: 'account-cash' })).toThrowError(expect.objectContaining({ code: 'INVALID_STATE', message: '账户余额不足' }))
+    expect(repository.read()).toEqual(before)
+    expect(() => service.createSupplierPayment(finance, { requestId: 'request-payment-locked', supplierSnapshot: supplier, occurredAt: '2026-07-31T09:00:00+08:00', amountCents: 1, method: 'cash', accountId: 'account-cash' })).toThrowError(expect.objectContaining({ code: 'INVALID_STATE', message: '该月份尚未启用或已经结转' }))
+    expect(repository.read()).toEqual(before)
+  })
+
+  it('replays supplier payment requests and rejects a stale void without side effects', () => {
+    const { service, repository } = setup(); const input = { requestId: 'request-payment-idempotent', supplierSnapshot: supplier, occurredAt: '2026-08-10T09:00:00+08:00', amountCents: 100, method: 'cash' as const, accountId: 'account-cash' }
+    const first = service.createSupplierPayment(finance, input); const afterFirst = repository.read(); const replayed = service.createSupplierPayment(finance, input)
+    expect(replayed).toEqual(first); expect(repository.read()).toEqual(afterFirst); expect(afterFirst.movements.filter((item) => item.sourceId === first.payment.id)).toHaveLength(1)
+    expect(() => service.voidSupplierPayment(finance, { requestId: 'request-payment-stale-void', paymentId: first.payment.id, expectedVersion: 0, reason: '并发版本演示' })).toThrowError(expect.objectContaining({ code: 'CONFLICT' }))
+    expect(repository.read()).toEqual(afterFirst)
+  })
+
+  it('creates a zero-value gift payable and separates excess credit as a refund obligation', () => {
+    const { service } = setup(); const gift = service.createSupplierPayable(finance, supplierPayableInput('gift', '2026-08-10T08:00:00+08:00', 0))
+    expect(gift).toMatchObject({ amountCents: 0, status: 'paid' }); expect(gift.items[0]).toMatchObject({ isGift: true, unitPriceCents: 0, amountCents: 0 })
+    const payable = service.createSupplierPayable(finance, supplierPayableInput('credit', '2026-08-10T08:10:00+08:00', 100))
+    const credit = service.createSupplierPayableCredit(finance, { requestId: 'request-credit-excess', sourceType: 'manual', sourceId: 'manual-credit-1', sourceNo: 'CT-DEMO-001', supplierId: supplier.id, payableId: payable.id, amountCents: 250, occurredAt: '2026-08-10T08:30:00+08:00', operator: { id: finance.actorId, name: '演示财务', role: finance.role } })
+    expect(credit).toMatchObject({ outstandingReductionCents: 100, refundObligationCents: 150 })
+    expect(service.listSupplierPayables(finance).find((item) => item.id === payable.id)).toMatchObject({ creditedCents: 100, outstandingCents: 0, status: 'paid' })
   })
 })

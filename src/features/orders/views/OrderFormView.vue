@@ -16,6 +16,7 @@ const {
   formOptions,
   customerContext,
   skus,
+  availableInventoryBySku,
   preview,
   loading,
   saving,
@@ -27,14 +28,52 @@ const orderId = computed(() =>
   route.params.orderId ? String(route.params.orderId) : undefined,
 );
 const productToAdd = ref("");
-const pasteText = ref("");
-const pasteErrors = ref<string[]>([]);
-const barcode = ref("");
-const templateMessage = ref("");
+const productKeyword = ref("");
+const productSearchOpen = ref(false);
 const savedMessage = ref("");
 const money = (value: number) => `¥${(value / 100).toFixed(2)}`;
 const skuOf = (line: OrderLineDraft) =>
   skus.value.find((item) => item.skuId === line.skuId);
+const unitOf = (line: OrderLineDraft) =>
+  skuOf(line)?.units.find((item) => item.id === line.unitId);
+const marketPriceOf = (line: OrderLineDraft) => {
+  const sku = skuOf(line);
+  const unit = unitOf(line);
+  if (!sku || sku.marketPriceCents === null) return null;
+  return Math.round((sku.marketPriceCents * (unit?.conversionRateMilli ?? 1000)) / 1000);
+};
+const availableInventoryOf = (line: OrderLineDraft) => {
+  if (!draft.value.warehouseId) return "请先选仓库";
+  const value = availableInventoryBySku.value[line.skuId];
+  if (value === null) return "暂不可用";
+  if (value === undefined) return "0";
+  const rate = unitOf(line)?.conversionRateMilli ?? 1000;
+  const quantity = value / rate;
+  return Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+};
+const filteredSkus = computed(() => {
+  const keyword = productKeyword.value.trim().toLocaleLowerCase();
+  if (!keyword) return skus.value;
+  return skus.value.filter((item) =>
+    [item.productCode, item.productName, item.skuCode, item.specification, item.barcode ?? ""]
+      .some((value) => value.toLocaleLowerCase().includes(keyword)),
+  );
+});
+function chooseProduct(skuId: string) {
+  store.addSku(skuId);
+  productToAdd.value = "";
+  productKeyword.value = "";
+  productSearchOpen.value = true;
+}
+async function openProductSearch() {
+  productSearchOpen.value = true;
+  await store.refreshOrderableSkus();
+}
+function clearProductSearch() {
+  productKeyword.value = "";
+  productToAdd.value = "";
+  productSearchOpen.value = false;
+}
 async function changeCustomer(event: Event) {
   const id = (event.target as HTMLSelectElement).value;
   if (
@@ -42,29 +81,12 @@ async function changeCustomer(event: Event) {
     !window.confirm("更换客户会清空商品、优惠、收货和发票信息，是否继续？")
   )
     return;
+  clearProductSearch();
   await store.selectCustomer(id);
 }
 function removeLine(index: number) {
   draft.value.lines.splice(index, 1);
   store.preview = null;
-}
-async function paste() {
-  const result = await store.pasteProducts(pasteText.value);
-  pasteErrors.value = result.errors;
-  if (!result.errors.length) pasteText.value = "";
-}
-async function scan() {
-  try {
-    await store.scanBarcode(barcode.value);
-    barcode.value = "";
-  } catch (caught) {
-    store.error = caught instanceof Error ? caught.message : "扫码失败";
-  }
-}
-async function template(id: string) {
-  if (!id) return;
-  const result = await store.applyTemplate(id);
-  templateMessage.value = `已加入 ${result.accepted.length} 行，过滤 ${result.rejected.length} 行${result.rejected.length ? `：${result.rejected.map((item) => item.message).join("；")}` : ""}`;
 }
 async function save(reset = false) {
   const order = await store.saveForm(`order-ui-${Date.now()}`);
@@ -92,7 +114,10 @@ function addAttachment(event: Event) {
   }
   (event.target as HTMLInputElement).value = "";
 }
-onMounted(() => store.initializeForm(orderId.value));
+onMounted(() => {
+  clearProductSearch();
+  store.initializeForm(orderId.value);
+});
 </script>
 
 <template>
@@ -156,10 +181,172 @@ onMounted(() => store.initializeForm(orderId.value));
               >
                 {{ item.code }} · {{ item.name }}
               </option>
-            </select></label
-          ><label
+            </select></label>
+        </div>
+        <div
+          v-if="customerContext"
+          class="order-financials order-form-financials"
+        >
+          <div>
+            <span>结算方式</span
+            ><strong>{{
+              customerContext.customer.settlementMethod === "terms"
+                ? `账期（${customerContext.customer.paymentTermDays ?? 0}天）`
+                : { cash: "现结", monthly: "月结" }[
+                    customerContext.customer.settlementMethod
+                  ]
+            }}</strong>
+          </div>
+          <div>
+            <span>信用额度</span
+            ><strong>{{
+              customerContext.customer.creditLimitCents
+                ? money(customerContext.customer.creditLimitCents)
+                : "不限制"
+            }}</strong>
+          </div>
+          <div>
+            <span>应收总额</span
+            ><strong>{{ money(customerContext.receivablesCents) }}</strong>
+          </div>
+          <div>
+            <span>可用预收</span
+            ><strong>{{
+              money(customerContext.availablePrepaymentCents)
+            }}</strong>
+          </div>
+        </div>
+      </section>
+      <section class="order-card">
+        <div class="order-section-title">
+          <h2>商品明细</h2>
+          <div class="order-entry-tools">
+            <div
+              class="order-product-picker"
+              @mouseleave="productSearchOpen = false"
+            >
+              <input
+                v-model="productKeyword"
+                :disabled="!draft.customerId"
+                type="search"
+                placeholder="搜索商品名称、编码、SKU、规格或条码"
+                @focus="openProductSearch"
+                @input="productSearchOpen = true"
+              />
+              <div v-if="productSearchOpen && draft.customerId" class="order-product-results">
+                <button
+                  v-for="item in filteredSkus"
+                  :key="item.skuId"
+                  type="button"
+                  class="order-product-result"
+                  :class="{ selected: productToAdd === item.skuId }"
+                  @click="chooseProduct(item.skuId)"
+                >
+                  <strong>{{ item.productName }}</strong>
+                  <span>{{ item.skuCode }} · {{ item.specification }}</span>
+                  <small v-if="item.barcode">条码 {{ item.barcode }}</small>
+                </button>
+                <p v-if="!filteredSkus.length" class="order-product-empty">
+                  未找到匹配的可订商品。商品必须已上架且未删除。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p v-if="draft.customerId && !skus.length" class="order-unavailable">
+          当前没有已上架的可订商品，或商品资料服务不可用。
+        </p>
+        <div class="order-table-wrap">
+          <table class="order-table order-form-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>类型</th>
+                <th>商品 / SKU</th>
+                <th>单位</th>
+                <th>数量</th>
+                <th>可用库存</th>
+                <th>单价</th>
+                <th>原因</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(line, index) in draft.lines"
+                :key="line.id ?? `${line.skuId}-${line.unitId}-${index}`"
+              >
+                <td>{{ index + 1 }}</td>
+                <td>
+                  <select v-model="line.lineKind">
+                    <option value="sale">销售</option>
+                    <option value="gift">赠品</option>
+                  </select>
+                </td>
+                <td>
+                  <strong>{{ skuOf(line)?.productName }}</strong
+                  ><small
+                    >{{ skuOf(line)?.skuCode }} ·
+                    {{ skuOf(line)?.specification }}</small
+                  >
+                </td>
+                <td>
+                  <select v-model="line.unitId">
+                    <option
+                      v-for="unit in skuOf(line)?.units"
+                      :key="unit.id"
+                      :value="unit.id"
+                    >
+                      {{ unit.name }}
+                    </option>
+                  </select>
+                </td>
+                <td>
+                  <input
+                    v-model.number="line.quantity"
+                    type="number"
+                    min="1"
+                    step="1"
+                  />
+                </td>
+                <td>{{ availableInventoryOf(line) }}</td>
+                <td>
+                  <span class="order-readonly-value" :title="line.lineKind === 'gift' ? '赠品单价固定为 ¥0.00' : '来自商品 SKU 的市场价，订单中不可修改'">
+                    {{ line.lineKind === "gift" ? money(0) : marketPriceOf(line) === null ? "—" : money(marketPriceOf(line)!) }}
+                  </span>
+                </td>
+                <td>
+                  <input
+                    v-model="line.reason"
+                    maxlength="500"
+                    placeholder="可选"
+                  />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="order-button danger"
+                    @click="removeLine(index)"
+                  >
+                    删除
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="!draft.lines.length">
+                <td colspan="9" class="order-empty-cell">
+                  请选择客户后，在上方搜索并点击商品加入订单。
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="order-card">
+        <h2>订单、收货、金额与附属信息</h2>
+        <div class="order-form-grid">
+          <label
             ><span>发货仓库 *</span
-            ><select v-model="draft.warehouseId" required>
+            ><select v-model="draft.warehouseId" required @change="store.refreshAvailableInventory()">
               <option value="">请选择启用且非禁售仓</option>
               <option
                 v-for="item in formOptions.warehouses"
@@ -205,220 +392,6 @@ onMounted(() => store.initializeForm(orderId.value));
             ><span>发票抬头 *</span
             ><input v-model="draft.invoiceTitle" maxlength="100" required
           /></label>
-        </div>
-        <div
-          v-if="customerContext"
-          class="order-financials order-form-financials"
-        >
-          <div>
-            <span>结算方式</span
-            ><strong>{{
-              { cash: "现结", monthly: "月结", terms: "账期" }[
-                customerContext.customer.settlementMethod
-              ]
-            }}</strong>
-          </div>
-          <div>
-            <span>应收额度</span
-            ><strong>{{
-              customerContext.customer.creditLimitCents
-                ? money(customerContext.customer.creditLimitCents)
-                : "不限制"
-            }}</strong>
-          </div>
-          <div>
-            <span>应收总额</span
-            ><strong>{{ money(customerContext.receivablesCents) }}</strong>
-          </div>
-          <div>
-            <span>可用预收</span
-            ><strong>{{
-              money(customerContext.availablePrepaymentCents)
-            }}</strong>
-          </div>
-        </div>
-      </section>
-      <section class="order-card">
-        <div class="order-section-title">
-          <h2>商品明细</h2>
-          <div class="order-entry-tools">
-            <select v-model="productToAdd" :disabled="!draft.customerId">
-              <option value="">搜索并选择可订 SKU</option>
-              <option
-                v-for="item in skus"
-                :key="item.skuId"
-                :value="item.skuId"
-              >
-                {{ item.productCode }} / {{ item.skuCode }} ·
-                {{ item.productName }} · {{ item.specification }}
-              </option></select
-            ><button
-              type="button"
-              class="order-button primary"
-              :disabled="!productToAdd"
-              @click="
-                store.addSku(productToAdd);
-                productToAdd = '';
-              "
-            >
-              添加商品</button
-            ><button
-              type="button"
-              class="order-button"
-              :disabled="!productToAdd"
-              @click="
-                store.addSku(productToAdd, 'gift');
-                productToAdd = '';
-              "
-            >
-              添加赠品
-            </button>
-          </div>
-        </div>
-        <p v-if="draft.customerId && !skus.length" class="order-unavailable">
-          当前客户没有可订商品，或商品/授权 provider 不可用。
-        </p>
-        <div class="order-table-wrap">
-          <table class="order-table order-form-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>类型</th>
-                <th>商品 / SKU</th>
-                <th>单位</th>
-                <th>数量</th>
-                <th>成交单价（分）</th>
-                <th>原因</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(line, index) in draft.lines"
-                :key="line.id ?? `${line.skuId}-${line.unitId}-${index}`"
-              >
-                <td>{{ index + 1 }}</td>
-                <td>
-                  <select v-model="line.lineKind">
-                    <option value="sale">销售</option>
-                    <option value="gift">赠品</option>
-                  </select>
-                </td>
-                <td>
-                  <strong>{{ skuOf(line)?.productName }}</strong
-                  ><small
-                    >{{ skuOf(line)?.skuCode }} ·
-                    {{ skuOf(line)?.specification }}</small
-                  >
-                </td>
-                <td>
-                  <select v-model="line.unitId">
-                    <option
-                      v-for="unit in skuOf(line)?.units"
-                      :key="unit.id"
-                      :value="unit.id"
-                    >
-                      {{ unit.name }}
-                    </option>
-                  </select>
-                </td>
-                <td>
-                  <input
-                    v-model.number="line.quantity"
-                    type="number"
-                    min="1"
-                    step="1"
-                  />
-                </td>
-                <td>
-                  <input
-                    v-model.number="line.manualDealUnitPriceCents"
-                    :disabled="line.lineKind === 'gift'"
-                    type="number"
-                    min="0"
-                    placeholder="自动定价"
-                  />
-                </td>
-                <td>
-                  <input
-                    v-model="line.reason"
-                    maxlength="500"
-                    placeholder="可选"
-                  />
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    class="order-button danger"
-                    @click="removeLine(index)"
-                  >
-                    删除
-                  </button>
-                </td>
-              </tr>
-              <tr v-if="!draft.lines.length">
-                <td colspan="8" class="order-empty-cell">
-                  请先选择客户，再添加商品。
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="order-assist">
-          <label
-            ><span>订单模板</span
-            ><select
-              :disabled="!draft.customerId"
-              @change="template(($event.target as HTMLSelectElement).value)"
-            >
-              <option value="">请选择模板</option>
-              <option
-                v-for="item in formOptions.templates"
-                :key="item.id"
-                :value="item.id"
-              >
-                {{ item.name }}
-              </option>
-            </select></label
-          ><label
-            ><span>扫码录入</span
-            ><span class="order-inline"
-              ><input v-model="barcode" placeholder="输入条码" /><button
-                type="button"
-                class="order-button"
-                :disabled="!barcode"
-                @click="scan"
-              >
-                加入
-              </button></span
-            ></label
-          ><label class="order-assist-paste"
-            ><span>粘贴商品（skuCode,quantity,unitCode）</span
-            ><textarea
-              v-model="pasteText"
-              rows="3"
-              placeholder="SKU-000001,21,DEMO-PIECE"
-            ></textarea
-            ><button
-              type="button"
-              class="order-button"
-              :disabled="!pasteText"
-              @click="paste"
-            >
-              校验并加入
-            </button></label
-          >
-          <p v-if="templateMessage" class="order-notice">
-            {{ templateMessage }}
-          </p>
-          <ul v-if="pasteErrors.length" class="order-error-list">
-            <li v-for="item in pasteErrors" :key="item">{{ item }}</li>
-          </ul>
-        </div>
-      </section>
-      <section class="order-card">
-        <h2>收货、金额与附属信息</h2>
-        <div class="order-form-grid">
           <label
             ><span>收货人 *</span
             ><input
@@ -429,24 +402,6 @@ onMounted(() => store.initializeForm(orderId.value));
             ><span>联系电话 *</span
             ><input
               v-model="draft.shipping.phone"
-              required
-              maxlength="40" /></label
-          ><label
-            ><span>省 *</span
-            ><input
-              v-model="draft.shipping.province"
-              required
-              maxlength="40" /></label
-          ><label
-            ><span>市 *</span
-            ><input
-              v-model="draft.shipping.city"
-              required
-              maxlength="40" /></label
-          ><label
-            ><span>区 *</span
-            ><input
-              v-model="draft.shipping.district"
               required
               maxlength="40" /></label
           ><label class="wide"

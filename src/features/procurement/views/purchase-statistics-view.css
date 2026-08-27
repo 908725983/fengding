@@ -1,0 +1,18 @@
+.purchase-statistics-page { padding-bottom: 28px; }
+.purchase-statistics-page .statistics-tabs { display:flex; gap:2px; overflow-x:auto; margin:12px 0; padding:0 10px; background:#fff; border:1px solid var(--color-border); }
+.purchase-statistics-page .statistics-tabs button { min-height:44px; padding:0 15px; color:#5c6877; white-space:nowrap; background:transparent; border:0; border-bottom:3px solid transparent; cursor:pointer; }
+.purchase-statistics-page .statistics-tabs button.active { color:var(--color-primary-strong); border-bottom-color:var(--color-primary); font-weight:700; }
+.purchase-statistics-page .statistics-filter { align-items:end; border-top:0; }
+.purchase-statistics-page .statistics-filter label { min-width:142px; }
+.purchase-statistics-page .statistics-filter .grow { min-width:220px; }
+.purchase-statistics-page .statistics-toolbar { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-top:12px; padding:10px 12px; background:#fff; border:1px solid var(--color-border); }
+.purchase-statistics-page .statistics-toolbar > div { display:flex; gap:8px; align-items:center; }
+.purchase-statistics-page .statistics-toolbar span { color:var(--color-muted); font-size:12px; }
+.purchase-statistics-page .statistics-totals { display:flex; flex-wrap:wrap; gap:30px; padding:12px 16px; color:#596573; background:#fff8f5; border:1px solid #f1d7ca; border-top:0; }
+.purchase-statistics-page .statistics-totals strong { margin-left:6px; color:#d6422f; font-size:16px; }
+.purchase-statistics-page .statistics-table-wrap { border-top:0; }
+.purchase-statistics-page .statistics-table { min-width:1320px; }
+.purchase-statistics-page .statistics-table td { height:58px; }
+.purchase-statistics-page .statistics-negative { color:#c4372a; }
+.purchase-statistics-page .statistics-unavailable { color:#667085; }
+@media(max-width:820px){.purchase-statistics-page .statistics-toolbar{align-items:flex-start;flex-direction:column}.purchase-statistics-page .statistics-toolbar>div{flex-wrap:wrap}}

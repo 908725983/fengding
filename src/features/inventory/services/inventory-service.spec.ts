@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createInventoryCatalogProvider, inventoryBaseline } from '../../../../mock/handlers/inventory-handler'
+import { createApplicationMockRuntime } from '../../../../mock/runtime/application-mock-runtime'
 import { InMemoryInventoryRepository } from '../repositories/inventory-repository'
 import type { InventoryActor } from '../types'
 import { calculateBatchStatus, calculateInventoryStatus, createInventoryService, InventoryDomainError } from './inventory-service'
@@ -18,6 +19,8 @@ describe('inventory service queries and permission', () => {
   it('does not fabricate unavailable cross-domain quantities and masks sensitive fields', () => { const {service}=setup(); const adminRow=service.listStocks(admin).items[0]!; expect(adminRow.pendingOutboundMilli).toBeNull(); expect(adminRow.availableMilli).toBeNull(); expect(adminRow.status).toBe('unavailable'); expect(adminRow.costPerBaseUnitCents).not.toBeNull(); const row=service.listStocks(supervisor).items[0]!; expect(row.costPerBaseUnitCents).toBeNull(); expect(row.amountCents).toBeNull(); expect(row.warehouse.phone).toBeNull() })
   it('rejects finance at service boundary', () => { const {service}=setup(); expect(() => service.listStocks(finance)).toThrowError(expect.objectContaining({code:'PERMISSION_DENIED'})) })
   it('preserves stock identifiers when catalog fails', () => { const repository=new InMemoryInventoryRepository(inventoryBaseline);const service=createInventoryService({repository,catalog:createInventoryCatalogProvider(true),now:()=> '2026-08-10T09:00:00+08:00',nextId:k=>`${k}-x`});const rows=service.listStocks(admin).items;expect(rows.length).toBeGreaterThan(0);expect(rows[0]!.sku).toBeNull() })
+  it('filters stock by a category and all of its descendants', () => { const {service}=setup(); const workspace=service.getWorkspace(admin); expect(workspace.categories.some((item)=>item.id==='product-category-drink'&&item.parentId==='product-category-food')).toBe(true); const parent=service.listStocks(admin,{categoryId:'product-category-food'}); const child=service.listStocks(admin,{categoryId:'product-category-drink'}); expect(parent.total).toBe(service.listStocks(admin).total); expect(child.total).toBeGreaterThan(0); expect(child.items.every((item)=>item.sku?.categoryId==='product-category-drink')).toBe(true) })
+  it('reads newly created categories from the shared product runtime', () => { const runtime=createApplicationMockRuntime('normal'); runtime.product.service.saveReference({role:'super-admin',actorId:'admin-test'},'categories',{name:'库存同步分类',status:'active',parentId:null}); expect(runtime.inventory.service.getWorkspace(admin).categories.some((item)=>item.name==='库存同步分类')).toBe(true) })
 })
 
 describe('inventory commands', () => {

@@ -42,15 +42,26 @@ export interface ProductReference {
   code: string
   name: string
   status: ReferenceStatus
+  sortOrder?: number
+  logo?: ProductMedia | null
+  color?: string
+  aiAllowed?: boolean
+  deletedAt?: string | null
 }
 
 export interface ProductCategory extends ProductReference {
   parentId: EntityId | null
+  icon?: ProductMedia | null
 }
 
 export interface ProductUnit extends ProductReference {
   type: 'basic' | 'auxiliary'
+  conversionRate?: number
 }
+
+export type ProductReferenceKind = 'categories' | 'brands' | 'units' | 'tags' | 'displayCategories'
+export type ProductReferenceDraft = { name: string; status?: ReferenceStatus; parentId?: EntityId | null; sortOrder?: number; icon?: ProductMedia | null; logo?: ProductMedia | null; color?: string; aiAllowed?: boolean; type?: 'basic' | 'auxiliary'; conversionRate?: number }
+export interface SmartTagAnalysis { id: EntityId; productId: EntityId; productVersion: string; addTagIds: EntityId[]; removeTagIds: EntityId[]; reasons: string[]; status: 'pending' | 'confirmed' | 'failed'; createdAt: string; confirmedAt: string | null }
 
 export interface SceneUnitSelection {
   unitId: EntityId
@@ -189,6 +200,8 @@ export interface ProductFeatureState {
   tags: ProductReference[]
   displayCategories: ProductReference[]
   changeLogs: ProductChangeLog[]
+  nextReferenceSequences?: Record<string, number>
+  smartTagAnalyses?: SmartTagAnalysis[]
 }
 
 export interface ProductListQuery {

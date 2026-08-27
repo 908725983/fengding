@@ -241,11 +241,6 @@
           "id": "authorization-special-1", "enterpriseId": "ent-demo", "customerId": "customer-1", "productId": "product-1", "type": "visible-only",
           "startsAt": "2026-08-10T08:30:00+08:00", "endsAt": "2026-08-10T10:00:00+08:00", "note": "明显虚构的仅可见边界示例",
           "createdAt": "2026-08-10T08:25:00+08:00", "updatedAt": "2026-08-10T08:25:00+08:00", "deletedAt": null
-        },
-        {
-          "id": "authorization-special-2", "enterpriseId": "ent-demo", "customerId": "customer-1", "productId": "product-2", "type": "prohibited",
-          "startsAt": "2026-08-10T09:00:00+08:00", "endsAt": null, "note": "明显虚构的禁止授权示例",
-          "createdAt": "2026-08-10T08:40:00+08:00", "updatedAt": "2026-08-10T08:40:00+08:00", "deletedAt": null
         }
       ],
       "changeLogs": []
