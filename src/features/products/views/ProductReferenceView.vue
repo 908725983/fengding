@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { RouterLink } from 'vue-router'
 import { useProductStore, type ProductRuntimeScenario } from '../runtime/product-store'
 import type { ProductReferenceDraft, ProductReferenceKind } from '../types'
 
@@ -99,7 +98,6 @@ watch(() => props.kind, () => {
 <template>
   <section class="product-reference-page">
     <header class="product-header"><div><p class="eyebrow">PRD-005 · 商品辅助资料</p><h1>{{ title }}</h1><p>维护商品表单和订单、库存流程使用的基础资料。</p></div><div class="header-actions"><label class="scenario"><span>场景</span><select :value="scenario" @change="switchScenario"><option value="normal">正常</option><option value="empty">空数据</option><option value="error">服务错误</option><option value="slow">慢响应</option><option value="permission-denied">无权限</option></select></label></div></header>
-    <nav class="product-reference-nav"><RouterLink to="/products/references/categories">分类</RouterLink><RouterLink to="/products/references/brands">品牌</RouterLink><RouterLink to="/products/references/units">单位</RouterLink><RouterLink to="/products/references/tags">标签</RouterLink></nav>
     <div v-if="error || formError" class="reference-warning" role="alert">{{ error || formError }} <button type="button" @click="retry">重试</button></div>
 
     <template v-if="isCategory">

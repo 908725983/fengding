@@ -298,25 +298,25 @@ onMounted(() => Promise.all([store.loadDetail(orderId.value),store.loadFulfillme
           <h2>客户财务实时数据</h2>
           <div class="order-financials">
             <div>
-              <span>应收额度</span
+              <span>客户信用额度</span
               ><strong>{{
                 providerMoney(detail.financials.creditLimitCents)
               }}</strong>
             </div>
             <div>
-              <span>应收总额</span
+              <span>客户还欠金额（待收）</span
               ><strong>{{
                 providerMoney(detail.financials.receivablesCents)
               }}</strong>
             </div>
             <div>
-              <span>可用预收</span
+              <span>客户可抵扣余额（预收）</span
               ><strong>{{
                 providerMoney(detail.financials.availablePrepaymentCents)
               }}</strong>
             </div>
             <div>
-              <span>订单占用预收</span
+              <span>本单使用客户预付款</span
               ><strong>{{
                 providerMoney(detail.financials.occupiedPrepaymentCents)
               }}</strong>

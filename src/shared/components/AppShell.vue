@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { businessModules, findBusinessModule } from '@/app/module-catalog'
 import { moduleNavigation } from '@/app/module-navigation'
 import { currentProcurementRole } from '@/features/procurement/runtime/procurement-access'
+import ModuleContextNav from './ModuleContextNav.vue'
 
 const route = useRoute()
 const isPublicShare = computed(() => route.path.startsWith('/share/orders/'))
@@ -16,6 +17,7 @@ const openMenuKey = ref<string | null>(null)
 let closeTimer: number | undefined
 const activeMenu = computed(() => openMenuKey.value ? moduleNavigation[openMenuKey.value] ?? [] : [])
 const activeMenuModule = computed(() => openMenuKey.value ? findBusinessModule(openMenuKey.value) : undefined)
+const showFinanceTerminology = computed(() => route.path.startsWith('/finance/') || route.path.startsWith('/orders/'))
 
 function openModuleMenu(key: string): void {
   if (closeTimer !== undefined) window.clearTimeout(closeTimer)
@@ -107,6 +109,8 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', closeOnEscape); ca
       </div>
 
       <main class="content">
+        <ModuleContextNav />
+        <p v-if="showFinanceTerminology" class="terminology-guide"><strong>金额字段说明：</strong>订单金额=整张订单应付款；客户已付款=已经到账并核销的金额；客户还欠金额=仍未付款的金额；本次退货商品金额=这次退回商品的成交价合计；实际要退给客户金额=客户已经付过且本次需要退回的金额。</p>
         <RouterView />
       </main>
     </section>

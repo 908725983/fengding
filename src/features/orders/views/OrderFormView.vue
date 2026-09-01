@@ -206,11 +206,11 @@ onMounted(() => {
             }}</strong>
           </div>
           <div>
-            <span>应收总额</span
+            <span>客户还欠金额（待收）</span
             ><strong>{{ money(customerContext.receivablesCents) }}</strong>
           </div>
           <div>
-            <span>可用预收</span
+            <span>客户可抵扣余额（预收）</span
             ><strong>{{
               money(customerContext.availablePrepaymentCents)
             }}</strong>
@@ -478,7 +478,7 @@ onMounted(() => {
             ><strong>{{ money(preview.amounts.orderAmountCents) }}</strong>
           </div>
           <div>
-            <span>占用预收</span
+            <span>本单使用客户预付款</span
             ><strong>{{ money(preview.occupiedPrepaymentCents) }}</strong>
           </div>
           <div>

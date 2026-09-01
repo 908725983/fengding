@@ -80,14 +80,6 @@ onMounted(() => store.load())
       </div>
     </header>
 
-    <nav class="customer-tabs" aria-label="客户模块二级导航">
-      <RouterLink class="customer-tabs__item customer-tabs__item--active" to="/customers">客户列表</RouterLink>
-      <RouterLink class="customer-tabs__item" to="/customers/categories">客户分类</RouterLink>
-      <RouterLink class="customer-tabs__item" to="/customers/tags">客户标签</RouterLink>
-      <RouterLink class="customer-tabs__item" to="/customers/smart-tags">智能标签</RouterLink>
-      <span class="customer-tabs__item customer-tabs__item--planned">其余功能 · 规划中</span>
-    </nav>
-
     <form class="filter-panel" @submit.prevent="store.applyQuery(buildQuery())">
       <div class="filter-grid">
         <label><span>客户分类</span><select v-model="filters.categoryId"><option value="">全部分类</option><option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option></select></label>

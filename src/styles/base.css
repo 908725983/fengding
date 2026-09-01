@@ -331,6 +331,21 @@ a {
   padding: 22px 24px 36px;
 }
 
+.terminology-guide {
+  margin: -8px 0 14px;
+  padding: 9px 12px;
+  color: #4f6472;
+  font-size: 12px;
+  line-height: 1.6;
+  background: #f5fafb;
+  border: 1px solid #cfe5e6;
+  border-radius: 5px;
+}
+
+.terminology-guide strong {
+  color: var(--color-primary-strong);
+}
+
 .page {
   width: 100%;
   max-width: 1600px;
