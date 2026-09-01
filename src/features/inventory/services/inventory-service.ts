@@ -1768,7 +1768,7 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
         throw new InventoryValidationError([
           { path: "lines", message: "出库明细不能为空" },
         ]);
-      if (draft.note !== undefined && !draft.note.trim())
+      if (draft.note !== undefined && !draft.note?.trim())
         throw new InventoryValidationError([
           { path: "note", message: "出库原因不能为空" },
         ]);
@@ -1868,7 +1868,7 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
         throw new InventoryValidationError([
           { path: "lines", message: "入库明细不能为空" },
         ]);
-      if (draft.note !== undefined && !draft.note.trim())
+      if (draft.note !== undefined && !draft.note?.trim())
         throw new InventoryValidationError([
           { path: "note", message: "入库原因不能为空" },
         ]);

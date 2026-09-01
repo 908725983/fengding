@@ -1,37 +1,363 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useRoute, useRouter } from 'vue-router'
-import { useInventoryStore } from '../runtime/inventory-store'
-import InventorySubnav from '../components/InventorySubnav.vue'
-import InventoryScenarioBar from '../components/InventoryScenarioBar.vue'
-import type { InventoryCostAdjustmentDraft, InventoryDocumentListQuery, InventoryRole } from '../types'
-import type { InventoryScenarioName } from '../../../../mock/handlers/inventory-handler'
-import './inventory-views.css'
+import { computed, onMounted, reactive, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { useRoute, useRouter } from "vue-router";
+import { useInventoryStore } from "../runtime/inventory-store";
+import InventorySubnav from "../components/InventorySubnav.vue";
+import InventoryScenarioBar from "../components/InventoryScenarioBar.vue";
+import type {
+  InventoryCostAdjustmentDraft,
+  InventoryDocumentListQuery,
+  InventoryRole,
+} from "../types";
+import type { InventoryScenarioName } from "../../../../mock/handlers/inventory-handler";
+import "./inventory-views.css";
 
-const store = useInventoryStore(); const route = useRoute(); const router = useRouter()
-const { costAdjustments, costAdjustmentPage, loading, saving, error, actor, scenario, workspace, canWrite } = storeToRefs(store)
-const showForm = ref(false); const message = ref('')
-const filters = reactive({ status: String(route.query.status ?? ''), fromDate: String(route.query.fromDate ?? ''), toDate: String(route.query.toDate ?? ''), keyword: String(route.query.keyword ?? '') })
-const currentPage = ref(Math.max(1, Number(route.query.page ?? 1)))
-const draft = ref<InventoryCostAdjustmentDraft>({ warehouseId: '', skuId: '', nextCostPerBaseUnitCents: 1, reason: 'purchase-price', effectiveAt: '2026-08-10T09:00', note: '', reasonNote: '' })
-const skuOptions = computed(() => workspace.value.stocks.items.filter((item) => item.currentMilli > 0 && (!draft.value.warehouseId || item.warehouse.id === draft.value.warehouseId)))
-const query = (): InventoryDocumentListQuery => ({ status: filters.status || undefined, fromDate: filters.fromDate || undefined, toDate: filters.toDate || undefined, keyword: filters.keyword.trim() || undefined, page: currentPage.value, pageSize: 30 })
-async function load() { await router.replace({ query: Object.fromEntries(Object.entries(query()).filter(([key, value]) => value !== undefined && key !== 'pageSize')) }); await store.loadCostAdjustments(query()) }
-async function search() { currentPage.value = 1; await load() }
-async function changePage(next: number) { currentPage.value = next; await load() }
-async function create() { try { await store.createCostAdjustment(draft.value); showForm.value = false; message.value = '成本调整单已创建'; await load() } catch (e) { message.value = e instanceof Error ? e.message : '保存失败' } }
-async function action(fn: () => Promise<void>, ok: string) { try { await fn(); message.value = ok; await load() } catch (e) { message.value = e instanceof Error ? e.message : '操作失败' } }
-function download() { const url = URL.createObjectURL(new Blob([store.exportCostAdjustments(query())], { type: 'text/csv;charset=utf-8' })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'inventory-cost-adjustments.csv'; anchor.click(); URL.revokeObjectURL(url) }
-async function role(value: InventoryRole) { await store.setRole(value); await load() }; async function scene(value: InventoryScenarioName) { await store.setScenario(value); await load() }
-onMounted(async () => { await store.load(); await load() })
+const store = useInventoryStore();
+const route = useRoute();
+const router = useRouter();
+const {
+  costAdjustments,
+  costAdjustmentPage,
+  loading,
+  saving,
+  error,
+  actor,
+  scenario,
+  workspace,
+  canWrite,
+} = storeToRefs(store);
+const showForm = ref(false);
+const message = ref("");
+const filters = reactive({
+  status: String(route.query.status ?? ""),
+  fromDate: String(route.query.fromDate ?? ""),
+  toDate: String(route.query.toDate ?? ""),
+  keyword: String(route.query.keyword ?? ""),
+});
+const currentPage = ref(Math.max(1, Number(route.query.page ?? 1)));
+const draft = ref<InventoryCostAdjustmentDraft>({
+  warehouseId: "",
+  skuId: "",
+  nextCostPerBaseUnitCents: 1,
+  reason: "purchase-price",
+  effectiveAt: "2026-08-10T09:00",
+  note: "",
+  reasonNote: "",
+});
+const skuOptions = computed(() =>
+  workspace.value.stocks.items.filter(
+    (item) =>
+      item.currentMilli > 0 &&
+      (!draft.value.warehouseId ||
+        item.warehouse.id === draft.value.warehouseId),
+  ),
+);
+const query = (): InventoryDocumentListQuery => ({
+  status: filters.status || undefined,
+  fromDate: filters.fromDate || undefined,
+  toDate: filters.toDate || undefined,
+  keyword: filters.keyword.trim() || undefined,
+  page: currentPage.value,
+  pageSize: 30,
+});
+async function load() {
+  await router.replace({
+    query: Object.fromEntries(
+      Object.entries(query()).filter(
+        ([key, value]) => value !== undefined && key !== "pageSize",
+      ),
+    ),
+  });
+  await store.loadCostAdjustments(query());
+}
+async function search() {
+  currentPage.value = 1;
+  await load();
+}
+async function changePage(next: number) {
+  currentPage.value = next;
+  await load();
+}
+async function create() {
+  try {
+    await store.createCostAdjustment(draft.value);
+    showForm.value = false;
+    message.value = "成本调整单已创建";
+    await load();
+  } catch (e) {
+    message.value = e instanceof Error ? e.message : "保存失败";
+  }
+}
+async function action(fn: () => Promise<void>, ok: string) {
+  try {
+    await fn();
+    message.value = ok;
+    await load();
+  } catch (e) {
+    message.value = e instanceof Error ? e.message : "操作失败";
+  }
+}
+function download() {
+  const url = URL.createObjectURL(
+    new Blob([store.exportCostAdjustments(query())], {
+      type: "text/csv;charset=utf-8",
+    }),
+  );
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "inventory-cost-adjustments.csv";
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+async function role(value: InventoryRole) {
+  await store.setRole(value);
+  await load();
+}
+async function scene(value: InventoryScenarioName) {
+  await store.setScenario(value);
+  await load();
+}
+onMounted(async () => {
+  await store.load();
+  await load();
+});
 </script>
 <template>
-  <section class="inventory-page"><header class="inventory-header"><div><p class="eyebrow">INV-003 · 成本版本</p><h1>成本调整单</h1><p>审核即生效，新增仓库×SKU移动均价版本；历史批次和库存流水保持不变。</p></div><InventoryScenarioBar :scenario="scenario" :role="actor.role" @scenario="scene" @role="role" /></header><InventorySubnav />
-    <form class="inventory-toolbar" @submit.prevent="search"><label>状态<select v-model="filters.status" aria-label="状态"><option value="">全部</option><option value="pending-review">待审核</option><option value="effective">已生效</option></select></label><label>开始日期<input v-model="filters.fromDate" type="date" /></label><label>结束日期<input v-model="filters.toDate" type="date" /></label><label>关键字<input v-model="filters.keyword" placeholder="单号 / SKU" /></label><button class="inv-button primary" type="submit">查询</button><button class="inv-button" type="button" @click="load">刷新</button><button v-if="canWrite" class="inv-button" type="button" @click="download">导出 CSV</button><button v-if="canWrite" class="inv-button primary" type="button" @click="showForm = true">新增调整</button></form>
-    <p v-if="message" class="inventory-warning">{{ message }}</p><div v-if="error" class="inventory-state error"><strong>成本调整加载失败</strong><span>{{ error }}</span><button class="inv-button" @click="load">重试</button></div><div v-else-if="loading" class="inventory-state">正在加载成本调整…</div><div v-else-if="!costAdjustments.length" class="inventory-state"><strong>暂无成本调整</strong><span>当前筛选没有记录。</span></div>
-    <div v-else class="inventory-table-wrap"><table class="inventory-table"><thead><tr><th>单号</th><th>仓库</th><th>商品</th><th>原成本</th><th>新成本</th><th>原因</th><th>生效时间</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="item in costAdjustments" :key="item.id"><td><strong>{{ item.code }}</strong></td><td>{{ workspace.warehouses.find(w => w.id === item.warehouseId)?.name ?? item.warehouseId }}</td><td>{{ workspace.stocks.items.find(row => row.skuId === item.skuId && row.warehouse.id === item.warehouseId)?.sku?.productName ?? item.skuId }}</td><td>{{ actor.role === 'sales-supervisor' ? '—' : `¥${(item.previousCostPerBaseUnitCents / 100).toFixed(2)}` }}</td><td>{{ actor.role === 'sales-supervisor' ? '—' : `¥${(item.nextCostPerBaseUnitCents / 100).toFixed(2)}` }}</td><td>{{ item.reason === 'purchase-price' ? '采购价变更' : item.reason === 'market' ? '市场调整' : '其他' }}</td><td>{{ item.effectiveAt.slice(0,16).replace('T',' ') }}</td><td>{{ item.status === 'effective' ? '已生效' : '待审核' }}</td><td><button v-if="canWrite && item.status === 'pending-review'" class="inv-button" :disabled="saving" @click="action(() => store.approveCostAdjustment(item), '成本调整已生效')">审核生效</button></td></tr></tbody></table></div>
-    <nav v-if="costAdjustmentPage.total > costAdjustmentPage.pageSize" class="inventory-pagination" aria-label="成本调整分页"><button class="inv-button" :disabled="currentPage <= 1" @click="changePage(currentPage - 1)">上一页</button><span>第 {{ currentPage }} 页 · 共 {{ costAdjustmentPage.total }} 条</span><button class="inv-button" :disabled="currentPage * costAdjustmentPage.pageSize >= costAdjustmentPage.total" @click="changePage(currentPage + 1)">下一页</button></nav>
-    <div v-if="showForm" class="inventory-dialog"><section><header><strong>新增成本调整</strong><button class="inv-button" @click="showForm = false">关闭</button></header><form class="inventory-form" @submit.prevent="create"><label>仓库<select v-model="draft.warehouseId" required @change="draft.skuId = ''"><option value="">请选择</option><option v-for="w in workspace.warehouses.filter(w => w.status === 'enabled')" :key="w.id" :value="w.id">{{ w.name }}</option></select></label><label>商品 / SKU<select v-model="draft.skuId" required><option value="">请选择</option><option v-for="row in skuOptions" :key="row.skuId" :value="row.skuId">{{ row.sku?.productName ?? row.skuId }} · 当前成本 {{ row.costPerBaseUnitCents === null ? '—' : `¥${(row.costPerBaseUnitCents / 100).toFixed(2)}` }}</option></select></label><label>新成本（分）<input v-model.number="draft.nextCostPerBaseUnitCents" type="number" min="0" step="1" required /></label><label>原因<select v-model="draft.reason"><option value="purchase-price">采购价变更</option><option value="market">市场调整</option><option value="other">其他</option></select></label><label v-if="draft.reason === 'other'" class="wide">其他原因说明<textarea v-model="draft.reasonNote" required maxlength="200" /></label><label class="wide">生效时间<input v-model="draft.effectiveAt" type="datetime-local" required /><small>原型不支持未来预约，必须不晚于当前时间。</small></label><button class="inv-button primary wide" :disabled="saving" type="submit">保存</button></form></section></div>
+  <section class="inventory-page">
+    <header class="inventory-header">
+      <div>
+        <p class="eyebrow">INV-003 · 成本版本</p>
+        <h1>成本调整单</h1>
+        <p>
+          审核即生效，新增仓库×SKU移动均价版本；历史批次和库存流水保持不变。
+        </p>
+      </div>
+      <InventoryScenarioBar
+        :scenario="scenario"
+        :role="actor.role"
+        @scenario="scene"
+        @role="role"
+      />
+    </header>
+    <InventorySubnav />
+    <form class="inventory-toolbar" @submit.prevent="search">
+      <label
+        >状态<select v-model="filters.status" aria-label="状态">
+          <option value="">全部</option>
+          <option value="pending-review">待审核</option>
+          <option value="effective">已生效</option>
+        </select></label
+      ><label>开始日期<input v-model="filters.fromDate" type="date" /></label
+      ><label>结束日期<input v-model="filters.toDate" type="date" /></label
+      ><label
+        >关键字<input
+          v-model="filters.keyword"
+          placeholder="单号 / SKU" /></label
+      ><button class="inv-button primary" type="submit">查询</button
+      ><button class="inv-button" type="button" @click="load">刷新</button
+      ><button
+        v-if="canWrite"
+        class="inv-button"
+        type="button"
+        @click="download"
+      >
+        导出 CSV</button
+      ><button
+        v-if="canWrite"
+        class="inv-button primary"
+        type="button"
+        @click="showForm = true"
+      >
+        新增调整
+      </button>
+    </form>
+    <p v-if="message" class="inventory-warning">{{ message }}</p>
+    <div v-if="error" class="inventory-state error">
+      <strong>成本调整加载失败</strong><span>{{ error }}</span
+      ><button class="inv-button" @click="load">重试</button>
+    </div>
+    <div v-else-if="loading" class="inventory-state">正在加载成本调整…</div>
+    <div v-else-if="!costAdjustments.length" class="inventory-state">
+      <strong>暂无成本调整</strong><span>当前筛选没有记录。</span>
+    </div>
+    <div v-else class="inventory-table-wrap">
+      <table class="inventory-table">
+        <thead>
+          <tr>
+            <th>单号</th>
+            <th>仓库</th>
+            <th>商品</th>
+            <th>原成本</th>
+            <th>新成本</th>
+            <th>原因</th>
+            <th>生效时间</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in costAdjustments" :key="item.id">
+            <td>
+              <strong>{{ item.code }}</strong>
+            </td>
+            <td>
+              {{
+                workspace.warehouses.find((w) => w.id === item.warehouseId)
+                  ?.name ?? item.warehouseId
+              }}
+            </td>
+            <td>
+              {{
+                workspace.stocks.items.find(
+                  (row) =>
+                    row.skuId === item.skuId &&
+                    row.warehouse.id === item.warehouseId,
+                )?.sku?.productName ?? item.skuId
+              }}
+            </td>
+            <td>
+              {{
+                actor.role === "sales-supervisor"
+                  ? "—"
+                  : `¥${(item.previousCostPerBaseUnitCents / 100).toFixed(2)}`
+              }}
+            </td>
+            <td>
+              {{
+                actor.role === "sales-supervisor"
+                  ? "—"
+                  : `¥${(item.nextCostPerBaseUnitCents / 100).toFixed(2)}`
+              }}
+            </td>
+            <td>
+              {{
+                item.reason === "purchase-price"
+                  ? "采购价变更"
+                  : item.reason === "market"
+                    ? "市场调整"
+                    : "其他"
+              }}
+            </td>
+            <td>{{ item.effectiveAt.slice(0, 16).replace("T", " ") }}</td>
+            <td>{{ item.status === "effective" ? "已生效" : "待审核" }}</td>
+            <td>
+              <button
+                v-if="canWrite && item.status === 'pending-review'"
+                class="inv-button"
+                :disabled="saving"
+                @click="
+                  action(
+                    () => store.approveCostAdjustment(item),
+                    '成本调整已生效',
+                  )
+                "
+              >
+                审核生效
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <nav
+      v-if="costAdjustmentPage.total > costAdjustmentPage.pageSize"
+      class="inventory-pagination"
+      aria-label="成本调整分页"
+    >
+      <button
+        class="inv-button"
+        :disabled="currentPage <= 1"
+        @click="changePage(currentPage - 1)"
+      >
+        上一页</button
+      ><span
+        >第 {{ currentPage }} 页 · 共 {{ costAdjustmentPage.total }} 条</span
+      ><button
+        class="inv-button"
+        :disabled="
+          currentPage * costAdjustmentPage.pageSize >= costAdjustmentPage.total
+        "
+        @click="changePage(currentPage + 1)"
+      >
+        下一页
+      </button>
+    </nav>
+    <div v-if="showForm" class="inventory-dialog">
+      <section>
+        <header>
+          <strong>新增成本调整</strong
+          ><button class="inv-button" @click="showForm = false">关闭</button>
+        </header>
+        <form class="inventory-form" @submit.prevent="create">
+          <label
+            >仓库<select
+              v-model="draft.warehouseId"
+              required
+              @change="draft.skuId = ''"
+            >
+              <option value="">请选择</option>
+              <option
+                v-for="w in workspace.warehouses.filter(
+                  (w) => w.status === 'enabled',
+                )"
+                :key="w.id"
+                :value="w.id"
+              >
+                {{ w.name }}
+              </option>
+            </select></label
+          ><label
+            >商品 / SKU<select v-model="draft.skuId" required>
+              <option value="">请选择</option>
+              <option
+                v-for="row in skuOptions"
+                :key="row.skuId"
+                :value="row.skuId"
+              >
+                {{ row.sku?.productName ?? row.skuId }} · 当前成本
+                {{
+                  row.costPerBaseUnitCents === null
+                    ? "—"
+                    : `¥${(row.costPerBaseUnitCents / 100).toFixed(2)}`
+                }}
+              </option>
+            </select></label
+          ><label
+            >新成本（¥）<input
+              :value="(draft.nextCostPerBaseUnitCents / 100).toFixed(2)"
+              type="number"
+              min="0"
+              step="0.01"
+              required
+              @input="draft.nextCostPerBaseUnitCents = Math.round(Number(($event.target as HTMLInputElement).value || 0) * 100)" /></label
+          ><label
+            >原因<select v-model="draft.reason">
+              <option value="purchase-price">采购价变更</option>
+              <option value="market">市场调整</option>
+              <option value="other">其他</option>
+            </select></label
+          ><label v-if="draft.reason === 'other'" class="wide"
+            >其他原因说明<textarea
+              v-model="draft.reasonNote"
+              required
+              maxlength="200"
+            /></label
+          ><label class="wide"
+            >生效时间<input
+              v-model="draft.effectiveAt"
+              type="datetime-local"
+              required
+            /><small>原型不支持未来预约，必须不晚于当前时间。</small></label
+          ><button
+            class="inv-button primary wide"
+            :disabled="saving"
+            type="submit"
+          >
+            保存
+          </button>
+        </form>
+      </section>
+    </div>
   </section>
 </template>

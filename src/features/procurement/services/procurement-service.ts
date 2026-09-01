@@ -177,7 +177,7 @@ export function createProcurementService(deps: ProcurementServiceDependencies) {
   }
 
   function exportSupplierProductsCsv(actor: ProcurementActor, query: SupplierProductListQuery = {}): string {
-    requireAccess(actor); return ['供应商,商品编码,商品名称,SKU编码,规格,采购单位,供应价(分),首选,状态', ...listSupplierProducts(actor, query).map((row) => [row.supplierName, row.productCodeSnapshot, row.productNameSnapshot, row.skuCodeSnapshot, row.specificationSnapshot, row.procurementUnitNameSnapshot, row.supplyPriceCents, row.preferred ? '是' : '否', row.status].map(csvCell).join(','))].join('\r\n')
+    requireAccess(actor); return ['供应商,商品编码,商品名称,SKU编码,规格,采购单位,供应价(¥),首选,状态', ...listSupplierProducts(actor, query).map((row) => [row.supplierName, row.productCodeSnapshot, row.productNameSnapshot, row.skuCodeSnapshot, row.specificationSnapshot, row.procurementUnitNameSnapshot, (row.supplyPriceCents / 100).toFixed(2), row.preferred ? '是' : '否', row.status].map(csvCell).join(','))].join('\r\n')
   }
 
   function createSupplyProvider(): ProcurementSupplyProvider {
@@ -370,7 +370,7 @@ export function createProcurementService(deps: ProcurementServiceDependencies) {
   }
   function exportPurchaseReturnsCsv(actor: ProcurementActor, query: PurchaseReturnListQuery = {}): string {
     assertReturnWrite(actor); const first = listPurchaseReturns(actor, { ...query, page: 1, pageSize: 100 }); const rows = [...first.items]; for (let page = 2; rows.length < first.total; page += 1) rows.push(...listPurchaseReturns(actor, { ...query, page, pageSize: 100 }).items)
-    return ['退单号,退单日期,原采购单,供应商,退单状态,出库状态,退款状态,退单金额(分),备注', ...rows.map((item) => [item.code, item.returnDate, item.purchaseOrderCodeSnapshot, item.supplierNameSnapshot, item.workflowStatus, item.outboundStatus, item.refundStatus, item.amountCents, item.note ?? ''].map(csvCell).join(','))].join('\r\n')
+    return ['退单号,退单日期,原采购单,供应商,退单状态,出库状态,退款状态,退单金额(¥),备注', ...rows.map((item) => [item.code, item.returnDate, item.purchaseOrderCodeSnapshot, item.supplierNameSnapshot, item.workflowStatus, item.outboundStatus, item.refundStatus, (item.amountCents / 100).toFixed(2), item.note ?? ''].map(csvCell).join(','))].join('\r\n')
   }
 
   function getWorkspace(actor: ProcurementActor, supplierQuery: SupplierListQuery = {}, relationQuery: SupplierProductListQuery = {}): ProcurementWorkspace {

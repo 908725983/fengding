@@ -181,7 +181,7 @@ async function showSupplierDetail(creditId: string) {
 function downloadStatistics() {
   const csv =
     report.value === "ledger"
-      ? `\uFEFF日期,账户,单据类型,单据号,往来单位,方向,金额分,余额分\r\n${store.ledgerStatistics.map((row) => [row.occurredAt, row.accountName, row.kind, row.sourceNo, row.counterparty ?? "—", row.direction, row.amountCents, row.balanceAfterCents].join(",")).join("\r\n")}`
+      ? `\uFEFF日期,账户,单据类型,单据号,往来单位,方向,金额(¥),余额(¥)\r\n${store.ledgerStatistics.map((row) => [row.occurredAt, row.accountName, row.kind, row.sourceNo, row.counterparty ?? "—", row.direction, (row.amountCents / 100).toFixed(2), (row.balanceAfterCents / 100).toFixed(2)].join(",")).join("\r\n")}`
       : report.value === "summary"
         ? `\uFEFF账户,期初分,收入分,支出分,期末分\r\n${store.accounts.map((row) => [row.account.name, row.openingBalanceCents, row.periodIncomeCents, row.periodExpenseCents, row.closingBalanceCents].join(",")).join("\r\n")}`
         : store.exportStatistics(

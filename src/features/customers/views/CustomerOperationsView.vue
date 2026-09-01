@@ -1,65 +1,1006 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import { RouterLink, useRouter } from 'vue-router'
-import CustomerSubnav from '../components/CustomerSubnav.vue'
-import { useCustomerStore } from '../runtime/customer-store'
-import type { OpportunityStage, OpportunityDraft, VisitDraft, VisitResult, FrequentProductDraft, RouteDraft, VisitPlanDraft } from '../types'
+import { computed, onMounted, reactive, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { RouterLink, useRouter } from "vue-router";
+import CustomerSubnav from "../components/CustomerSubnav.vue";
+import { useCustomerStore } from "../runtime/customer-store";
+import type {
+  OpportunityStage,
+  OpportunityDraft,
+  VisitDraft,
+  VisitResult,
+  FrequentProductDraft,
+  RouteDraft,
+  VisitPlanDraft,
+} from "../types";
 
-const props = defineProps<{ mode: 'opportunities' | 'frequent-products' | 'map' | 'public-sea' | 'public-sea-rules' | 'fieldwork-dashboard' | 'visits' | 'routes' | 'plans' }>()
-const router = useRouter()
-const store = useCustomerStore()
-const { opportunities, frequentProducts, publicSeaEntries, publicSeaRule, mapMarkers, visits, routes, visitPlans, loading, error, result } = storeToRefs(store)
-const actionError = ref<string | null>(null)
-const keyword = ref('')
-const selectedStage = ref<OpportunityStage | ''>('')
-const opportunityDraft = reactive<OpportunityDraft>({ customerId: 'customer-1', name: '', amountCents: 0, stage: 'lead', probabilityPercent: 10, expectedCloseDate: null, ownerId: 'staff-demo-1', source: 'manual', description: null })
-const visitDraft = reactive<VisitDraft>({ customerId: 'customer-1', salespersonId: 'staff-demo-1', visitAt: '2026-08-25T10:00:00+08:00', checkInAt: null, checkOutAt: null, durationMinutes: null, type: 'onsite', result: null, status: 'planned', placedOrder: false, orderId: null, fakeLongitude: null, fakeLatitude: null, checkInDistanceMeters: null, photo: null, note: null, nextPlan: null })
-const frequentDraft = reactive<FrequentProductDraft>({ customerId: 'customer-1', skuId: '', source: 'manual', purchaseCount: null, lastPurchasedAt: null, averageQuantity: null, totalQuantity: null, totalAmountCents: null, note: null, active: true })
-const routeDraft = reactive<RouteDraft>({ code: '', name: '', salespersonId: 'staff-demo-1', stops: [{ customerId: 'customer-1', sortOrder: 1, plannedMinutes: 30 }], estimatedDistanceKm: 0, estimatedMinutes: 0, status: 'draft' })
-const planDraft = reactive<VisitPlanDraft>({ date: '2026-08-25', salespersonId: 'staff-demo-1', routeId: 'route-demo-1', customerIds: ['customer-1'], plannedStartTime: '10:00', plannedMinutes: 30, purpose: '', note: null, status: 'pending', reminder: 'fake reminder' })
+const props = defineProps<{
+  mode:
+    | "opportunities"
+    | "frequent-products"
+    | "map"
+    | "public-sea"
+    | "public-sea-rules"
+    | "fieldwork-dashboard"
+    | "visits"
+    | "routes"
+    | "plans";
+}>();
+const router = useRouter();
+const store = useCustomerStore();
+const {
+  opportunities,
+  frequentProducts,
+  publicSeaEntries,
+  publicSeaRule,
+  mapMarkers,
+  visits,
+  routes,
+  visitPlans,
+  loading,
+  error,
+  result,
+} = storeToRefs(store);
+const actionError = ref<string | null>(null);
+const keyword = ref("");
+const selectedStage = ref<OpportunityStage | "">("");
+const opportunityDraft = reactive<OpportunityDraft>({
+  customerId: "customer-1",
+  name: "",
+  amountCents: 0,
+  stage: "lead",
+  probabilityPercent: 10,
+  expectedCloseDate: null,
+  ownerId: "staff-demo-1",
+  source: "manual",
+  description: null,
+});
+const visitDraft = reactive<VisitDraft>({
+  customerId: "customer-1",
+  salespersonId: "staff-demo-1",
+  visitAt: "2026-08-25T10:00:00+08:00",
+  checkInAt: null,
+  checkOutAt: null,
+  durationMinutes: null,
+  type: "onsite",
+  result: null,
+  status: "planned",
+  placedOrder: false,
+  orderId: null,
+  fakeLongitude: null,
+  fakeLatitude: null,
+  checkInDistanceMeters: null,
+  photo: null,
+  note: null,
+  nextPlan: null,
+});
+const frequentDraft = reactive<FrequentProductDraft>({
+  customerId: "customer-1",
+  skuId: "",
+  source: "manual",
+  purchaseCount: null,
+  lastPurchasedAt: null,
+  averageQuantity: null,
+  totalQuantity: null,
+  totalAmountCents: null,
+  note: null,
+  active: true,
+});
+const routeDraft = reactive<RouteDraft>({
+  code: "",
+  name: "",
+  salespersonId: "staff-demo-1",
+  stops: [{ customerId: "customer-1", sortOrder: 1, plannedMinutes: 30 }],
+  estimatedDistanceKm: 0,
+  estimatedMinutes: 0,
+  status: "draft",
+});
+const planDraft = reactive<VisitPlanDraft>({
+  date: "2026-08-25",
+  salespersonId: "staff-demo-1",
+  routeId: "route-demo-1",
+  customerIds: ["customer-1"],
+  plannedStartTime: "10:00",
+  plannedMinutes: 30,
+  purpose: "",
+  note: null,
+  status: "pending",
+  reminder: "fake reminder",
+});
 
-const title = computed(() => ({ opportunities: '商机管理', 'frequent-products': '客户常购商品', map: '客户地图', 'public-sea': '客户公海', 'public-sea-rules': '公海规则', 'fieldwork-dashboard': '外勤看板', visits: '拜访明细', routes: '拜访线路', plans: '拜访计划' }[props.mode]))
-const filteredOpportunities = computed(() => opportunities.value.filter((item) => (!selectedStage.value || item.stage === selectedStage.value) && (!keyword.value || `${item.name}${item.id}`.toLowerCase().includes(keyword.value.toLowerCase()))))
-const filteredSea = computed(() => publicSeaEntries.value.filter((entry) => !keyword.value || entry.customerId.toLowerCase().includes(keyword.value.toLowerCase())))
-const statusLabel = (value: string) => ({ open: '进行中', won: '成交', lost: '失败', lead: '线索', qualified: '已确认', proposal: '方案', negotiation: '谈判', available: '可领取', claimed: '已领取', assigned: '已分配', protected: '保护期', planned: '待执行', 'in-progress': '进行中', completed: '已完成', cancelled: '已取消', draft: '草稿', active: '启用', stopped: '停用', pending: '待执行', running: '执行中', incomplete: '未完成' }[value] ?? value)
-function money(cents: number | null): string { return cents === null ? '数据源未接入' : `¥ ${(cents / 100).toFixed(2)}` }
-async function run(action: () => Promise<void>): Promise<void> { actionError.value = null; try { await action() } catch (caught) { actionError.value = caught instanceof Error ? caught.message : '操作失败' } }
-async function createOpportunity(): Promise<void> { if (!opportunityDraft.name.trim()) { actionError.value = '请填写商机名称'; return }; await run(async () => { await store.saveOpportunity({ ...opportunityDraft, name: opportunityDraft.name.trim(), amountCents: Number(opportunityDraft.amountCents), probabilityPercent: Number(opportunityDraft.probabilityPercent) }); opportunityDraft.name = ''; opportunityDraft.amountCents = 0 }) }
-async function advance(id: string, stage: OpportunityStage): Promise<void> { await run(() => store.advanceOpportunity(id, stage)) }
-async function claim(id: string): Promise<void> { await run(() => store.claimPublicSea(id)) }
-async function quickOrder(customerId: string, skuId: string): Promise<void> { await run(async () => { await router.push(await store.quickOrder(customerId, skuId)) }) }
-async function checkIn(id: string): Promise<void> { await run(() => store.checkInVisit(id)) }
-async function complete(id: string, resultValue: VisitResult): Promise<void> { await run(() => store.completeVisit(id, resultValue)) }
-async function createVisit(): Promise<void> { await run(async () => { await store.saveVisit({ ...visitDraft }); visitDraft.note = null }) }
-async function addFrequent(): Promise<void> { if (!frequentDraft.skuId.trim()) { actionError.value = '请填写 SKU'; return }; await run(async () => { await store.addFrequentProduct({ ...frequentDraft, skuId: frequentDraft.skuId.trim() }); frequentDraft.skuId = '' }) }
-async function createRoute(): Promise<void> { if (!routeDraft.code.trim() || !routeDraft.name.trim()) { actionError.value = '请填写线路编码和名称'; return }; await run(async () => { await store.saveRoute({ ...routeDraft, code: routeDraft.code.trim(), name: routeDraft.name.trim() }); routeDraft.code = ''; routeDraft.name = '' }) }
-async function createPlan(): Promise<void> { if (!planDraft.purpose.trim()) { actionError.value = '请填写计划目的'; return }; await run(async () => { await store.saveVisitPlan({ ...planDraft, purpose: planDraft.purpose.trim() }); planDraft.purpose = '' }) }
-function exportOpportunities(): void { actionError.value = null; window.alert('原型模拟：已生成商机 CSV 结果（未下载真实文件）') }
-onMounted(() => store.loadOperations())
+const title = computed(
+  () =>
+    ({
+      opportunities: "商机管理",
+      "frequent-products": "客户常购商品",
+      map: "客户地图",
+      "public-sea": "客户公海",
+      "public-sea-rules": "公海规则",
+      "fieldwork-dashboard": "外勤看板",
+      visits: "拜访明细",
+      routes: "拜访线路",
+      plans: "拜访计划",
+    })[props.mode],
+);
+const filteredOpportunities = computed(() =>
+  opportunities.value.filter(
+    (item) =>
+      (!selectedStage.value || item.stage === selectedStage.value) &&
+      (!keyword.value ||
+        `${item.name}${item.id}`
+          .toLowerCase()
+          .includes(keyword.value.toLowerCase())),
+  ),
+);
+const filteredSea = computed(() =>
+  publicSeaEntries.value.filter(
+    (entry) =>
+      !keyword.value ||
+      entry.customerId.toLowerCase().includes(keyword.value.toLowerCase()),
+  ),
+);
+const statusLabel = (value: string) =>
+  ({
+    open: "进行中",
+    won: "成交",
+    lost: "失败",
+    lead: "线索",
+    qualified: "已确认",
+    proposal: "方案",
+    negotiation: "谈判",
+    available: "可领取",
+    claimed: "已领取",
+    assigned: "已分配",
+    protected: "保护期",
+    planned: "待执行",
+    "in-progress": "进行中",
+    completed: "已完成",
+    cancelled: "已取消",
+    draft: "草稿",
+    active: "启用",
+    stopped: "停用",
+    pending: "待执行",
+    running: "执行中",
+    incomplete: "未完成",
+  })[value] ?? value;
+function money(cents: number | null): string {
+  return cents === null ? "数据源未接入" : `¥ ${(cents / 100).toFixed(2)}`;
+}
+async function run(action: () => Promise<void>): Promise<void> {
+  actionError.value = null;
+  try {
+    await action();
+  } catch (caught) {
+    actionError.value = caught instanceof Error ? caught.message : "操作失败";
+  }
+}
+async function createOpportunity(): Promise<void> {
+  if (!opportunityDraft.name.trim()) {
+    actionError.value = "请填写商机名称";
+    return;
+  }
+  await run(async () => {
+    await store.saveOpportunity({
+      ...opportunityDraft,
+      name: opportunityDraft.name.trim(),
+      amountCents: Number(opportunityDraft.amountCents),
+      probabilityPercent: Number(opportunityDraft.probabilityPercent),
+    });
+    opportunityDraft.name = "";
+    opportunityDraft.amountCents = 0;
+  });
+}
+function setOpportunityAmount(event: Event): void {
+  opportunityDraft.amountCents = Math.round(Number((event.target as HTMLInputElement).value || 0) * 100)
+}
+async function advance(id: string, stage: OpportunityStage): Promise<void> {
+  await run(() => store.advanceOpportunity(id, stage));
+}
+async function claim(id: string): Promise<void> {
+  await run(() => store.claimPublicSea(id));
+}
+async function quickOrder(customerId: string, skuId: string): Promise<void> {
+  await run(async () => {
+    await router.push(await store.quickOrder(customerId, skuId));
+  });
+}
+async function checkIn(id: string): Promise<void> {
+  await run(() => store.checkInVisit(id));
+}
+async function complete(id: string, resultValue: VisitResult): Promise<void> {
+  await run(() => store.completeVisit(id, resultValue));
+}
+async function createVisit(): Promise<void> {
+  await run(async () => {
+    await store.saveVisit({ ...visitDraft });
+    visitDraft.note = null;
+  });
+}
+async function addFrequent(): Promise<void> {
+  if (!frequentDraft.skuId.trim()) {
+    actionError.value = "请填写 SKU";
+    return;
+  }
+  await run(async () => {
+    await store.addFrequentProduct({
+      ...frequentDraft,
+      skuId: frequentDraft.skuId.trim(),
+    });
+    frequentDraft.skuId = "";
+  });
+}
+async function createRoute(): Promise<void> {
+  if (!routeDraft.code.trim() || !routeDraft.name.trim()) {
+    actionError.value = "请填写线路编码和名称";
+    return;
+  }
+  await run(async () => {
+    await store.saveRoute({
+      ...routeDraft,
+      code: routeDraft.code.trim(),
+      name: routeDraft.name.trim(),
+    });
+    routeDraft.code = "";
+    routeDraft.name = "";
+  });
+}
+async function createPlan(): Promise<void> {
+  if (!planDraft.purpose.trim()) {
+    actionError.value = "请填写计划目的";
+    return;
+  }
+  await run(async () => {
+    await store.saveVisitPlan({
+      ...planDraft,
+      purpose: planDraft.purpose.trim(),
+    });
+    planDraft.purpose = "";
+  });
+}
+function exportOpportunities(): void {
+  actionError.value = null;
+  window.alert("原型模拟：已生成商机 CSV 结果（未下载真实文件）");
+}
+onMounted(() => store.loadOperations());
 </script>
 
 <template>
   <section class="ops-page">
-    <header class="ops-header"><div><p class="eyebrow">CRM 运营 · 原型模拟</p><h1>{{ title }}</h1><p>沿用 Customer Repository；跨域订单、资金统计未接入时显示不可用。</p></div><div class="header-links"><RouterLink class="button" to="/customers">客户档案</RouterLink><RouterLink v-if="props.mode === 'opportunities'" class="button button--primary" to="#new">新增商机</RouterLink></div></header>
+    <header class="ops-header">
+      <div>
+        <p class="eyebrow">CRM 运营 · 原型模拟</p>
+        <h1>{{ title }}</h1>
+        <p>沿用 Customer Repository；跨域订单、资金统计未接入时显示不可用。</p>
+      </div>
+      <div class="header-links">
+        <RouterLink class="button" to="/customers">客户档案</RouterLink
+        ><RouterLink
+          v-if="props.mode === 'opportunities'"
+          class="button button--primary"
+          to="#new"
+          >新增商机</RouterLink
+        >
+      </div>
+    </header>
     <CustomerSubnav />
-    <p v-if="actionError || error" class="alert" role="alert">{{ actionError || error }}</p>
+    <p v-if="actionError || error" class="alert" role="alert">
+      {{ actionError || error }}
+    </p>
     <div v-if="loading" class="state">正在加载客户运营资料…</div>
     <div v-else-if="props.mode === 'opportunities'" class="workspace">
-      <section class="toolbar"><input v-model="keyword" placeholder="搜索商机名称或编号"><select v-model="selectedStage"><option value="">全部阶段</option><option value="lead">线索</option><option value="qualified">已确认</option><option value="proposal">方案</option><option value="negotiation">谈判</option><option value="won">成交</option><option value="lost">失败</option></select><button class="button" @click="exportOpportunities">导出模拟结果</button></section>
-      <section class="card"><h2>商机列表 <small>{{ filteredOpportunities.length }} 条</small></h2><div v-if="!filteredOpportunities.length" class="empty">暂无商机，可从右侧创建</div><table v-else><thead><tr><th>名称</th><th>客户</th><th>金额</th><th>阶段</th><th>概率</th><th>负责人</th><th>操作</th></tr></thead><tbody><tr v-for="item in filteredOpportunities" :key="item.id"><td><strong>{{ item.name }}</strong><small>{{ item.id }}</small></td><td>{{ item.customerId }}</td><td>{{ money(item.amountCents) }}</td><td><span class="badge">{{ statusLabel(item.stage) }}</span></td><td>{{ item.probabilityPercent }}%</td><td>{{ item.ownerId }}</td><td><button v-if="item.status === 'open'" class="link" @click="advance(item.id, item.stage === 'negotiation' ? 'won' : 'negotiation')">推进</button><button v-if="item.status === 'open'" class="link" @click="advance(item.id, 'lost')">关闭</button><span v-else>{{ statusLabel(item.status) }}</span></td></tr></tbody></table></section>
-      <form id="new" class="card form" @submit.prevent="createOpportunity"><h2>新增商机</h2><label>商机名称<input v-model="opportunityDraft.name" required></label><label>金额（分）<input v-model.number="opportunityDraft.amountCents" type="number" min="0" required></label><label>预计成交日期<input v-model="opportunityDraft.expectedCloseDate" type="date"></label><button class="button button--primary" type="submit">保存商机</button><small>成交不会自动创建订单或改变客户状态。</small></form>
+      <section class="toolbar">
+        <input v-model="keyword" placeholder="搜索商机名称或编号" /><select
+          v-model="selectedStage"
+        >
+          <option value="">全部阶段</option>
+          <option value="lead">线索</option>
+          <option value="qualified">已确认</option>
+          <option value="proposal">方案</option>
+          <option value="negotiation">谈判</option>
+          <option value="won">成交</option>
+          <option value="lost">失败</option></select
+        ><button class="button" @click="exportOpportunities">
+          导出模拟结果
+        </button>
+      </section>
+      <section class="card">
+        <h2>
+          商机列表 <small>{{ filteredOpportunities.length }} 条</small>
+        </h2>
+        <div v-if="!filteredOpportunities.length" class="empty">
+          暂无商机，可从右侧创建
+        </div>
+        <table v-else>
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>客户</th>
+              <th>金额</th>
+              <th>阶段</th>
+              <th>概率</th>
+              <th>负责人</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in filteredOpportunities" :key="item.id">
+              <td>
+                <strong>{{ item.name }}</strong
+                ><small>{{ item.id }}</small>
+              </td>
+              <td>{{ item.customerId }}</td>
+              <td>{{ money(item.amountCents) }}</td>
+              <td>
+                <span class="badge">{{ statusLabel(item.stage) }}</span>
+              </td>
+              <td>{{ item.probabilityPercent }}%</td>
+              <td>{{ item.ownerId }}</td>
+              <td>
+                <button
+                  v-if="item.status === 'open'"
+                  class="link"
+                  @click="
+                    advance(
+                      item.id,
+                      item.stage === 'negotiation' ? 'won' : 'negotiation',
+                    )
+                  "
+                >
+                  推进</button
+                ><button
+                  v-if="item.status === 'open'"
+                  class="link"
+                  @click="advance(item.id, 'lost')"
+                >
+                  关闭</button
+                ><span v-else>{{ statusLabel(item.status) }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <form id="new" class="card form" @submit.prevent="createOpportunity">
+        <h2>新增商机</h2>
+        <label>商机名称<input v-model="opportunityDraft.name" required /></label
+        ><label
+          >金额（¥）<input
+            :value="(opportunityDraft.amountCents / 100).toFixed(2)"
+            type="number"
+            min="0"
+            step="0.01"
+            @input="setOpportunityAmount"
+            required /></label
+        ><label
+          >预计成交日期<input
+            v-model="opportunityDraft.expectedCloseDate"
+            type="date" /></label
+        ><button class="button button--primary" type="submit">保存商机</button
+        ><small>成交不会自动创建订单或改变客户状态。</small>
+      </form>
     </div>
-    <div v-else-if="props.mode === 'frequent-products'" class="workspace"><section class="card"><h2>客户常购商品 <small>{{ frequentProducts.length }} 条</small></h2><p class="hint">自动候选阈值：近 3 个月 ≥3 次、近 6 个月 ≥5 次或累计金额 ≥¥1000。订单商品明细未接入时不显示 0。</p><table><thead><tr><th>客户</th><th>SKU</th><th>来源</th><th>购买次数</th><th>最近购买</th><th>累计金额</th><th>操作</th></tr></thead><tbody><tr v-for="item in frequentProducts" :key="item.id"><td>{{ item.customerId }}</td><td>{{ item.skuId }}</td><td>{{ item.source === 'auto' ? '自动候选' : '手工维护' }}</td><td>{{ item.purchaseCount ?? '数据源未接入' }}</td><td>{{ item.lastPurchasedAt ?? '数据源未接入' }}</td><td>{{ money(item.totalAmountCents) }}</td><td><button class="link" @click="quickOrder(item.customerId, item.skuId)">快速下单</button><button class="link danger" @click="run(() => store.removeFrequentProduct(item.id))">取消常购</button></td></tr></tbody></table></section><form class="card form" @submit.prevent="addFrequent"><h2>手工添加常购</h2><label>客户 ID<input v-model="frequentDraft.customerId" required></label><label>SKU ID<input v-model="frequentDraft.skuId" required></label><label>备注<input v-model="frequentDraft.note"></label><button class="button button--primary" type="submit">添加常购</button></form></div>
-    <div v-else-if="props.mode === 'map'" class="workspace"><section class="toolbar"><input v-model="keyword" placeholder="搜索客户名称、编码或联系人"><span class="simulated">地图/聚合/导航均为 fake，不请求定位权限</span></section><section class="map-panel"><div class="fake-map"><span class="map-title">Fake Map Adapter</span><button v-for="marker in mapMarkers" :key="marker.customerId" class="marker" :style="{ left: `${((marker.longitude - 121) * 100) % 80 + 10}%`, top: `${((marker.latitude - 30) * 100) % 65 + 15}%` }">{{ marker.label }}</button></div><aside><h2>客户标记 <small>{{ mapMarkers.length }}</small></h2><p v-for="marker in mapMarkers" :key="marker.customerId"><strong>{{ marker.label }}</strong><br><small>{{ marker.longitude }}, {{ marker.latitude }} · {{ marker.clusterKey }}</small></p><p v-if="!mapMarkers.length" class="empty">暂无坐标</p></aside></section></div>
-    <div v-else-if="props.mode === 'public-sea' || props.mode === 'public-sea-rules'" class="workspace"><section v-if="props.mode === 'public-sea'" class="card"><div class="toolbar"><input v-model="keyword" placeholder="搜索客户/编码/联系人"><button class="button" @click="run(() => store.reclaimPublicSea().then(() => undefined))">按受控时钟回收</button></div><table><thead><tr><th>客户</th><th>进入原因</th><th>进入时间</th><th>状态</th><th>保护期</th><th>操作</th></tr></thead><tbody><tr v-for="entry in filteredSea" :key="entry.id"><td>{{ entry.customerId }}</td><td>{{ entry.reason }}</td><td>{{ entry.enteredAt }}</td><td><span class="badge">{{ statusLabel(entry.status) }}</span></td><td>{{ entry.protectionUntil ?? '—' }}</td><td><button v-if="entry.status === 'available'" class="link" @click="claim(entry.id)">领取</button><span v-else>已处理</span></td></tr></tbody></table></section><form v-else class="card form" @submit.prevent="run(() => store.savePublicSeaRule({ noOrderDays: publicSeaRule?.noOrderDays ?? 30, noVisitDays: publicSeaRule?.noVisitDays ?? 30, newCustomerInactiveDays: publicSeaRule?.newCustomerInactiveDays ?? 14, dailyClaimLimit: publicSeaRule?.dailyClaimLimit ?? 5, monthlyClaimLimit: publicSeaRule?.monthlyClaimLimit ?? 30, protectionDays: publicSeaRule?.protectionDays ?? 7, excludedCategoryIds: publicSeaRule?.excludedCategoryIds ?? [], excludedTagIds: publicSeaRule?.excludedTagIds ?? [] }))"><h2>公海回收与领取规则</h2><label>未下单天数<input v-model.number="publicSeaRule!.noOrderDays" type="number" min="1"></label><label>未拜访天数<input v-model.number="publicSeaRule!.noVisitDays" type="number" min="1"></label><label>日领取上限<input v-model.number="publicSeaRule!.dailyClaimLimit" type="number" min="1"></label><label>月领取上限<input v-model.number="publicSeaRule!.monthlyClaimLimit" type="number" min="1"></label><label>领取保护期（天）<input v-model.number="publicSeaRule!.protectionDays" type="number" min="1"></label><button class="button button--primary" type="submit">保存规则</button><small>管理员分配不占领取额度；领取幂等并受保护期约束。</small></form></div>
-    <div v-else-if="props.mode === 'visits'" class="workspace"><section class="card"><h2>拜访明细 <small>{{ visits.length }} 条</small></h2><table><thead><tr><th>客户</th><th>业务员</th><th>时间</th><th>类型</th><th>状态</th><th>结果</th><th>操作</th></tr></thead><tbody><tr v-for="item in visits" :key="item.id"><td>{{ item.customerId }}</td><td>{{ item.salespersonId }}</td><td>{{ item.visitAt }}</td><td>{{ item.type }}</td><td><span class="badge">{{ statusLabel(item.status) }}</span></td><td>{{ item.result ?? '—' }}</td><td><button v-if="item.status === 'planned'" class="link" @click="checkIn(item.id)">Fake 签到</button><button v-if="item.status === 'in-progress'" class="link" @click="complete(item.id, 'positive')">完成</button></td></tr></tbody></table></section><form class="card form" @submit.prevent="createVisit"><h2>新增拜访</h2><label>客户 ID<input v-model="visitDraft.customerId" required></label><label>拜访时间<input v-model="visitDraft.visitAt" type="datetime-local" required></label><label>类型<select v-model="visitDraft.type"><option value="onsite">上门</option><option value="phone">电话</option><option value="video">视频</option></select></label><button class="button button--primary" type="submit">保存拜访</button><small>签到位置、距离和照片均为 fake 元数据。</small></form></div>
-    <div v-else-if="props.mode === 'routes'" class="workspace"><section class="card"><h2>拜访线路 <small>{{ routes.length }} 条</small></h2><table><thead><tr><th>编码</th><th>线路名称</th><th>业务员</th><th>站点</th><th>预计距离/时长</th><th>状态</th></tr></thead><tbody><tr v-for="item in routes" :key="item.id"><td>{{ item.code }}</td><td>{{ item.name }}</td><td>{{ item.salespersonId }}</td><td>{{ item.stops.length }}</td><td>{{ item.estimatedDistanceKm }} km / {{ item.estimatedMinutes }} 分钟</td><td>{{ statusLabel(item.status) }}</td></tr></tbody></table><p class="hint">智能规划返回确定性 fake 排序，不调用地图厂商。</p></section><form class="card form" @submit.prevent="createRoute"><h2>新增线路</h2><label>线路编码<input v-model="routeDraft.code" required></label><label>线路名称<input v-model="routeDraft.name" required></label><label>预计距离（km）<input v-model.number="routeDraft.estimatedDistanceKm" type="number" min="0"></label><label>预计时长（分钟）<input v-model.number="routeDraft.estimatedMinutes" type="number" min="0"></label><button class="button button--primary" type="submit">保存线路</button></form></div>
-    <div v-else-if="props.mode === 'plans'" class="workspace"><section class="card"><h2>拜访计划 <small>{{ visitPlans.length }} 条</small></h2><table><thead><tr><th>日期</th><th>业务员</th><th>目的</th><th>客户数</th><th>状态</th><th>订单/回款指标</th></tr></thead><tbody><tr v-for="item in visitPlans" :key="item.id"><td>{{ item.date }}</td><td>{{ item.salespersonId }}</td><td>{{ item.purpose }}</td><td>{{ item.customerIds.length }}</td><td><span class="badge">{{ statusLabel(item.status) }}</span></td><td class="unavailable">数据源未接入</td></tr></tbody></table></section><form class="card form" @submit.prevent="createPlan"><h2>新增计划</h2><label>日期<input v-model="planDraft.date" type="date" required></label><label>计划目的<input v-model="planDraft.purpose" required></label><label>客户 ID<input v-model="planDraft.customerIds[0]" required></label><button class="button button--primary" type="submit">保存计划</button><small>提醒仅为 fake 结果，不发送真实消息。</small></form></div>
-    <div v-else class="workspace"><section class="metric-grid"><div class="card"><span>今日计划</span><strong>{{ visitPlans.filter((item) => item.date === '2026-08-25').length }}</strong></div><div class="card"><span>拜访记录</span><strong>{{ visits.length }}</strong></div><div class="card"><span>订单转化</span><strong class="unavailable">数据源未接入</strong></div></section><section class="card"><h2>外勤数据边界</h2><p>订单数、订单金额、回款金额和转化率只在 Order/Finance public provider 接入同一事实后计算；当前不使用预置数字。</p></section></div>
+    <div v-else-if="props.mode === 'frequent-products'" class="workspace">
+      <section class="card">
+        <h2>
+          客户常购商品 <small>{{ frequentProducts.length }} 条</small>
+        </h2>
+        <p class="hint">
+          自动候选阈值：近 3 个月 ≥3 次、近 6 个月 ≥5 次或累计金额
+          ≥¥1000。订单商品明细未接入时不显示 0。
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>客户</th>
+              <th>SKU</th>
+              <th>来源</th>
+              <th>购买次数</th>
+              <th>最近购买</th>
+              <th>累计金额</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in frequentProducts" :key="item.id">
+              <td>{{ item.customerId }}</td>
+              <td>{{ item.skuId }}</td>
+              <td>{{ item.source === "auto" ? "自动候选" : "手工维护" }}</td>
+              <td>{{ item.purchaseCount ?? "数据源未接入" }}</td>
+              <td>{{ item.lastPurchasedAt ?? "数据源未接入" }}</td>
+              <td>{{ money(item.totalAmountCents) }}</td>
+              <td>
+                <button
+                  class="link"
+                  @click="quickOrder(item.customerId, item.skuId)"
+                >
+                  快速下单</button
+                ><button
+                  class="link danger"
+                  @click="run(() => store.removeFrequentProduct(item.id))"
+                >
+                  取消常购
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <form class="card form" @submit.prevent="addFrequent">
+        <h2>手工添加常购</h2>
+        <label
+          >客户 ID<input v-model="frequentDraft.customerId" required /></label
+        ><label>SKU ID<input v-model="frequentDraft.skuId" required /></label
+        ><label>备注<input v-model="frequentDraft.note" /></label
+        ><button class="button button--primary" type="submit">添加常购</button>
+      </form>
+    </div>
+    <div v-else-if="props.mode === 'map'" class="workspace">
+      <section class="toolbar">
+        <input
+          v-model="keyword"
+          placeholder="搜索客户名称、编码或联系人"
+        /><span class="simulated">地图/聚合/导航均为 fake，不请求定位权限</span>
+      </section>
+      <section class="map-panel">
+        <div class="fake-map">
+          <span class="map-title">Fake Map Adapter</span
+          ><button
+            v-for="marker in mapMarkers"
+            :key="marker.customerId"
+            class="marker"
+            :style="{
+              left: `${(((marker.longitude - 121) * 100) % 80) + 10}%`,
+              top: `${(((marker.latitude - 30) * 100) % 65) + 15}%`,
+            }"
+          >
+            {{ marker.label }}
+          </button>
+        </div>
+        <aside>
+          <h2>
+            客户标记 <small>{{ mapMarkers.length }}</small>
+          </h2>
+          <p v-for="marker in mapMarkers" :key="marker.customerId">
+            <strong>{{ marker.label }}</strong
+            ><br /><small
+              >{{ marker.longitude }}, {{ marker.latitude }} ·
+              {{ marker.clusterKey }}</small
+            >
+          </p>
+          <p v-if="!mapMarkers.length" class="empty">暂无坐标</p>
+        </aside>
+      </section>
+    </div>
+    <div
+      v-else-if="
+        props.mode === 'public-sea' || props.mode === 'public-sea-rules'
+      "
+      class="workspace"
+    >
+      <section v-if="props.mode === 'public-sea'" class="card">
+        <div class="toolbar">
+          <input v-model="keyword" placeholder="搜索客户/编码/联系人" /><button
+            class="button"
+            @click="run(() => store.reclaimPublicSea().then(() => undefined))"
+          >
+            按受控时钟回收
+          </button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>客户</th>
+              <th>进入原因</th>
+              <th>进入时间</th>
+              <th>状态</th>
+              <th>保护期</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="entry in filteredSea" :key="entry.id">
+              <td>{{ entry.customerId }}</td>
+              <td>{{ entry.reason }}</td>
+              <td>{{ entry.enteredAt }}</td>
+              <td>
+                <span class="badge">{{ statusLabel(entry.status) }}</span>
+              </td>
+              <td>{{ entry.protectionUntil ?? "—" }}</td>
+              <td>
+                <button
+                  v-if="entry.status === 'available'"
+                  class="link"
+                  @click="claim(entry.id)"
+                >
+                  领取</button
+                ><span v-else>已处理</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <form
+        v-else
+        class="card form"
+        @submit.prevent="
+          run(() =>
+            store.savePublicSeaRule({
+              noOrderDays: publicSeaRule?.noOrderDays ?? 30,
+              noVisitDays: publicSeaRule?.noVisitDays ?? 30,
+              newCustomerInactiveDays:
+                publicSeaRule?.newCustomerInactiveDays ?? 14,
+              dailyClaimLimit: publicSeaRule?.dailyClaimLimit ?? 5,
+              monthlyClaimLimit: publicSeaRule?.monthlyClaimLimit ?? 30,
+              protectionDays: publicSeaRule?.protectionDays ?? 7,
+              excludedCategoryIds: publicSeaRule?.excludedCategoryIds ?? [],
+              excludedTagIds: publicSeaRule?.excludedTagIds ?? [],
+            }),
+          )
+        "
+      >
+        <h2>公海回收与领取规则</h2>
+        <label
+          >未下单天数<input
+            v-model.number="publicSeaRule!.noOrderDays"
+            type="number"
+            min="1" /></label
+        ><label
+          >未拜访天数<input
+            v-model.number="publicSeaRule!.noVisitDays"
+            type="number"
+            min="1" /></label
+        ><label
+          >日领取上限<input
+            v-model.number="publicSeaRule!.dailyClaimLimit"
+            type="number"
+            min="1" /></label
+        ><label
+          >月领取上限<input
+            v-model.number="publicSeaRule!.monthlyClaimLimit"
+            type="number"
+            min="1" /></label
+        ><label
+          >领取保护期（天）<input
+            v-model.number="publicSeaRule!.protectionDays"
+            type="number"
+            min="1" /></label
+        ><button class="button button--primary" type="submit">保存规则</button
+        ><small>管理员分配不占领取额度；领取幂等并受保护期约束。</small>
+      </form>
+    </div>
+    <div v-else-if="props.mode === 'visits'" class="workspace">
+      <section class="card">
+        <h2>
+          拜访明细 <small>{{ visits.length }} 条</small>
+        </h2>
+        <table>
+          <thead>
+            <tr>
+              <th>客户</th>
+              <th>业务员</th>
+              <th>时间</th>
+              <th>类型</th>
+              <th>状态</th>
+              <th>结果</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in visits" :key="item.id">
+              <td>{{ item.customerId }}</td>
+              <td>{{ item.salespersonId }}</td>
+              <td>{{ item.visitAt }}</td>
+              <td>{{ item.type }}</td>
+              <td>
+                <span class="badge">{{ statusLabel(item.status) }}</span>
+              </td>
+              <td>{{ item.result ?? "—" }}</td>
+              <td>
+                <button
+                  v-if="item.status === 'planned'"
+                  class="link"
+                  @click="checkIn(item.id)"
+                >
+                  Fake 签到</button
+                ><button
+                  v-if="item.status === 'in-progress'"
+                  class="link"
+                  @click="complete(item.id, 'positive')"
+                >
+                  完成
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <form class="card form" @submit.prevent="createVisit">
+        <h2>新增拜访</h2>
+        <label>客户 ID<input v-model="visitDraft.customerId" required /></label
+        ><label
+          >拜访时间<input
+            v-model="visitDraft.visitAt"
+            type="datetime-local"
+            required /></label
+        ><label
+          >类型<select v-model="visitDraft.type">
+            <option value="onsite">上门</option>
+            <option value="phone">电话</option>
+            <option value="video">视频</option>
+          </select></label
+        ><button class="button button--primary" type="submit">保存拜访</button
+        ><small>签到位置、距离和照片均为 fake 元数据。</small>
+      </form>
+    </div>
+    <div v-else-if="props.mode === 'routes'" class="workspace">
+      <section class="card">
+        <h2>
+          拜访线路 <small>{{ routes.length }} 条</small>
+        </h2>
+        <table>
+          <thead>
+            <tr>
+              <th>编码</th>
+              <th>线路名称</th>
+              <th>业务员</th>
+              <th>站点</th>
+              <th>预计距离/时长</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in routes" :key="item.id">
+              <td>{{ item.code }}</td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.salespersonId }}</td>
+              <td>{{ item.stops.length }}</td>
+              <td>
+                {{ item.estimatedDistanceKm }} km /
+                {{ item.estimatedMinutes }} 分钟
+              </td>
+              <td>{{ statusLabel(item.status) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="hint">智能规划返回确定性 fake 排序，不调用地图厂商。</p>
+      </section>
+      <form class="card form" @submit.prevent="createRoute">
+        <h2>新增线路</h2>
+        <label>线路编码<input v-model="routeDraft.code" required /></label
+        ><label>线路名称<input v-model="routeDraft.name" required /></label
+        ><label
+          >预计距离（km）<input
+            v-model.number="routeDraft.estimatedDistanceKm"
+            type="number"
+            min="0" /></label
+        ><label
+          >预计时长（分钟）<input
+            v-model.number="routeDraft.estimatedMinutes"
+            type="number"
+            min="0" /></label
+        ><button class="button button--primary" type="submit">保存线路</button>
+      </form>
+    </div>
+    <div v-else-if="props.mode === 'plans'" class="workspace">
+      <section class="card">
+        <h2>
+          拜访计划 <small>{{ visitPlans.length }} 条</small>
+        </h2>
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>业务员</th>
+              <th>目的</th>
+              <th>客户数</th>
+              <th>状态</th>
+              <th>订单/回款指标</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in visitPlans" :key="item.id">
+              <td>{{ item.date }}</td>
+              <td>{{ item.salespersonId }}</td>
+              <td>{{ item.purpose }}</td>
+              <td>{{ item.customerIds.length }}</td>
+              <td>
+                <span class="badge">{{ statusLabel(item.status) }}</span>
+              </td>
+              <td class="unavailable">数据源未接入</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <form class="card form" @submit.prevent="createPlan">
+        <h2>新增计划</h2>
+        <label
+          >日期<input v-model="planDraft.date" type="date" required /></label
+        ><label>计划目的<input v-model="planDraft.purpose" required /></label
+        ><label
+          >客户 ID<input v-model="planDraft.customerIds[0]" required /></label
+        ><button class="button button--primary" type="submit">保存计划</button
+        ><small>提醒仅为 fake 结果，不发送真实消息。</small>
+      </form>
+    </div>
+    <div v-else class="workspace">
+      <section class="metric-grid">
+        <div class="card">
+          <span>今日计划</span
+          ><strong>{{
+            visitPlans.filter((item) => item.date === "2026-08-25").length
+          }}</strong>
+        </div>
+        <div class="card">
+          <span>拜访记录</span><strong>{{ visits.length }}</strong>
+        </div>
+        <div class="card">
+          <span>订单转化</span><strong class="unavailable">数据源未接入</strong>
+        </div>
+      </section>
+      <section class="card">
+        <h2>外勤数据边界</h2>
+        <p>
+          订单数、订单金额、回款金额和转化率只在 Order/Finance public provider
+          接入同一事实后计算；当前不使用预置数字。
+        </p>
+      </section>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.ops-page{max-width:1680px;margin:0 auto}.ops-header{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:14px}.ops-header h1{margin:3px 0}.ops-header p{margin-bottom:0;color:var(--color-muted)}.header-links{display:flex;gap:8px}.button{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;color:#4d5968;background:#fff;border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);text-decoration:none;cursor:pointer}.button--primary{color:#fff;background:var(--color-primary);border-color:var(--color-primary)}.alert{padding:10px;color:var(--color-danger);background:#fff0f0;border:1px solid #efcaca}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;margin-top:14px}.workspace>.card:first-child,.workspace>.toolbar,.workspace>.map-panel,.workspace>.metric-grid{grid-column:1/-1}.card{padding:16px;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-md)}.card h2{margin:0 0 14px;font-size:16px}.card h2 small{margin-left:8px;color:var(--color-muted);font-size:12px;font-weight:400}.toolbar{display:flex;gap:10px;align-items:center;padding:12px;background:#fff;border:1px solid var(--color-border)}input,select{min-height:36px;padding:6px 9px;border:1px solid var(--color-border-strong);border-radius:var(--radius-sm)}.toolbar input{min-width:260px}.toolbar .simulated{margin-left:auto;color:var(--color-muted);font-size:12px}table{width:100%;border-collapse:collapse}th,td{padding:10px 11px;text-align:left;border-bottom:1px solid var(--color-border);white-space:nowrap}th{color:var(--color-muted);font-size:12px;background:var(--color-table-head)}td small{display:block;color:var(--color-muted)}.link{padding:0;color:var(--color-primary-strong);cursor:pointer;background:transparent;border:0}.danger{color:var(--color-danger);margin-left:8px}.badge{display:inline-flex;padding:3px 8px;color:var(--color-primary-strong);background:var(--color-primary-soft);border-radius:999px;font-size:12px}.form{display:grid;align-content:start;gap:10px}.form label{display:grid;gap:4px;color:var(--color-muted);font-size:12px}.form small,.hint{color:var(--color-muted);font-size:12px}.empty,.state{display:grid;min-height:210px;place-items:center;color:var(--color-muted)}.map-panel{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}.fake-map{position:relative;min-height:420px;overflow:hidden;background:linear-gradient(135deg,#eff6f4,#dfecea);border:1px solid var(--color-border);border-radius:var(--radius-md)}.map-title{position:absolute;top:12px;left:14px;color:#66817e;font-size:12px}.marker{position:absolute;padding:5px 8px;color:#fff;background:#287e78;border:0;border-radius:4px;cursor:pointer}.map-panel aside{padding:16px;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-md)}.map-panel aside p{padding:9px 0;margin:0;border-bottom:1px solid var(--color-border)}.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.metric-grid span,.metric-grid strong{display:block}.metric-grid span{color:var(--color-muted);font-size:12px}.metric-grid strong{margin-top:8px;font-size:22px}.unavailable{color:#8993a1;font-size:12px}@media(max-width:1000px){.workspace{grid-template-columns:1fr}.ops-header{align-items:flex-start;flex-direction:column}.map-panel{grid-template-columns:1fr}.metric-grid{grid-template-columns:1fr}}@media(max-width:600px){.toolbar{align-items:stretch;flex-direction:column}.toolbar input{min-width:0}.toolbar .simulated{margin-left:0}.header-links{flex-wrap:wrap}table{min-width:900px}.card{overflow-x:auto}}
+.ops-page {
+  max-width: 1680px;
+  margin: 0 auto;
+}
+.ops-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+.ops-header h1 {
+  margin: 3px 0;
+}
+.ops-header p {
+  margin-bottom: 0;
+  color: var(--color-muted);
+}
+.header-links {
+  display: flex;
+  gap: 8px;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  color: #4d5968;
+  background: #fff;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  cursor: pointer;
+}
+.button--primary {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.alert {
+  padding: 10px;
+  color: var(--color-danger);
+  background: #fff0f0;
+  border: 1px solid #efcaca;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 14px;
+  margin-top: 14px;
+}
+.workspace > .card:first-child,
+.workspace > .toolbar,
+.workspace > .map-panel,
+.workspace > .metric-grid {
+  grid-column: 1/-1;
+}
+.card {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.card h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+}
+.card h2 small {
+  margin-left: 8px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+}
+input,
+select {
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+.toolbar input {
+  min-width: 260px;
+}
+.toolbar .simulated {
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 10px 11px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+th {
+  color: var(--color-muted);
+  font-size: 12px;
+  background: var(--color-table-head);
+}
+td small {
+  display: block;
+  color: var(--color-muted);
+}
+.link {
+  padding: 0;
+  color: var(--color-primary-strong);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+.danger {
+  color: var(--color-danger);
+  margin-left: 8px;
+}
+.badge {
+  display: inline-flex;
+  padding: 3px 8px;
+  color: var(--color-primary-strong);
+  background: var(--color-primary-soft);
+  border-radius: 999px;
+  font-size: 12px;
+}
+.form {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+.form label {
+  display: grid;
+  gap: 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.form small,
+.hint {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.empty,
+.state {
+  display: grid;
+  min-height: 210px;
+  place-items: center;
+  color: var(--color-muted);
+}
+.map-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+}
+.fake-map {
+  position: relative;
+  min-height: 420px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #eff6f4, #dfecea);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.map-title {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  color: #66817e;
+  font-size: 12px;
+}
+.marker {
+  position: absolute;
+  padding: 5px 8px;
+  color: #fff;
+  background: #287e78;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.map-panel aside {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.map-panel aside p {
+  padding: 9px 0;
+  margin: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.metric-grid span,
+.metric-grid strong {
+  display: block;
+}
+.metric-grid span {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.metric-grid strong {
+  margin-top: 8px;
+  font-size: 22px;
+}
+.unavailable {
+  color: #8993a1;
+  font-size: 12px;
+}
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .ops-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .map-panel {
+    grid-template-columns: 1fr;
+  }
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .toolbar input {
+    min-width: 0;
+  }
+  .toolbar .simulated {
+    margin-left: 0;
+  }
+  .header-links {
+    flex-wrap: wrap;
+  }
+  table {
+    min-width: 900px;
+  }
+  .card {
+    overflow-x: auto;
+  }
+}
 </style>
