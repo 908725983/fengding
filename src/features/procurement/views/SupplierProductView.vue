@@ -1,4 +1,320 @@
 <script setup lang="ts">
-import{computed,onMounted,reactive,ref}from'vue';import{storeToRefs}from'pinia';import{useRoute}from'vue-router';import ProcurementSubnav from'../components/ProcurementSubnav.vue';import ProcurementScenarioBar from'../components/ProcurementScenarioBar.vue';import{useProcurementStore}from'../runtime/procurement-store';import type{SupplierProductDraft,SupplierProductListItem}from'../types';import'./procurement-views.css';const store=useProcurementStore(),route=useRoute();const{workspace,loading,error,scenario,actor,saving,canWrite}=storeToRefs(store);const supplierId=ref(String(route.query.supplierId??'')),categoryId=ref(''),keyword=ref(''),status=ref<'all'|'enabled'|'disabled'>('all'),showForm=ref(false),formError=ref<string|null>(null),actionError=ref<string|null>(null),draft=reactive<SupplierProductDraft>({supplierId:'',skuId:'',supplyPriceCents:1,preferred:false});const enabledSuppliers=computed(()=>workspace.value.suppliers.items.filter(item=>item.status==='enabled'));const selectableSkus=computed(()=>workspace.value.skus.filter(item=>item.productStatus==='on-sale'&&!item.deleted));async function search(){actionError.value=null;await store.applyRelationQuery({supplierId:supplierId.value||undefined,categoryId:categoryId.value||undefined,keyword:keyword.value||undefined,status:status.value})}function openCreate(){Object.assign(draft,{supplierId:supplierId.value||enabledSuppliers.value[0]?.id||'',skuId:selectableSkus.value[0]?.skuId||'',supplyPriceCents:1,preferred:false});formError.value=null;showForm.value=true}async function create(){try{await store.saveRelation({...draft});showForm.value=false}catch(caught){formError.value=caught instanceof Error?caught.message:'保存失败'}}async function runAction(operation:()=>Promise<void>){actionError.value=null;try{await operation()}catch(caught){actionError.value=caught instanceof Error?caught.message:'操作失败'}}async function edit(row:SupplierProductListItem){const text=window.prompt('请输入新的供应价（元）',(row.supplyPriceCents/100).toFixed(2));if(text===null)return;const cents=Math.round(Number(text)*100);await runAction(()=>store.updateRelation(row.id,cents,row.preferred,row.version))}function download(){const link=document.createElement('a');link.href=URL.createObjectURL(new Blob(['\uFEFF',store.exportRelations()],{type:'text/csv;charset=utf-8'}));link.download='供应商供货商品.csv';link.click();URL.revokeObjectURL(link.href)}onMounted(async()=>{await store.load();if(supplierId.value)await search()})
+import { computed, onMounted, reactive, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { useRoute } from "vue-router";
+import ProcurementSubnav from "../components/ProcurementSubnav.vue";
+import ProcurementScenarioBar from "../components/ProcurementScenarioBar.vue";
+import { useProcurementStore } from "../runtime/procurement-store";
+import type { SupplierProductDraft, SupplierProductListItem } from "../types";
+import "./procurement-views.css";
+const store = useProcurementStore(),
+  route = useRoute();
+const { workspace, loading, error, scenario, actor, saving, canWrite } =
+  storeToRefs(store);
+const supplierId = ref(String(route.query.supplierId ?? "")),
+  categoryId = ref(""),
+  keyword = ref(""),
+  status = ref<"all" | "enabled" | "disabled">("all"),
+  showForm = ref(false),
+  formError = ref<string | null>(null),
+  actionError = ref<string | null>(null),
+  draft = reactive<SupplierProductDraft>({
+    supplierId: "",
+    skuId: "",
+    supplyPriceCents: 1,
+    preferred: false,
+  });
+const enabledSuppliers = computed(() =>
+  workspace.value.suppliers.items.filter((item) => item.status === "enabled"),
+);
+const selectableSkus = computed(() =>
+  workspace.value.skus.filter(
+    (item) => item.productStatus === "on-sale" && !item.deleted,
+  ),
+);
+async function search() {
+  actionError.value = null;
+  await store.applyRelationQuery({
+    supplierId: supplierId.value || undefined,
+    categoryId: categoryId.value || undefined,
+    keyword: keyword.value || undefined,
+    status: status.value,
+  });
+}
+function openCreate() {
+  Object.assign(draft, {
+    supplierId: supplierId.value || enabledSuppliers.value[0]?.id || "",
+    skuId: selectableSkus.value[0]?.skuId || "",
+    supplyPriceCents: 1,
+    preferred: false,
+  });
+  formError.value = null;
+  showForm.value = true;
+}
+async function create() {
+  try {
+    await store.saveRelation({ ...draft, preferred: false });
+    showForm.value = false;
+  } catch (caught) {
+    formError.value = caught instanceof Error ? caught.message : "保存失败";
+  }
+}
+async function runAction(operation: () => Promise<void>) {
+  actionError.value = null;
+  try {
+    await operation();
+  } catch (caught) {
+    actionError.value = caught instanceof Error ? caught.message : "操作失败";
+  }
+}
+async function edit(row: SupplierProductListItem) {
+  const text = window.prompt(
+    "请输入新的供应价（元）",
+    (row.supplyPriceCents / 100).toFixed(2),
+  );
+  if (text === null) return;
+  const cents = Math.round(Number(text) * 100);
+  await runAction(() =>
+    store.updateRelation(row.id, cents, row.preferred, row.version),
+  );
+}
+function download() {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(
+    new Blob(["\uFEFF", store.exportRelations()], {
+      type: "text/csv;charset=utf-8",
+    }),
+  );
+  link.download = "供应商供货商品.csv";
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+onMounted(async () => {
+  await store.load();
+  if (supplierId.value) await search();
+});
 </script>
-<template><section class="procurement-page"><header class="procurement-header"><div><h1>供应商供货商品</h1><p>供应商×SKU 唯一关系；供应价按商品采购场景单位保存。</p></div><ProcurementScenarioBar :scenario="scenario" :role="actor.role" @scenario="store.setScenario" @role="store.setRole"/></header><ProcurementSubnav/><form class="procurement-toolbar" @submit.prevent="search"><label>供应商<select v-model="supplierId"><option value="">全部供应商</option><option v-for="item in workspace.suppliers.items" :key="item.id" :value="item.id">{{item.name}}</option></select></label><label>商品分类<select v-model="categoryId" :disabled="!workspace.catalogAvailable"><option value="">全部分类</option><option v-for="item in workspace.categories" :key="item.id" :value="item.id">{{item.name}}</option></select></label><label class="grow">商品 / SKU / 规格 / 条码<input v-model="keyword" :disabled="!workspace.catalogAvailable" type="search"></label><label>状态<select v-model="status"><option value="all">全部</option><option value="enabled">启用</option><option value="disabled">停用</option></select></label><button class="pur-button" type="submit">查询</button><div class="actions"><button class="pur-button" type="button" @click="download">导出</button><button v-if="canWrite" class="pur-button primary" type="button" :disabled="!workspace.catalogAvailable" @click="openCreate">新增关系</button></div></form><p v-if="!workspace.catalogAvailable&&!error" class="procurement-warning">商品分类与 SKU 资料服务不可用；供应商主数据仍可查看，关系查询和操作暂不可用。</p><p v-if="actionError" class="procurement-warning" role="alert">{{actionError}}</p><div v-if="error" class="procurement-state error">{{error}}</div><div v-else-if="loading" class="procurement-state">正在加载供货关系…</div><div v-else-if="!workspace.supplierProducts.length" class="procurement-state"><strong>暂无匹配的供货关系</strong><span>先选择启用供应商，再新增 SKU 关系。</span></div><div v-else class="procurement-table-wrap"><table class="procurement-table"><thead><tr><th>供应商</th><th>商品 / SKU</th><th>采购单位</th><th>供应价</th><th>首选</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="row in workspace.supplierProducts" :key="row.id"><td>{{row.supplierName}}</td><td>{{row.productNameSnapshot}}<small>{{row.skuCodeSnapshot}} · {{row.specificationSnapshot}}</small></td><td>{{row.procurementUnitNameSnapshot}}<small>换算 {{row.procurementUnitRateMilli/1000}}</small></td><td class="pur-money">¥{{(row.supplyPriceCents/100).toFixed(2)}}</td><td>{{row.preferred?'是':'否'}}</td><td><span class="pur-status" :class="row.status">{{row.status==='enabled'?'启用':'停用'}}</span></td><td><button v-if="canWrite&&row.effectiveForPurchase" class="pur-button" @click="edit(row)">调价</button> <button v-if="canWrite&&row.effectiveForPurchase&&!row.preferred" class="pur-button" @click="runAction(()=>store.updateRelation(row.id,row.supplyPriceCents,true,row.version))">设为首选</button> <button v-if="canWrite" class="pur-button" @click="runAction(()=>store.toggleRelation(row.id,row.status,row.version))">{{row.status==='enabled'?'停用':'启用'}}</button></td></tr></tbody></table></div><div v-if="showForm" class="procurement-dialog" role="dialog" aria-modal="true"><section><header><strong>新增供货关系</strong><button class="pur-button" @click="showForm=false">关闭</button></header><form class="procurement-form" @submit.prevent="create"><label>供应商 *<select v-model="draft.supplierId"><option v-for="item in enabledSuppliers" :key="item.id" :value="item.id">{{item.name}}</option></select></label><label>SKU *<select v-model="draft.skuId"><option v-for="item in selectableSkus" :key="item.skuId" :value="item.skuId">{{item.productName}} · {{item.skuCode}} · {{item.specification}}</option></select></label><label>供应价（元/采购单位）*<input :value="draft.supplyPriceCents/100" type="number" min="0.01" step="0.01" @input="draft.supplyPriceCents=Math.round(Number(($event.target as HTMLInputElement).value)*100)"></label><label><span>首选关系</span><input v-model="draft.preferred" type="checkbox"></label><p v-if="formError" class="procurement-warning wide">{{formError}}</p><div class="procurement-actions"><button class="pur-button" type="button" @click="showForm=false">取消</button><button class="pur-button primary" :disabled="saving" type="submit">保存</button></div></form></section></div></section></template>
+<template>
+  <section class="procurement-page">
+    <header class="procurement-header">
+      <div>
+        <h1>供应商供货商品</h1>
+        <p>供应商×SKU 唯一关系；供应价按商品采购场景单位保存。</p>
+      </div>
+      <ProcurementScenarioBar
+        :scenario="scenario"
+        :role="actor.role"
+        @scenario="store.setScenario"
+        @role="store.setRole"
+      />
+    </header>
+    <ProcurementSubnav />
+    <form class="procurement-toolbar" @submit.prevent="search">
+      <label
+        >供应商<select v-model="supplierId">
+          <option value="">全部供应商</option>
+          <option
+            v-for="item in workspace.suppliers.items"
+            :key="item.id"
+            :value="item.id"
+          >
+            {{ item.name }}
+          </option>
+        </select></label
+      ><label
+        >商品分类<select
+          v-model="categoryId"
+          :disabled="!workspace.catalogAvailable"
+        >
+          <option value="">全部分类</option>
+          <option
+            v-for="item in workspace.categories"
+            :key="item.id"
+            :value="item.id"
+          >
+            {{ item.name }}
+          </option>
+        </select></label
+      ><label class="grow"
+        >商品 / SKU / 规格 / 条码<input
+          v-model="keyword"
+          :disabled="!workspace.catalogAvailable"
+          type="search" /></label
+      ><label
+        >状态<select v-model="status">
+          <option value="all">全部</option>
+          <option value="enabled">启用</option>
+          <option value="disabled">停用</option>
+        </select></label
+      ><button class="pur-button" type="submit">查询</button>
+      <div class="actions">
+        <button class="pur-button" type="button" @click="download">导出</button
+        ><button
+          v-if="canWrite"
+          class="pur-button primary"
+          type="button"
+          :disabled="!workspace.catalogAvailable"
+          @click="openCreate"
+        >
+          新增关系
+        </button>
+      </div>
+    </form>
+    <p v-if="!workspace.catalogAvailable && !error" class="procurement-warning">
+      商品分类与 SKU
+      资料服务不可用；供应商主数据仍可查看，关系查询和操作暂不可用。
+    </p>
+    <p v-if="actionError" class="procurement-warning" role="alert">
+      {{ actionError }}
+    </p>
+    <div v-if="error" class="procurement-state error">{{ error }}</div>
+    <div v-else-if="loading" class="procurement-state">正在加载供货关系…</div>
+    <div
+      v-else-if="!workspace.supplierProducts.length"
+      class="procurement-state"
+    >
+      <strong>暂无匹配的供货关系</strong
+      ><span>先选择启用供应商，再新增 SKU 关系。</span>
+    </div>
+    <div v-else class="procurement-table-wrap">
+      <table class="procurement-table">
+        <thead>
+          <tr>
+            <th>供应商</th>
+            <th>商品 / SKU</th>
+            <th>采购单位</th>
+            <th>供应价</th>
+            <th>首选</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in workspace.supplierProducts" :key="row.id">
+            <td>{{ row.supplierName }}</td>
+            <td>
+              {{ row.productNameSnapshot
+              }}<small
+                >{{ row.skuCodeSnapshot }} ·
+                {{ row.specificationSnapshot }}</small
+              >
+            </td>
+            <td>
+              {{ row.procurementUnitNameSnapshot
+              }}<small>换算 {{ row.procurementUnitRateMilli / 1000 }}</small>
+            </td>
+            <td class="pur-money">
+              ¥{{ (row.supplyPriceCents / 100).toFixed(2) }}
+            </td>
+            <td>{{ row.preferred ? "是" : "否" }}</td>
+            <td>
+              <span class="pur-status" :class="row.status">{{
+                row.status === "enabled" ? "启用" : "停用"
+              }}</span>
+            </td>
+            <td>
+              <button
+                v-if="canWrite && row.effectiveForPurchase"
+                class="pur-button"
+                @click="edit(row)"
+              >
+                调价
+              </button>
+              <button
+                v-if="canWrite && row.effectiveForPurchase && !row.preferred"
+                class="pur-button"
+                @click="
+                  runAction(() =>
+                    store.updateRelation(
+                      row.id,
+                      row.supplyPriceCents,
+                      true,
+                      row.version,
+                    ),
+                  )
+                "
+              >
+                设为首选
+              </button>
+              <button
+                v-if="canWrite"
+                class="pur-button"
+                @click="
+                  runAction(() =>
+                    store.toggleRelation(row.id, row.status, row.version),
+                  )
+                "
+              >
+                {{ row.status === "enabled" ? "停用" : "启用" }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div
+      v-if="showForm"
+      class="procurement-dialog"
+      role="dialog"
+      aria-modal="true"
+    >
+      <section>
+        <header>
+          <strong>新增供货关系</strong
+          ><button class="pur-button" @click="showForm = false">关闭</button>
+        </header>
+        <form class="procurement-form" @submit.prevent="create">
+          <label
+            >供应商 *<select v-model="draft.supplierId">
+              <option
+                v-for="item in enabledSuppliers"
+                :key="item.id"
+                :value="item.id"
+              >
+                {{ item.name }}
+              </option>
+            </select></label
+          ><label
+            >SKU *<select v-model="draft.skuId">
+              <option
+                v-for="item in selectableSkus"
+                :key="item.skuId"
+                :value="item.skuId"
+              >
+                {{ item.productName }} · {{ item.skuCode }} ·
+                {{ item.specification }}
+              </option>
+            </select></label
+          ><label
+            >供应价（元/采购单位）*<input
+              :value="draft.supplyPriceCents / 100"
+              type="number"
+              min="0.01"
+              step="0.01"
+              @input="
+                draft.supplyPriceCents = Math.round(
+                  Number(($event.target as HTMLInputElement).value) * 100,
+                )
+              " /></label
+          ><p class="procurement-hint wide">
+            保存后系统会自动维护首选供货关系；如需切换，请在列表中点击“设为首选”。
+          </p>
+          <p v-if="formError" class="procurement-warning wide">
+            {{ formError }}
+          </p>
+          <div class="procurement-actions">
+            <button class="pur-button" type="button" @click="showForm = false">
+              取消</button
+            ><button
+              class="pur-button primary"
+              :disabled="saving"
+              type="submit"
+            >
+              保存
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </section>
+</template>

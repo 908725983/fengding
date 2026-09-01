@@ -105,7 +105,7 @@ export function validateCustomerDraft(draft: CustomerDraft): ValidationIssue[] {
   requiredText(issues, 'primaryPhone', draft.primaryPhone)
   requiredText(issues, 'cityCode', draft.cityCode)
   requiredText(issues, 'address', draft.address, 100)
-  requiredText(issues, 'salespersonId', draft.salespersonId)
+  // 未分配业务员是合法状态；创建时由服务层默认当前操作人。
   nonNegative(issues, 'creditLimitCents', draft.creditLimitCents)
   optionalMax(issues, 'description', draft.description, 500)
   if (draft.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email.trim())) issues.push({ path: 'email', message: '邮箱格式不正确' })

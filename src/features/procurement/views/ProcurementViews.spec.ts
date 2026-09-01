@@ -23,7 +23,7 @@ describe('procurement views', () => {
     expect(wrapper.text()).toContain('采购订单')
     const button = wrapper.findAll('button').find((item) => item.text() === '新增采购订单')!
     await button.trigger('click')
-    expect(wrapper.text()).toContain('采购单价（供货价，分）')
+    expect(wrapper.text()).toContain('采购单价（供应商供货价，元）')
     const priceInput = wrapper.find('input[readonly]')
     expect(priceInput.exists()).toBe(true)
     expect(priceInput.attributes('readonly')).toBeDefined()

@@ -206,21 +206,22 @@ export function createCustomerService(dependencies: CustomerServiceDependencies)
 
   function createCustomer(actor: CustomerActor, input: CustomerDraft): Customer {
     assertWrite(actor)
-    assertCustomerDraft(input)
-    if (input.status !== 'active' || input.frozenReason !== null) {
+    const normalizedInput = { ...input, salespersonId: input.salespersonId || actor.actorId }
+    assertCustomerDraft(normalizedInput)
+    if (normalizedInput.status !== 'active' || normalizedInput.frozenReason !== null) {
       throw new CustomerDomainError('INVALID_TRANSITION', '后台新增客户必须使用默认启用状态')
     }
     return repository.transact((state) => {
-      validateReferences(state, input)
-      let code = input.code?.trim() ?? ''
-      if (input.codeMode === 'auto') {
+      validateReferences(state, normalizedInput)
+      let code = normalizedInput.code?.trim() ?? ''
+      if (normalizedInput.codeMode === 'auto') {
         do { code = `CUS-${String(state.nextCustomerSequence).padStart(6, '0')}`; state.nextCustomerSequence += 1 }
         while (state.customers.some((customer) => sameCode(customer.code, code)))
       }
       if (state.customers.some((customer) => sameCode(customer.code, code))) throw new CustomerDomainError('DUPLICATE_CODE', '客户编码已存在')
       const timestamp = dependencies.now()
       const customer: Customer = {
-        ...structuredClone(input), id: dependencies.nextId('customer'), enterpriseId: state.enterpriseId, code,
+        ...structuredClone(normalizedInput), id: dependencies.nextId('customer'), enterpriseId: state.enterpriseId, code,
         createdAt: timestamp, updatedAt: timestamp,
       }
       delete (customer as Customer & { codeMode?: string }).codeMode

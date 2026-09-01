@@ -1,5 +1,244 @@
 <script setup lang="ts">
-import { computed,onMounted } from 'vue';import { useRoute,useRouter,RouterLink } from 'vue-router';import { useOrderStore } from '../runtime/order-store';import OrderFulfillmentSubnav from '../components/OrderFulfillmentSubnav.vue';import './order-views.css'
-const route=useRoute(),router=useRouter(),store=useOrderStore();const returnId=computed(()=>route.params.returnId as string|undefined);const order=(id:string)=>store.eligibleReturnOrders.find((item)=>item.id===id);const lineMeta=(id:string)=>store.returnableLines.find((item)=>item.line.id===id);const quantity=(index:number)=>{const row=store.returnDraft.lines[index],meta=row&&lineMeta(row.orderLineId);return row&&meta?row.returnQuantityMilli/meta.line.unitSnapshot.conversionRateMilli:0};const setQuantity=(index:number,value:string)=>{const meta=lineMeta(store.returnDraft.lines[index]!.orderLineId);if(meta)store.returnDraft.lines[index]!.returnQuantityMilli=Math.round(Number(value)*meta.line.unitSnapshot.conversionRateMilli);store.returnPreview=null};const setType=async()=>{if(store.returnDraft.orderId)await store.selectReturnOrder(store.returnDraft.orderId)};const save=async()=>{if(!await store.previewReturnForm())return;const id=await store.saveReturnForm();if(id)await router.push(`/orders/returns/${id}`)};onMounted(()=>store.initializeReturnForm(returnId.value,route.query.orderId as string|undefined))
+import { computed, onMounted } from "vue";
+import { useRoute, useRouter, RouterLink } from "vue-router";
+import { useOrderStore } from "../runtime/order-store";
+import OrderFulfillmentSubnav from "../components/OrderFulfillmentSubnav.vue";
+import "./order-views.css";
+const route = useRoute(),
+  router = useRouter(),
+  store = useOrderStore();
+const returnId = computed(() => route.params.returnId as string | undefined);
+const order = (id: string) =>
+  store.eligibleReturnOrders.find((item) => item.id === id);
+const lineMeta = (id: string) =>
+  store.returnableLines.find((item) => item.line.id === id);
+const quantity = (index: number) => {
+  const row = store.returnDraft.lines[index],
+    meta = row && lineMeta(row.orderLineId);
+  return row && meta
+    ? row.returnQuantityMilli / meta.line.unitSnapshot.conversionRateMilli
+    : 0;
+};
+const setQuantity = (index: number, value: string) => {
+  const meta = lineMeta(store.returnDraft.lines[index]!.orderLineId);
+  if (meta)
+    store.returnDraft.lines[index]!.returnQuantityMilli = Math.round(
+      Number(value) * meta.line.unitSnapshot.conversionRateMilli,
+    );
+  const whole = store.returnDraft.lines.length > 0 && store.returnDraft.lines.every((line) => {
+    const row = lineMeta(line.orderLineId);
+    return row ? line.returnQuantityMilli === row.returnableQuantityMilli : false;
+  });
+  store.returnDraft.returnType = whole ? "whole" : "partial";
+  store.returnPreview = null;
+};
+const save = async () => {
+  if (!(await store.previewReturnForm())) return;
+  const id = await store.saveReturnForm();
+  if (id) await router.push(`/orders/returns/${id}`);
+};
+onMounted(() =>
+  store.initializeReturnForm(
+    returnId.value,
+    route.query.orderId as string | undefined,
+  ),
+);
 </script>
-<template><section class="order-page order-form-page"><div class="order-detail-header"><div><RouterLink class="order-back" to="/orders/returns">← 返回退单列表</RouterLink><h1>{{returnId?'修改客户退单':'新增客户退单'}}</h1><p>换货与预设原因在本切片明确不可用。</p></div></div><OrderFulfillmentSubnav/><div v-if="store.error" class="order-notice error">{{store.error}}</div><form class="order-form" @submit.prevent="save"><section class="order-card"><h2>退单基础信息</h2><div class="order-form-grid"><label class="wide">原订单<select :value="store.returnDraft.orderId" :disabled="!!returnId" required @change="store.selectReturnOrder(($event.target as HTMLSelectElement).value)"><option value="">请选择有有效出库的已发货/已完成订单</option><option v-for="item in store.eligibleReturnOrders" :key="item.id" :value="item.id">{{item.orderNo}} · {{item.customerSnapshot.name}}</option></select></label><label>客户<input :value="order(store.returnDraft.orderId)?.customerSnapshot.name??'选择订单后锁定'" disabled></label><label>退货仓库<select v-model="store.returnDraft.warehouseId" required><option v-for="item in store.returnWarehouses" :key="item.id" :value="item.id">{{item.name}}（{{item.code}}）</option></select></label><label>退货类型<select v-model="store.returnDraft.returnType" @change="setType"><option value="partial">部分退</option><option value="whole">整单退</option><option disabled>换货（暂不可用）</option></select></label><label>退款偏好<select v-model="store.returnDraft.refundPreference"><option value="original">原路退回</option><option value="balance">余额</option><option value="cash">现金</option></select></label><label class="wide">退货原因<input v-model="store.returnDraft.reason" maxlength="200" required placeholder="1～200字自由原因"></label><label class="wide">备注<textarea v-model="store.returnDraft.remark" maxlength="500"></textarea></label></div></section><section class="order-card"><div class="order-section-title"><h2>退货商品</h2><button class="order-button" type="button" @click="store.previewReturnForm">计算退货金额</button></div><div class="order-table-wrap"><table class="order-table order-form-table"><thead><tr><th>商品</th><th>规格/单位</th><th>有效实出</th><th>已占退</th><th>可退</th><th>本次退货</th><th>成交单价</th><th>退货金额(分)</th></tr></thead><tbody><tr v-for="(line,index) in store.returnDraft.lines" :key="line.orderLineId"><td>{{lineMeta(line.orderLineId)?.line.productNameSnapshot}}<small>{{lineMeta(line.orderLineId)?.line.skuCodeSnapshot}}</small></td><td>{{lineMeta(line.orderLineId)?.line.specificationSnapshot}} / {{lineMeta(line.orderLineId)?.line.unitSnapshot.name}}</td><td>{{(lineMeta(line.orderLineId)?.effectiveOutboundQuantityMilli??0)/(lineMeta(line.orderLineId)?.line.unitSnapshot.conversionRateMilli??1000)}}</td><td>{{(lineMeta(line.orderLineId)?.reservedReturnQuantityMilli??0)/(lineMeta(line.orderLineId)?.line.unitSnapshot.conversionRateMilli??1000)}}</td><td>{{(lineMeta(line.orderLineId)?.returnableQuantityMilli??0)/(lineMeta(line.orderLineId)?.line.unitSnapshot.conversionRateMilli??1000)}}</td><td><input type="number" min="0" step="1" :disabled="store.returnDraft.returnType==='whole'" :value="quantity(index)" @input="setQuantity(index,($event.target as HTMLInputElement).value)"></td><td>{{lineMeta(line.orderLineId)?.line.dealUnitPriceCents??0}}</td><td><input v-model.number="line.returnAmountCents" type="number" min="0" :disabled="!['super-admin','sales-supervisor'].includes(store.actor.role)"></td></tr><tr v-if="!store.returnDraft.lines.length"><td colspan="8" class="order-empty-cell">请先选择原订单</td></tr></tbody></table></div><label v-if="store.returnDraft.lines.some(item=>item.returnAmountCents!==undefined)" class="order-review-reason">改价原因<input v-model="store.returnDraft.priceAdjustmentReason" maxlength="200" placeholder="仅降低默认权益时必填"></label><div v-if="store.returnPreview" class="order-financials order-form-financials"><div><span>退货毛额</span><strong>{{store.returnPreview.grossAmountCents}} 分</strong></div><div><span>整单优惠分摊</span><strong>-{{store.returnPreview.allocatedOrderDiscountCents}} 分</strong></div><div><span>退单金额</span><strong>{{store.returnPreview.returnAmountCents}} 分</strong></div><div><span>运费/赠品</span><strong>不退 / 0 分</strong></div></div></section><div class="order-form-actions"><RouterLink class="order-button" to="/orders/returns">取消</RouterLink><button class="order-button" type="button" @click="store.previewReturnForm">校验金额</button><button class="order-button primary" :disabled="store.saving" type="submit">{{store.saving?'提交中…':'提交待审核'}}</button></div></form></section></template>
+<template>
+  <section class="order-page order-form-page">
+    <div class="order-detail-header">
+      <div>
+        <RouterLink class="order-back" to="/orders/returns"
+          >← 返回退单列表</RouterLink
+        >
+        <h1>{{ returnId ? "修改客户退单" : "新增客户退单" }}</h1>
+        <p>换货与预设原因在本切片明确不可用。</p>
+      </div>
+    </div>
+    <OrderFulfillmentSubnav />
+    <div v-if="store.error" class="order-notice error">{{ store.error }}</div>
+    <form class="order-form" @submit.prevent="save">
+      <section class="order-card">
+        <h2>退单基础信息</h2>
+        <div class="order-form-grid">
+          <label class="wide"
+            >原订单<select
+              :value="store.returnDraft.orderId"
+              :disabled="!!returnId"
+              required
+              @change="
+                store.selectReturnOrder(
+                  ($event.target as HTMLSelectElement).value,
+                )
+              "
+            >
+              <option value="">请选择有有效出库的已发货/已完成订单</option>
+              <option
+                v-for="item in store.eligibleReturnOrders"
+                :key="item.id"
+                :value="item.id"
+              >
+                {{ item.orderNo }} · {{ item.customerSnapshot.name }}
+              </option>
+            </select></label
+          ><label
+            >客户<input
+              :value="
+                order(store.returnDraft.orderId)?.customerSnapshot.name ??
+                '选择订单后锁定'
+              "
+              disabled /></label
+          ><label
+            >退货仓库<select v-model="store.returnDraft.warehouseId" required>
+              <option
+                v-for="item in store.returnWarehouses"
+                :key="item.id"
+                :value="item.id"
+              >
+                {{ item.name }}（{{ item.code }}）
+              </option>
+            </select></label
+          ><p class="form-hint">退货范围根据各商品的“本次退货数量”自动判断；退款方式在财务确认时选择。</p
+          ><label class="wide"
+            >退货原因<input
+              v-model="store.returnDraft.reason"
+              maxlength="200"
+              required
+              placeholder="1～200字自由原因" /></label
+          ><label class="wide"
+            >备注<textarea
+              v-model="store.returnDraft.remark"
+              maxlength="500"
+            ></textarea>
+          </label>
+        </div>
+      </section>
+      <section class="order-card">
+        <div class="order-section-title">
+          <h2>退货商品</h2>
+          <button
+            class="order-button"
+            type="button"
+            @click="store.previewReturnForm"
+          >
+            计算退货金额
+          </button>
+        </div>
+        <div class="order-table-wrap">
+          <table class="order-table order-form-table">
+            <thead>
+              <tr>
+                <th>商品</th>
+                <th>规格/单位</th>
+                <th>有效实出</th>
+                <th>已占退</th>
+                <th>可退</th>
+                <th>本次退货</th>
+                <th>原订单单价（元）</th>
+                <th>本次退货金额（元）</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(line, index) in store.returnDraft.lines"
+                :key="line.orderLineId"
+              >
+                <td>
+                  {{ lineMeta(line.orderLineId)?.line.productNameSnapshot
+                  }}<small>{{
+                    lineMeta(line.orderLineId)?.line.skuCodeSnapshot
+                  }}</small>
+                </td>
+                <td>
+                  {{ lineMeta(line.orderLineId)?.line.specificationSnapshot }} /
+                  {{ lineMeta(line.orderLineId)?.line.unitSnapshot.name }}
+                </td>
+                <td>
+                  {{
+                    (lineMeta(line.orderLineId)
+                      ?.effectiveOutboundQuantityMilli ?? 0) /
+                    (lineMeta(line.orderLineId)?.line.unitSnapshot
+                      .conversionRateMilli ?? 1000)
+                  }}
+                </td>
+                <td>
+                  {{
+                    (lineMeta(line.orderLineId)?.reservedReturnQuantityMilli ??
+                      0) /
+                    (lineMeta(line.orderLineId)?.line.unitSnapshot
+                      .conversionRateMilli ?? 1000)
+                  }}
+                </td>
+                <td>
+                  {{
+                    (lineMeta(line.orderLineId)?.returnableQuantityMilli ?? 0) /
+                    (lineMeta(line.orderLineId)?.line.unitSnapshot
+                      .conversionRateMilli ?? 1000)
+                  }}
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    :disabled="store.returnDraft.returnType === 'whole'"
+                    :value="quantity(index)"
+                    @input="
+                      setQuantity(
+                        index,
+                        ($event.target as HTMLInputElement).value,
+                      )
+                    "
+                  />
+                </td>
+                <td>
+                  {{ ((lineMeta(line.orderLineId)?.line.dealUnitPriceCents ?? 0) / 100).toFixed(2) }}
+                </td>
+                <td>
+                  <span class="order-readonly-value">{{ (((lineMeta(line.orderLineId)?.line.dealUnitPriceCents ?? 0) * line.returnQuantityMilli) / (lineMeta(line.orderLineId)?.line.unitSnapshot.conversionRateMilli ?? 1000) / 100).toFixed(2) }}</span>
+                </td>
+              </tr>
+              <tr v-if="!store.returnDraft.lines.length">
+                <td colspan="8" class="order-empty-cell">请先选择原订单</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div
+          v-if="store.returnPreview"
+          class="order-financials order-form-financials"
+        >
+          <div>
+            <span>退货商品原价</span
+            ><strong>¥{{ (store.returnPreview.grossAmountCents / 100).toFixed(2) }}</strong>
+          </div>
+          <div>
+            <span>原订单优惠分摊</span
+            ><strong>-¥{{ (store.returnPreview.allocatedOrderDiscountCents / 100).toFixed(2) }}</strong>
+          </div>
+          <div>
+            <span>本次应退金额</span
+            ><strong>¥{{ (store.returnPreview.returnAmountCents / 100).toFixed(2) }}</strong>
+          </div>
+          <div><span>运费和赠品</span><strong>不退 / ¥0.00</strong></div>
+        </div>
+      </section>
+      <div class="order-form-actions">
+        <RouterLink class="order-button" to="/orders/returns">取消</RouterLink
+        ><button
+          class="order-button"
+          type="button"
+          @click="store.previewReturnForm"
+        >
+          校验金额</button
+        ><button
+          class="order-button primary"
+          :disabled="store.saving"
+          type="submit"
+        >
+          {{ store.saving ? "提交中…" : "提交待审核" }}
+        </button>
+      </div>
+    </form>
+  </section>
+</template>

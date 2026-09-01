@@ -261,13 +261,11 @@ onMounted(() => {
             <thead>
               <tr>
                 <th>#</th>
-                <th>类型</th>
                 <th>商品 / SKU</th>
                 <th>单位</th>
                 <th>数量</th>
                 <th>可用库存</th>
                 <th>单价</th>
-                <th>原因</th>
                 <th>操作</th>
               </tr>
             </thead>
@@ -277,12 +275,6 @@ onMounted(() => {
                 :key="line.id ?? `${line.skuId}-${line.unitId}-${index}`"
               >
                 <td>{{ index + 1 }}</td>
-                <td>
-                  <select v-model="line.lineKind">
-                    <option value="sale">销售</option>
-                    <option value="gift">赠品</option>
-                  </select>
-                </td>
                 <td>
                   <strong>{{ skuOf(line)?.productName }}</strong
                   ><small
@@ -316,13 +308,6 @@ onMounted(() => {
                   </span>
                 </td>
                 <td>
-                  <input
-                    v-model="line.reason"
-                    maxlength="500"
-                    placeholder="可选"
-                  />
-                </td>
-                <td>
                   <button
                     type="button"
                     class="order-button danger"
@@ -333,7 +318,7 @@ onMounted(() => {
                 </td>
               </tr>
               <tr v-if="!draft.lines.length">
-                <td colspan="9" class="order-empty-cell">
+                <td colspan="7" class="order-empty-cell">
                   请选择客户后，在上方搜索并点击商品加入订单。
                 </td>
               </tr>
@@ -411,19 +396,21 @@ onMounted(() => {
               required
               maxlength="200" /></label
           ><label
-            ><span>整单优惠（分）</span
+            ><span>整单优惠（元）</span
             ><input
-              v-model.number="draft.manualOrderDiscountCents"
+              :value="(draft.manualOrderDiscountCents / 100).toFixed(2)"
               type="number"
               min="0"
-              step="1" /></label
+              step="0.01"
+              @input="draft.manualOrderDiscountCents = Math.round(Number(($event.target as HTMLInputElement).value || 0) * 100)" /></label
           ><label
-            ><span>运费（分）</span
+            ><span>运费（元）</span
             ><input
-              v-model.number="draft.freightCents"
+              :value="(draft.freightCents / 100).toFixed(2)"
               type="number"
               min="0"
-              step="1" /></label
+              step="0.01"
+              @input="draft.freightCents = Math.round(Number(($event.target as HTMLInputElement).value || 0) * 100)" /></label
           ><label class="checkbox"
             ><input v-model="draft.specialPrice" type="checkbox" @change="!draft.specialPrice && (draft.specialPriceReason = null)" /><span
               >特价订单（越过售价上下限时必须勾选）</span

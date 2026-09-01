@@ -11,7 +11,7 @@ describe('CUS-001 executable schemas', () => {
   it('reports field paths and conditional settlement validation', () => {
     const issues = validateCustomerDraft({ ...createEmptyCustomerDraft(), settlementMethod: 'terms', paymentTermDays: null })
     expect(issues.map((issue) => issue.path)).toEqual(expect.arrayContaining([
-      'code', 'name', 'categoryId', 'primaryContactName', 'primaryPhone', 'cityCode', 'address', 'salespersonId', 'paymentTermDays',
+      'code', 'name', 'categoryId', 'primaryContactName', 'primaryPhone', 'cityCode', 'address', 'paymentTermDays',
     ]))
   })
 })
