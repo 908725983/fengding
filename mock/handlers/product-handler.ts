@@ -5,6 +5,7 @@ import normalScenario from '../scenarios/normal.json'
 import permissionScenario from '../scenarios/permission-denied.json'
 import slowScenario from '../scenarios/slow.json'
 import type { ProductFeatureState } from '../../src/features/products/types'
+import { assertProductFeatureState } from '../../src/features/products/schemas/product-schema'
 import { InMemoryProductRepository } from '../../src/features/products/repositories/product-repository'
 import { createProductService, type ProductServiceDependencies } from '../../src/features/products/services/product-service'
 import { createProcurementMockSession } from './procurement-handler'
@@ -30,7 +31,10 @@ class BrowserSharedProductRepository extends InMemoryProductRepository {
     if (!browserPersistenceAvailable()) return fallback
     try {
       const raw = window.localStorage.getItem(browserProductStateKey)
-      return raw ? JSON.parse(raw) as ProductFeatureState : fallback
+      if (!raw) return fallback
+      const persisted = JSON.parse(raw) as ProductFeatureState
+      assertProductFeatureState(persisted)
+      return persisted
     } catch {
       return fallback
     }

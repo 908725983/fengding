@@ -89,8 +89,11 @@ function priceRange(values: Array<number | null>): [number | null, number | null
 }
 
 function appendLog(state: ProductFeatureState, dependencies: ProductServiceDependencies, productId: string, action: ProductFeatureState['changeLogs'][number]['action'], detail: string): void {
+  const usedIds = new Set(state.changeLogs.map((item) => item.id))
+  let id = dependencies.nextId('log')
+  while (usedIds.has(id)) id = dependencies.nextId('log')
   state.changeLogs.push({
-    id: dependencies.nextId('log'), enterpriseId: state.enterpriseId, productId, action, detail, createdAt: dependencies.now(),
+    id, enterpriseId: state.enterpriseId, productId, action, detail, createdAt: dependencies.now(),
   })
 }
 
