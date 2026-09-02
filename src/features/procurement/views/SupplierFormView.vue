@@ -136,17 +136,21 @@ onMounted(async () => {
           maxlength="160"
           rows="2"
         ></textarea></label
-      ><label
-        >开户行<input
-          v-model="draft.bankName"
-          :disabled="actor.role === 'warehouse' && isEdit"
-          maxlength="80" /></label
-      ><label
-        >银行账号<input
-          v-model="draft.bankAccount"
-          :disabled="actor.role === 'warehouse' && isEdit"
-          maxlength="50"
-        /><em>{{ errors["bankName/bankAccount"] }}</em></label
+      ><div class="procurement-region-fields wide">
+        <label
+          >开户行<input
+            v-model="draft.bankName"
+            :disabled="actor.role === 'warehouse' && isEdit"
+            maxlength="80"
+        /></label>
+        <label
+          >银行账号<input
+            v-model="draft.bankAccount"
+            :disabled="actor.role === 'warehouse' && isEdit"
+            maxlength="50"
+          /><em>{{ errors["bankName/bankAccount"] }}</em></label
+        >
+      </div
       ><label class="wide"
         >备注<textarea v-model="draft.note" maxlength="500" rows="3"></textarea>
       </label>
