@@ -20,7 +20,8 @@ const importSuccess = ref<string | null>(null)
 const filters = reactive({ categoryId: '', brandId: '', status: '', keyword: '', supplierId: '', tagIds: [] as string[], priceMin: '', priceMax: '' })
 const statusLabels = { draft: '草稿', 'on-sale': '上架', 'off-sale': '下架' } as const
 
-type CategoryRow = { category: (typeof references.value.categories)[number]; depth: number }
+type CategoryRow = { category: (typeof references.value.categories)[number]; depth: number; hasChildren: boolean }
+const expandedCategoryIds = ref<Set<string>>(new Set())
 const categoryRows = computed<CategoryRow[]>(() => {
   const categories = references.value.categories
   const children = (parentId: string | null, depth: number): CategoryRow[] =>
@@ -28,11 +29,20 @@ const categoryRows = computed<CategoryRow[]>(() => {
       .filter((category) => (category.parentId ? String(category.parentId) : null) === parentId)
       .sort((left, right) => Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0) || String(left.name).localeCompare(String(right.name)))
       .flatMap((category) => [
-        { category, depth },
+        { category, depth, hasChildren: categories.some((item) => String(item.parentId ?? '') === String(category.id)) },
         ...children(String(category.id), depth + 1),
       ])
   return children(null, 0)
 })
+const visibleCategoryRows = computed(() => categoryRows.value.filter((item) => {
+  let parentId = item.category.parentId ? String(item.category.parentId) : null
+  while (parentId) {
+    if (!expandedCategoryIds.value.has(parentId)) return false
+    const parent = references.value.categories.find((category) => String(category.id) === parentId)
+    parentId = parent?.parentId ? String(parent.parentId) : null
+  }
+  return true
+}))
 
 const allCurrentSelected = computed(() => result.value.items.length > 0 && result.value.items.every((row) => selectedIds.value.includes(row.productId)))
 
@@ -50,6 +60,17 @@ function togglePage(): void {
   const ids = [...new Set(result.value.items.map((row) => row.productId))]
   if (allCurrentSelected.value) selectedIds.value = selectedIds.value.filter((id) => !ids.includes(id))
   else selectedIds.value = [...new Set([...selectedIds.value, ...ids])]
+}
+
+function toggleCategory(item: CategoryRow): void {
+  if (item.hasChildren) {
+    const next = new Set(expandedCategoryIds.value)
+    if (next.has(String(item.category.id))) next.delete(String(item.category.id)); else next.add(String(item.category.id))
+    expandedCategoryIds.value = next
+    return
+  }
+  filters.categoryId = String(item.category.id)
+  void search()
 }
 
 function buildQuery(): ProductListQuery {
@@ -142,7 +163,7 @@ onMounted(() => ensureSkuView())
       <aside class="category-panel">
         <div class="panel-title"><strong>商品分类</strong><span>含后代</span></div>
         <button :class="{ active: !filters.categoryId }" type="button" @click="filters.categoryId = ''; search()">全部商品</button>
-        <button v-for="item in categoryRows" :key="item.category.id" :class="{ active: filters.categoryId === item.category.id, child: item.depth > 0 }" :style="{ paddingLeft: `${8 + item.depth * 20}px` }" type="button" @click="filters.categoryId = item.category.id; search()">{{ item.depth > 0 ? '└ ' : '' }}{{ item.category.name }}<small v-if="item.category.status === 'inactive'">停用</small></button>
+        <button v-for="item in visibleCategoryRows" :key="item.category.id" :class="{ active: filters.categoryId === item.category.id, child: item.depth > 0 }" :style="{ paddingLeft: `${8 + item.depth * 20}px` }" type="button" @click="toggleCategory(item)">{{ item.hasChildren ? (expandedCategoryIds.has(String(item.category.id)) ? '▾ ' : '▸ ') : '· ' }}{{ item.category.name }}<small v-if="item.category.status === 'inactive'">停用</small></button>
       </aside>
 
       <main class="product-main">

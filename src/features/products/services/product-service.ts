@@ -228,7 +228,10 @@ export function createProductService(dependencies: ProductServiceDependencies) {
     if (query.supplierId && !dependencies.supplierProvider) throw new ProductDomainError('DATA_PROVIDER_UNAVAILABLE', '供应商关系尚未接入')
     const state = repository.read()
     const view = query.view ?? 'spu'
+    const selectedCategory = query.categoryId ? state.categories.find((item) => item.id === query.categoryId && item.deletedAt === null) : null
     const categoryScope = query.categoryId ? descendants(state, query.categoryId) : null
+    // A category with children is a grouping node; only leaf-category products belong in its result.
+    if (selectedCategory && state.categories.some((item) => item.parentId === selectedCategory.id && item.deletedAt === null)) categoryScope?.delete(selectedCategory.id)
     const keyword = query.keyword?.trim().toLocaleLowerCase()
     const rows: ProductListItem[] = []
     for (const product of state.products.filter((item) => item.deletedAt === null)) {
