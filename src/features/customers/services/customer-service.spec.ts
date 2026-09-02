@@ -64,7 +64,10 @@ describe('CUS-001 customer service', () => {
     expect(changeSettlementMethod(withCategory, 'monthly').paymentTermDays).toBeNull()
   })
 
-  it('requires manual customer codes and atomically rejects duplicates (CUS-01)', () => {
+  it('auto-generates empty customer codes and atomically rejects duplicates (CUS-01)', () => {
+    const autoCreated = service.createCustomer(admin, { ...validDraft(), code: '', codeMode: 'auto' })
+    expect(autoCreated.code).toMatch(/^CUS-\d{6}$/)
+
     const created = service.createCustomer(admin, { ...validDraft(), codeMode: 'manual', code: 'CUS-TEST-001' })
     expect(created.code).toBe('CUS-TEST-001')
 
