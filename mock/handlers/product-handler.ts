@@ -18,6 +18,15 @@ export function createBaselineProductRepository(): InMemoryProductRepository {
 }
 
 const browserProductStateKey = 'fengding:mock:product-state:v1'
+const legacyDemoProductIds = new Set(['product-1', 'product-2', 'product-3'])
+const legacyDemoDeletedAt = '2026-09-02T00:00:00+08:00'
+function hideLegacyDemoProducts(state: ProductFeatureState): ProductFeatureState {
+  const next = structuredClone(state)
+  next.products = next.products.map((product) => legacyDemoProductIds.has(product.id)
+    ? { ...product, status: 'off-sale', deletedAt: product.deletedAt ?? legacyDemoDeletedAt, updatedAt: product.updatedAt }
+    : product)
+  return next
+}
 function browserPersistenceAvailable(): boolean {
   return typeof window !== 'undefined' && !/jsdom/i.test(window.navigator.userAgent)
 }
@@ -34,9 +43,9 @@ class BrowserSharedProductRepository extends InMemoryProductRepository {
       if (!raw) return fallback
       const persisted = JSON.parse(raw) as ProductFeatureState
       assertProductFeatureState(persisted)
-      return persisted
+      return hideLegacyDemoProducts(persisted)
     } catch {
-      return fallback
+      return hideLegacyDemoProducts(fallback)
     }
   }
 
@@ -76,7 +85,9 @@ export class ProductMockError extends Error {
 }
 
 export function createProductMockSession(scenarioName: ProductScenarioName = 'normal', supplierProvider?: ProductServiceDependencies['supplierProvider']) {
-  const state = structuredClone(productBaseline)
+  const state = browserPersistenceAvailable() && scenarioName === 'normal'
+    ? hideLegacyDemoProducts(productBaseline)
+    : structuredClone(productBaseline)
   if (scenarioName === 'empty') {
     state.products = []
     state.changeLogs = []
