@@ -27,6 +27,12 @@ describe('procurement service', () => {
     expect(() => session.service.updateSupplier(admin, first.id, { value: { ...draft, code: 'SUP-CHANGED' }, expectedVersion: 1, requestId: 'update-code' })).toThrow(/不可修改/)
   })
 
+  it('generates a supplier code when the create form omits one', () => {
+    const created = session.service.createSupplier(admin, { value: { ...draft, code: '' }, expectedVersion: 0, requestId: 'create-auto-code' })
+    expect(created.code).toBe('SUP-000004')
+    expect(session.repository.read().suppliers.at(-1)?.code).toBe('SUP-000004')
+  })
+
   it('does not log full bank accounts and never cascades supplier status', () => {
     session.service.updateSupplier(admin, 'supplier-1', { value: { ...draft, code: 'SUP-000001', name: '演示华北食品供应商' }, expectedVersion: 1, requestId: 'update-1' })
     const result = session.service.setSupplierStatus(admin, 'supplier-1', 'disabled', 2, 'disable-1')

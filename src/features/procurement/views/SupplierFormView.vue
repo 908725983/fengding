@@ -53,7 +53,8 @@ async function save() {
   draft.address = `${supplierProvince.value}${supplierCity.value}${supplierAddressDetail.value ? ` ${supplierAddressDetail.value}` : ""}`;
   Object.keys(errors).forEach((key) => delete errors[key]);
   for (const issue of validateSupplierDraft(draft))
-    if (!errors[issue.path]) errors[issue.path] = issue.message;
+    if (!(issue.path === "code" && !isEdit.value) && !errors[issue.path])
+      errors[issue.path] = issue.message;
   if (Object.keys(errors).length) return;
   try {
     const saved = await store.saveSupplier(
@@ -88,19 +89,12 @@ onMounted(async () => {
       <div>
         <RouterLink to="/procurement/suppliers">← 返回供应商</RouterLink>
         <h1>{{ isEdit ? "编辑供应商" : "新增供应商" }}</h1>
-        <p>编码创建后不可修改；开户行与银行账号必须同时填写或同时为空。</p>
+        <p>供应商编码由系统自动生成；开户行与银行账号必须同时填写或同时为空。</p>
       </div>
     </header>
     <div v-if="loading" class="procurement-state">正在加载表单…</div>
     <form v-else class="procurement-form" @submit.prevent="save">
       <label
-        >供应商编码 *<input
-          v-model="draft.code"
-          :disabled="isEdit"
-          maxlength="30"
-          :aria-invalid="Boolean(errors.code)"
-        /><em>{{ errors.code }}</em></label
-      ><label
         >供应商名称 *<input
           v-model="draft.name"
           maxlength="80"

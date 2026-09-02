@@ -26,6 +26,14 @@ const protectSupplier = (supplier: Supplier, actor: ProcurementActor): Supplier 
 
 export function createEmptySupplierDraft(): SupplierDraft { return { code: '', name: '', tradeType: 'purchase', deliveryMode: 'warehouse', contactName: '', contactPhone: '', address: null, bankName: null, bankAccount: null, note: null } }
 
+function nextSupplierCode(state: ProcurementFeatureState): string {
+  const next = state.suppliers.reduce((max, supplier) => {
+    const match = /^SUP-(\d{6})$/.exec(supplier.code.toUpperCase())
+    return match ? Math.max(max, Number(match[1])) : max
+  }, 0) + 1
+  return `SUP-${String(next).padStart(6, '0')}`
+}
+
 function projectSupplier(state: ProcurementFeatureState, supplier: Supplier, actor: ProcurementActor): SupplierListItem {
   return { ...supplier, bankAccount: actor.role === 'super-admin' ? supplier.bankAccount : maskBankAccount(supplier.bankAccount), enabledProductCount: state.supplierProducts.filter((item) => item.supplierId === supplier.id && item.status === 'enabled').length }
 }
@@ -71,9 +79,11 @@ export function createProcurementService(deps: ProcurementServiceDependencies) {
 
   function createSupplier(actor: ProcurementActor, command: WriteCommand<SupplierDraft>): Supplier {
     requireAccess(actor); requireRequestId(command.requestId); if (command.expectedVersion !== 0) throw new ProcurementDomainError('VERSION_CONFLICT', '新建供应商 expectedVersion 必须为 0')
-    const value = normalizeSupplierDraft(command.value); assertSupplierDraft(value)
     const result = repository.transact((state) => {
       const replay = findReplay<Supplier>(state, command.requestId, 'supplier.create'); if (replay) return replay
+      const normalized = normalizeSupplierDraft(command.value)
+      const value = normalized.code ? normalized : { ...normalized, code: nextSupplierCode(state) }
+      assertSupplierDraft(value)
       if (state.suppliers.some((item) => item.code.toUpperCase() === value.code)) throw new ProcurementDomainError('SUPPLIER_CODE_DUPLICATE', '供应商编码已存在')
       if (state.suppliers.some((item) => item.name === value.name)) throw new ProcurementDomainError('SUPPLIER_NAME_DUPLICATE', '供应商名称已存在')
       const supplier: Supplier = { ...value, id: nextId('supplier'), enterpriseId: state.enterpriseId, status: 'enabled', externalAccountState: 'unavailable', version: 1, createdAt: now(), updatedAt: now() }
