@@ -109,7 +109,7 @@ function appendLog(state: CustomerFeatureState, dependencies: CustomerServiceDep
 
 export function createEmptyCustomerDraft(): CustomerDraft {
   return {
-    codeMode: 'manual', code: '', name: '', categoryId: '', customerType: null, source: null, importanceLevel: null,
+    codeMode: 'auto', code: '', name: '', categoryId: '', customerType: null, source: null, importanceLevel: null,
     primaryContactName: '', primaryPhone: '', backupPhone: null, provinceCode: '', cityCode: '', districtCode: '', address: '', addressLabel: null,
     longitude: null, latitude: null, email: null, wechatId: null, salespersonId: '', creditLimitCents: null,
     settlementMethod: 'cash', paymentTermDays: null, paymentMethods: [], bankName: null, bankAccount: null, taxId: null, invoiceTitle: null,
@@ -206,7 +206,11 @@ export function createCustomerService(dependencies: CustomerServiceDependencies)
 
   function createCustomer(actor: CustomerActor, input: CustomerDraft): Customer {
     assertWrite(actor)
-    const normalizedInput = { ...input, salespersonId: input.salespersonId || actor.actorId }
+    const normalizedInput = {
+      ...input,
+      code: input.codeMode === 'auto' && !input.code?.trim() ? '__AUTO__' : input.code,
+      salespersonId: input.salespersonId || actor.actorId,
+    }
     assertCustomerDraft(normalizedInput)
     if (normalizedInput.status !== 'active' || normalizedInput.frozenReason !== null) {
       throw new CustomerDomainError('INVALID_TRANSITION', '后台新增客户必须使用默认启用状态')

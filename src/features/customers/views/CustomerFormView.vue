@@ -189,15 +189,6 @@ onMounted(async () => {
           <h2>基本信息</h2>
           <div class="form-grid">
             <label
-              ><span>客户编码 *</span
-              ><input
-                v-model="draft.code"
-                :disabled="isEdit"
-                placeholder="请输入唯一编码"
-                :aria-invalid="Boolean(fieldError('code'))"
-              /><em>{{ fieldError("code") }}</em></label
-            >
-            <label
               ><span>客户名称 *</span
               ><input
                 v-model="draft.name"
