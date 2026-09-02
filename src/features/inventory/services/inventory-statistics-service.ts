@@ -95,10 +95,10 @@ export function createInventoryStatisticsService(deps: InventoryStatisticsServic
     try { skus = deps.catalog.listSkus() } catch { catalogState = 'partial' }
     const skuMap = new Map(skus.map((item) => [item.skuId, item])); const warehouseMap = new Map(state.warehouses.map((item) => [item.id, item]))
     const closingMessage = validateClosings(state, query.toDate); const periodState = closingState(state.closings ?? [], query.toDate, datePart(deps.now()))
-    const movements = state.movements.filter((item) => !query.warehouseId || item.warehouseId === query.warehouseId).filter((item) => {
+    const movements = state.movements.filter((item) => !skuMap.get(item.skuId)?.deleted).filter((item) => !query.warehouseId || item.warehouseId === query.warehouseId).filter((item) => {
       if (!query.categoryId) return true; return skuMap.get(item.skuId)?.categoryId === query.categoryId
     })
-    const histories = (state.costHistories ?? []).filter((item) => !query.warehouseId || item.warehouseId === query.warehouseId).filter((item) => {
+    const histories = (state.costHistories ?? []).filter((item) => !skuMap.get(item.skuId)?.deleted).filter((item) => !query.warehouseId || item.warehouseId === query.warehouseId).filter((item) => {
       if (!query.categoryId) return true; return skuMap.get(item.skuId)?.categoryId === query.categoryId
     })
     const bySku = new Map<string, MutableValues>(); const byWarehouse = new Map<string, MutableValues>()

@@ -289,6 +289,9 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
         };
       })
       .filter(
+        (row) => !row.sku?.deleted,
+      )
+      .filter(
         (row) => !query.warehouseId || row.warehouse.id === query.warehouseId,
       )
       .filter(
@@ -329,8 +332,12 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
   function listBatches(actor: InventoryActor): InventoryBatchRow[] {
     assertRead(actor);
     const state = deps.repository.read();
+    const catalog = catalogRows();
+    const skuMap = new Map(catalog.items.map((item) => [item.skuId, item]));
     return state.balances
       .filter((item) => item.quantityMilli > 0)
+      // 已淘汰商品的库存历史仍保留在账上，但不再出现在当前业务列表。
+      .filter((item) => !skuMap.get(item.skuId)?.deleted)
       .map((balance) => {
         const batch = state.batches.find(
           (item) => item.id === balance.batchId,
@@ -369,7 +376,11 @@ export function createInventoryService(deps: InventoryServiceDependencies) {
   ): InventoryMovementRow[] {
     assertRead(actor);
     const state = deps.repository.read();
+    const catalog = catalogRows();
+    const skuMap = new Map(catalog.items.map((item) => [item.skuId, item]));
     return state.movements
+      // 与库存列表保持一致，已淘汰 SKU 的流水只作为历史数据保留。
+      .filter((movement) => !skuMap.get(movement.skuId)?.deleted)
       .map((movement) => {
         const batch = state.batches.find(
           (item) => item.id === movement.batchId,
