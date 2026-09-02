@@ -19,10 +19,11 @@ export function createBaselineProductRepository(): InMemoryProductRepository {
 
 const browserProductStateKey = 'fengding:mock:product-state:v1'
 const legacyDemoProductIds = new Set(['product-1', 'product-2', 'product-3'])
+const legacyTestProductNames = new Set(['test1', 'coco', 'test2'])
 const legacyDemoDeletedAt = '2026-09-02T00:00:00+08:00'
 function hideLegacyDemoProducts(state: ProductFeatureState): ProductFeatureState {
   const next = structuredClone(state)
-  next.products = next.products.map((product) => legacyDemoProductIds.has(product.id)
+  next.products = next.products.map((product) => (legacyDemoProductIds.has(product.id) || legacyTestProductNames.has(product.name.trim().toLocaleLowerCase()))
     ? { ...product, status: 'off-sale', deletedAt: product.deletedAt ?? legacyDemoDeletedAt, updatedAt: product.updatedAt }
     : product)
   return next
