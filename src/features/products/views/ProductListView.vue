@@ -20,6 +20,20 @@ const importSuccess = ref<string | null>(null)
 const filters = reactive({ categoryId: '', brandId: '', status: '', keyword: '', supplierId: '', tagIds: [] as string[], priceMin: '', priceMax: '' })
 const statusLabels = { draft: '草稿', 'on-sale': '上架', 'off-sale': '下架' } as const
 
+type CategoryRow = { category: (typeof references.value.categories)[number]; depth: number }
+const categoryRows = computed<CategoryRow[]>(() => {
+  const categories = references.value.categories
+  const children = (parentId: string | null, depth: number): CategoryRow[] =>
+    categories
+      .filter((category) => (category.parentId ? String(category.parentId) : null) === parentId)
+      .sort((left, right) => Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0) || String(left.name).localeCompare(String(right.name)))
+      .flatMap((category) => [
+        { category, depth },
+        ...children(String(category.id), depth + 1),
+      ])
+  return children(null, 0)
+})
+
 const allCurrentSelected = computed(() => result.value.items.length > 0 && result.value.items.every((row) => selectedIds.value.includes(row.productId)))
 
 function toggleTag(id: string): void {
@@ -128,7 +142,7 @@ onMounted(() => ensureSkuView())
       <aside class="category-panel">
         <div class="panel-title"><strong>商品分类</strong><span>含后代</span></div>
         <button :class="{ active: !filters.categoryId }" type="button" @click="filters.categoryId = ''; search()">全部商品</button>
-        <button v-for="category in references.categories" :key="category.id" :class="{ active: filters.categoryId === category.id, child: category.parentId }" type="button" @click="filters.categoryId = category.id; search()">{{ category.parentId ? '└ ' : '' }}{{ category.name }}<small v-if="category.status === 'inactive'">停用</small></button>
+        <button v-for="item in categoryRows" :key="item.category.id" :class="{ active: filters.categoryId === item.category.id, child: item.depth > 0 }" :style="{ paddingLeft: `${8 + item.depth * 20}px` }" type="button" @click="filters.categoryId = item.category.id; search()">{{ item.depth > 0 ? '└ ' : '' }}{{ item.category.name }}<small v-if="item.category.status === 'inactive'">停用</small></button>
       </aside>
 
       <main class="product-main">
