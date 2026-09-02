@@ -5,6 +5,7 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 import InventorySubnav from "../components/InventorySubnav.vue";
 import { useInventoryStore } from "../runtime/inventory-store";
 import type { WarehouseDraft } from "../types";
+import ChinaRegionSelects from "../../../shared/components/ChinaRegionSelects.vue";
 import "./inventory-views.css";
 const route = useRoute();
 const router = useRouter();
@@ -71,6 +72,10 @@ async function submit() {
         </select></label
       ><label>联系人<input v-model="form.contactName" maxlength="40" /></label
       ><label>联系电话<input v-model="form.phone" maxlength="40" /></label
+      ><ChinaRegionSelects
+        v-model:province="form.provinceCode"
+        v-model:city="form.cityCode"
+      />
       ><label
         >销售出库<select v-model="form.saleProhibited">
           <option :value="false">允许</option>

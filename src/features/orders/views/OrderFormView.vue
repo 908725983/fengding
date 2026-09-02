@@ -6,6 +6,7 @@ import OrderScenarioBar from "../components/OrderScenarioBar.vue";
 import { useOrderStore } from "../runtime/order-store";
 import type { OrderLineDraft } from "../types";
 import "./order-views.css";
+import ChinaRegionSelects from "../../../shared/components/ChinaRegionSelects.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -40,7 +41,9 @@ const marketPriceOf = (line: OrderLineDraft) => {
   const sku = skuOf(line);
   const unit = unitOf(line);
   if (!sku || sku.marketPriceCents === null) return null;
-  return Math.round((sku.marketPriceCents * (unit?.conversionRateMilli ?? 1000)) / 1000);
+  return Math.round(
+    (sku.marketPriceCents * (unit?.conversionRateMilli ?? 1000)) / 1000,
+  );
 };
 const availableInventoryOf = (line: OrderLineDraft) => {
   if (!draft.value.warehouseId) return "请先选仓库";
@@ -49,14 +52,21 @@ const availableInventoryOf = (line: OrderLineDraft) => {
   if (value === undefined) return "0";
   const rate = unitOf(line)?.conversionRateMilli ?? 1000;
   const quantity = value / rate;
-  return Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  return Number.isInteger(quantity)
+    ? String(quantity)
+    : quantity.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
 };
 const filteredSkus = computed(() => {
   const keyword = productKeyword.value.trim().toLocaleLowerCase();
   if (!keyword) return skus.value;
   return skus.value.filter((item) =>
-    [item.productCode, item.productName, item.skuCode, item.specification, item.barcode ?? ""]
-      .some((value) => value.toLocaleLowerCase().includes(keyword)),
+    [
+      item.productCode,
+      item.productName,
+      item.skuCode,
+      item.specification,
+      item.barcode ?? "",
+    ].some((value) => value.toLocaleLowerCase().includes(keyword)),
   );
 });
 function chooseProduct(skuId: string) {
@@ -102,9 +112,7 @@ function addAttachment(event: Event) {
   const files = [...((event.target as HTMLInputElement).files ?? [])];
   for (const file of files) {
     const mediaType = file.type as
-      | "application/pdf"
-      | "image/jpeg"
-      | "image/png";
+      "application/pdf" | "image/jpeg" | "image/png";
     draft.value.attachments.push({
       id: `attachment-ui-${Date.now()}-${draft.value.attachments.length}`,
       name: file.name,
@@ -181,7 +189,8 @@ onMounted(() => {
               >
                 {{ item.code }} · {{ item.name }}
               </option>
-            </select></label>
+            </select></label
+          >
         </div>
         <div
           v-if="customerContext"
@@ -233,7 +242,10 @@ onMounted(() => {
                 @focus="openProductSearch"
                 @input="productSearchOpen = true"
               />
-              <div v-if="productSearchOpen && draft.customerId" class="order-product-results">
+              <div
+                v-if="productSearchOpen && draft.customerId"
+                class="order-product-results"
+              >
                 <button
                   v-for="item in filteredSkus"
                   :key="item.skuId"
@@ -303,8 +315,21 @@ onMounted(() => {
                 </td>
                 <td>{{ availableInventoryOf(line) }}</td>
                 <td>
-                  <span class="order-readonly-value" :title="line.lineKind === 'gift' ? '赠品单价固定为 ¥0.00' : '来自商品 SKU 的市场价，订单中不可修改'">
-                    {{ line.lineKind === "gift" ? money(0) : marketPriceOf(line) === null ? "—" : money(marketPriceOf(line)!) }}
+                  <span
+                    class="order-readonly-value"
+                    :title="
+                      line.lineKind === 'gift'
+                        ? '赠品单价固定为 ¥0.00'
+                        : '来自商品 SKU 的市场价，订单中不可修改'
+                    "
+                  >
+                    {{
+                      line.lineKind === "gift"
+                        ? money(0)
+                        : marketPriceOf(line) === null
+                          ? "—"
+                          : money(marketPriceOf(line)!)
+                    }}
                   </span>
                 </td>
                 <td>
@@ -331,7 +356,11 @@ onMounted(() => {
         <div class="order-form-grid">
           <label
             ><span>发货仓库 *</span
-            ><select v-model="draft.warehouseId" required @change="store.refreshAvailableInventory()">
+            ><select
+              v-model="draft.warehouseId"
+              required
+              @change="store.refreshAvailableInventory()"
+            >
               <option value="">请选择启用且非禁售仓</option>
               <option
                 v-for="item in formOptions.warehouses"
@@ -389,20 +418,29 @@ onMounted(() => {
               v-model="draft.shipping.phone"
               required
               maxlength="40" /></label
-          ><label class="wide"
+          ><ChinaRegionSelects
+            v-model:province="draft.shipping.province"
+            v-model:city="draft.shipping.city"
+          />
+          <label class="wide"
             ><span>详细地址 *</span
             ><input
               v-model="draft.shipping.address"
               required
-              maxlength="200" /></label
-          ><label
+              maxlength="200"
+            /><small>填写街道、门牌号等具体收货地址。</small></label
+          ><label class="wide"
             ><span>整单优惠（元）</span
             ><input
               :value="(draft.manualOrderDiscountCents / 100).toFixed(2)"
               type="number"
               min="0"
               step="0.01"
-              @input="draft.manualOrderDiscountCents = Math.round(Number(($event.target as HTMLInputElement).value || 0) * 100)" /></label
+              @input="
+                draft.manualOrderDiscountCents = Math.round(
+                  Number(($event.target as HTMLInputElement).value || 0) * 100,
+                )
+              " /></label
           ><label
             ><span>运费（元）</span
             ><input
@@ -410,14 +448,26 @@ onMounted(() => {
               type="number"
               min="0"
               step="0.01"
-              @input="draft.freightCents = Math.round(Number(($event.target as HTMLInputElement).value || 0) * 100)" /></label
+              @input="
+                draft.freightCents = Math.round(
+                  Number(($event.target as HTMLInputElement).value || 0) * 100,
+                )
+              " /></label
           ><label class="checkbox"
-            ><input v-model="draft.specialPrice" type="checkbox" @change="!draft.specialPrice && (draft.specialPriceReason = null)" /><span
-              >特价订单（越过售价上下限时必须勾选）</span
-            ></label
+            ><input
+              v-model="draft.specialPrice"
+              type="checkbox"
+              @change="!draft.specialPrice && (draft.specialPriceReason = null)"
+            /><span>特价订单（越过售价上下限时必须勾选）</span></label
           ><label v-if="draft.specialPrice" class="wide"
             ><span>特价申请原因 *（最多200字）</span
-            ><textarea v-model="draft.specialPriceReason" required maxlength="200" rows="2" placeholder="说明客户专项价格或其他特价原因"></textarea></label
+            ><textarea
+              v-model="draft.specialPriceReason"
+              required
+              maxlength="200"
+              rows="2"
+              placeholder="说明客户专项价格或其他特价原因"
+            ></textarea></label
           ><label class="wide"
             ><span>备注（最多500字）</span
             ><textarea
@@ -481,7 +531,10 @@ onMounted(() => {
             >
           </div>
         </div>
-        <p v-if="draft.specialPrice" class="order-notice">特价审批将在业务审核后合并到财务审核；系统会保存当前价格边界和 {{ preview.specialPriceEvidence.length }} 条越界依据。</p>
+        <p v-if="draft.specialPrice" class="order-notice">
+          特价审批将在业务审核后合并到财务审核；系统会保存当前价格边界和
+          {{ preview.specialPriceEvidence.length }} 条越界依据。
+        </p>
         <p class="order-unavailable">{{ preview.warnings.join("；") }}</p>
       </section>
       <footer class="order-form-actions">

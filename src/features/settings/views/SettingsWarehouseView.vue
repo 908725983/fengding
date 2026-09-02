@@ -1,18 +1,193 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useSettingsStore } from '../runtime/settings-store'
-import SettingsSubnav from '../components/SettingsSubnav.vue'
-import SettingsScenarioBar from '../components/SettingsScenarioBar.vue'
-import type { WarehouseDraft } from '@/features/inventory/public'
-import './settings-views.css'
-const store = useSettingsStore(); const { warehouses, loading, error, saving, scenario, actor } = storeToRefs(store)
-const keyword = ref(''); const editing = ref<string | null>(null); const showForm = ref(false); const formError = ref('')
-const form = reactive<WarehouseDraft>({ code: '', name: '', type: 'physical', status: 'enabled', saleProhibited: false, contactName: null, phone: null, provinceCode: null, cityCode: null, districtCode: null, address: null })
-const rows = computed(() => warehouses.value.filter((row) => !keyword.value || [row.code, row.name, row.address ?? ''].some((value) => value.toLowerCase().includes(keyword.value.toLowerCase()))))
-onMounted(() => store.load())
-function open(row?: WarehouseDraft & { id?: string }) { showForm.value = true; editing.value = row?.id ?? null; Object.assign(form, row ? structuredClone(row) : { code: '', name: '', type: 'physical', status: 'enabled', saleProhibited: false, contactName: null, phone: null, provinceCode: null, cityCode: null, districtCode: null, address: null }); formError.value = '' }
-function close() { showForm.value = false; editing.value = null; form.name = ''; form.code = '' }
-async function submit() { try { await store.saveWarehouse({ ...form }, editing.value ?? undefined); close() } catch (e) { formError.value = e instanceof Error ? e.message : '保存失败' } }
+import { computed, onMounted, reactive, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { useSettingsStore } from "../runtime/settings-store";
+import SettingsSubnav from "../components/SettingsSubnav.vue";
+import SettingsScenarioBar from "../components/SettingsScenarioBar.vue";
+import type { WarehouseDraft } from "@/features/inventory/public";
+import ChinaRegionSelects from "../../../shared/components/ChinaRegionSelects.vue";
+import "./settings-views.css";
+const store = useSettingsStore();
+const { warehouses, loading, error, saving, scenario, actor } =
+  storeToRefs(store);
+const keyword = ref("");
+const editing = ref<string | null>(null);
+const showForm = ref(false);
+const formError = ref("");
+const form = reactive<WarehouseDraft>({
+  code: "",
+  name: "",
+  type: "physical",
+  status: "enabled",
+  saleProhibited: false,
+  contactName: null,
+  phone: null,
+  provinceCode: null,
+  cityCode: null,
+  districtCode: null,
+  address: null,
+});
+const rows = computed(() =>
+  warehouses.value.filter(
+    (row) =>
+      !keyword.value ||
+      [row.code, row.name, row.address ?? ""].some((value) =>
+        value.toLowerCase().includes(keyword.value.toLowerCase()),
+      ),
+  ),
+);
+onMounted(() => store.load());
+function open(row?: WarehouseDraft & { id?: string }) {
+  showForm.value = true;
+  editing.value = row?.id ?? null;
+  Object.assign(
+    form,
+    row
+      ? structuredClone(row)
+      : {
+          code: "",
+          name: "",
+          type: "physical",
+          status: "enabled",
+          saleProhibited: false,
+          contactName: null,
+          phone: null,
+          provinceCode: null,
+          cityCode: null,
+          districtCode: null,
+          address: null,
+        },
+  );
+  formError.value = "";
+}
+function close() {
+  showForm.value = false;
+  editing.value = null;
+  form.name = "";
+  form.code = "";
+}
+async function submit() {
+  try {
+    await store.saveWarehouse({ ...form }, editing.value ?? undefined);
+    close();
+  } catch (e) {
+    formError.value = e instanceof Error ? e.message : "保存失败";
+  }
+}
 </script>
-<template><section class="settings-page"><header class="settings-header"><div><p class="eyebrow">SET-003 · Inventory provider</p><h1>共享仓库</h1><p>仓库事实由库存模块唯一持有；设置页与库存页实时共享禁售和状态。</p></div><SettingsScenarioBar :scenario="scenario" :role="actor.role" @scenario="store.setScenario" @role="store.setRole"/></header><SettingsSubnav/><div v-if="error||formError" class="settings-warning">{{error||formError}}</div><section class="settings-panel"><div class="settings-toolbar"><label>仓库名称 / 编码<input v-model="keyword" type="search" placeholder="输入关键字"></label><button class="set-button primary" :disabled="!store.canWrite" @click="open()">新增仓库</button></div><div v-if="loading" class="settings-state">正在加载共享仓库…</div><div v-else-if="!rows.length" class="settings-state">暂无仓库资料</div><div v-else class="settings-table-wrap"><table class="settings-table"><thead><tr><th>仓库名称</th><th>编码</th><th>类型</th><th>状态</th><th>禁售</th><th>联系人</th><th>地址</th><th>操作</th></tr></thead><tbody><tr v-for="row in rows" :key="row.id"><td><strong>{{row.name}}</strong></td><td>{{row.code}}</td><td>{{row.type==='physical'?'实体仓':'虚拟仓'}}</td><td>{{row.status==='enabled'?'启用':'禁用'}}</td><td>{{row.saleProhibited?'是':'否'}}</td><td>{{row.contactName??'—'}}<small>{{row.phone??'—'}}</small></td><td>{{row.address??'—'}}</td><td><button class="set-button" @click="open(row)">编辑</button></td></tr></tbody></table></div></section><section v-if="showForm" class="settings-panel"><form class="settings-form" @submit.prevent="submit"><label>仓库编码<input v-model.trim="form.code" required maxlength="40"></label><label>仓库名称<input v-model.trim="form.name" required maxlength="40"></label><label>仓库类型<select v-model="form.type"><option value="physical">实体仓</option><option value="virtual">虚拟仓</option></select></label><label>状态<select v-model="form.status"><option value="enabled">启用</option><option value="disabled">禁用</option></select></label><label>联系人<input v-model.trim="form.contactName"></label><label>联系电话<input v-model.trim="form.phone"></label><label>禁售仓库<select v-model="form.saleProhibited"><option :value="false">否</option><option :value="true">是</option></select></label><label class="wide">详细地址<input v-model.trim="form.address"></label><div class="settings-actions"><button type="button" class="set-button" @click="close">取消</button><button class="set-button primary" :disabled="saving">保存</button></div></form></section></section></template>
+<template>
+  <section class="settings-page">
+    <header class="settings-header">
+      <div>
+        <p class="eyebrow">SET-003 · Inventory provider</p>
+        <h1>共享仓库</h1>
+        <p>仓库事实由库存模块唯一持有；设置页与库存页实时共享禁售和状态。</p>
+      </div>
+      <SettingsScenarioBar
+        :scenario="scenario"
+        :role="actor.role"
+        @scenario="store.setScenario"
+        @role="store.setRole"
+      />
+    </header>
+    <SettingsSubnav />
+    <div v-if="error || formError" class="settings-warning">
+      {{ error || formError }}
+    </div>
+    <section class="settings-panel">
+      <div class="settings-toolbar">
+        <label
+          >仓库名称 / 编码<input
+            v-model="keyword"
+            type="search"
+            placeholder="输入关键字" /></label
+        ><button
+          class="set-button primary"
+          :disabled="!store.canWrite"
+          @click="open()"
+        >
+          新增仓库
+        </button>
+      </div>
+      <div v-if="loading" class="settings-state">正在加载共享仓库…</div>
+      <div v-else-if="!rows.length" class="settings-state">暂无仓库资料</div>
+      <div v-else class="settings-table-wrap">
+        <table class="settings-table">
+          <thead>
+            <tr>
+              <th>仓库名称</th>
+              <th>编码</th>
+              <th>类型</th>
+              <th>状态</th>
+              <th>禁售</th>
+              <th>联系人</th>
+              <th>地址</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in rows" :key="row.id">
+              <td>
+                <strong>{{ row.name }}</strong>
+              </td>
+              <td>{{ row.code }}</td>
+              <td>{{ row.type === "physical" ? "实体仓" : "虚拟仓" }}</td>
+              <td>{{ row.status === "enabled" ? "启用" : "禁用" }}</td>
+              <td>{{ row.saleProhibited ? "是" : "否" }}</td>
+              <td>
+                {{ row.contactName ?? "—"
+                }}<small>{{ row.phone ?? "—" }}</small>
+              </td>
+              <td>{{ row.address ?? "—" }}</td>
+              <td>
+                <button class="set-button" @click="open(row)">编辑</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section v-if="showForm" class="settings-panel">
+      <form class="settings-form" @submit.prevent="submit">
+        <label
+          >仓库编码<input
+            v-model.trim="form.code"
+            required
+            maxlength="40" /></label
+        ><label
+          >仓库名称<input
+            v-model.trim="form.name"
+            required
+            maxlength="40" /></label
+        ><label
+          >仓库类型<select v-model="form.type">
+            <option value="physical">实体仓</option>
+            <option value="virtual">虚拟仓</option>
+          </select></label
+        ><label
+          >状态<select v-model="form.status">
+            <option value="enabled">启用</option>
+            <option value="disabled">禁用</option>
+          </select></label
+        ><label>联系人<input v-model.trim="form.contactName" /></label
+        ><label>联系电话<input v-model.trim="form.phone" /></label
+        ><ChinaRegionSelects
+          v-model:province="form.provinceCode"
+          v-model:city="form.cityCode"
+        />
+        ><label
+          >禁售仓库<select v-model="form.saleProhibited">
+            <option :value="false">否</option>
+            <option :value="true">是</option>
+          </select></label
+        ><label class="wide"
+          >详细地址<input v-model.trim="form.address"
+        /></label>
+        <div class="settings-actions">
+          <button type="button" class="set-button" @click="close">取消</button
+          ><button class="set-button primary" :disabled="saving">保存</button>
+        </div>
+      </form>
+    </section>
+  </section>
+</template>

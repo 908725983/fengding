@@ -103,6 +103,7 @@ export function validateCustomerDraft(draft: CustomerDraft): ValidationIssue[] {
   requiredText(issues, 'categoryId', draft.categoryId)
   requiredText(issues, 'primaryContactName', draft.primaryContactName)
   requiredText(issues, 'primaryPhone', draft.primaryPhone)
+  requiredText(issues, 'provinceCode', draft.provinceCode)
   requiredText(issues, 'cityCode', draft.cityCode)
   requiredText(issues, 'address', draft.address, 100)
   // 未分配业务员是合法状态；创建时由服务层默认当前操作人。

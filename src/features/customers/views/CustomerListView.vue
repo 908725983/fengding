@@ -126,7 +126,7 @@ onMounted(() => store.load())
               <td><RouterLink class="customer-name-link" :to="`/customers/${customer.id}`">{{ customer.name }}</RouterLink></td>
               <td><span class="soft-tag">{{ customer.categoryName }}</span></td>
               <td>{{ customer.primaryContactName }}</td><td>{{ customer.primaryPhone }}</td>
-              <td>{{ customer.cityCode }}</td>
+              <td>{{ customer.provinceCode }} {{ customer.cityCode }}</td>
               <td>{{ customer.salespersonName }}</td>
               <td><span class="unavailable">未接入</span></td><td><span class="unavailable">未接入</span></td><td><span class="unavailable">未接入</span></td>
               <td><span class="customer-status" :class="`customer-status--${customer.status}`">{{ statusLabels[customer.status] }}</span></td>

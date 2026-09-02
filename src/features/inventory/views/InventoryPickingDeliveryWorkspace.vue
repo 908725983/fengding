@@ -16,6 +16,7 @@ import type {
   PickingWave,
   PickingWaveDraft,
 } from "../types";
+import ChinaRegionSelects from "../../../shared/components/ChinaRegionSelects.vue";
 import "./inventory-views.css";
 
 type Section =
@@ -923,9 +924,12 @@ onMounted(load);
             v-model="routeForm.name"
             required
             maxlength="100" /></label
-        ><label>省<input v-model="routeForm.province" required /></label
-        ><label>市<input v-model="routeForm.city" required /></label
-        ><label>区县<input v-model="routeForm.district" required /></label>
+        ><ChinaRegionSelects
+          v-model:province="routeForm.province"
+          v-model:city="routeForm.city"
+          province-label="省"
+          city-label="市"
+        /><label>区县<input v-model="routeForm.district" required /></label>
         <fieldset class="wide processing-lines">
           <legend>有序站点</legend>
           <div
