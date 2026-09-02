@@ -94,7 +94,7 @@ onMounted(async () => {
     </header>
     <div v-if="loading" class="procurement-state">正在加载表单…</div>
     <form v-else class="procurement-form" @submit.prevent="save">
-      <label
+      <label class="wide"
         >供应商名称 *<input
           v-model="draft.name"
           maxlength="80"
@@ -123,12 +123,14 @@ onMounted(async () => {
           maxlength="30"
           :aria-invalid="Boolean(errors.contactPhone)"
         /><em>{{ errors.contactPhone }}</em></label
-      ><ChinaRegionSelects
-        v-model:province="supplierProvince"
-        v-model:city="supplierCity"
-        province-label="所在省"
-        city-label="所在市"
-      /><label class="wide"
+      ><div class="procurement-region-fields wide">
+        <ChinaRegionSelects
+          v-model:province="supplierProvince"
+          v-model:city="supplierCity"
+          province-label="所在省"
+          city-label="所在市"
+        />
+      </div><label class="wide"
         >详细地址<textarea
           v-model="supplierAddressDetail"
           maxlength="160"
