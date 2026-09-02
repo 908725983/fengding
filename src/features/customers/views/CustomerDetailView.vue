@@ -298,7 +298,7 @@ onMounted(() => store.loadCustomer(customerId.value));
             <div class="metric-grid">
               <div><span>累计订单数</span><strong>数据源未接入</strong></div>
               <div><span>累计消费金额</span><strong>数据源未接入</strong></div>
-              <div><span>应收余额</span><strong>数据源未接入</strong></div>
+              <div><span>当前欠款</span><strong>数据源未接入</strong></div>
             </div>
           </section>
         </main>

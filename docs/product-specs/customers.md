@@ -134,7 +134,7 @@ GPS、地图、企微同步、消息、文章传播、商城支付和 AI 标签�
 | `salespersonName` | 业务员 | 文本 | 员工 lookup provider；无法解析显示“未知业务员”并记录诊断 | 不复制员工可变事实 |
 | `orderCount` | 累计订单数 | 整数 | 未来 Order 只读 provider；未接入时显示“数据源未接入”，不能显示 0 | `CUS-001` 不伪造订单统计 |
 | `consumptionAmountCents` | 累计消费金额 | 货币 | 未来 Order/Finance provider；未接入时显示“数据源未接入” | 整数分，口径由后续订单规格决定 |
-| `receivableBalanceCents` | 应收余额 | 货币 | 未来 Finance provider；未接入时显示“数据源未接入” | 不在客户模块计算应收 |
+| `receivableBalanceCents` | 当前欠款 | 货币 | 未来 Finance provider；未接入时显示“数据源未接入” | 不在客户模块计算欠款 |
 | `status` | 客户状态 | 状态标签+文字 | 客户主数据 | 枚举和动作见 `DEC-CUS-001` |
 | `actions` | 操作 | 编辑/审核启用/停用/查看详情 | 由权限和状态矩阵决定；待审核客户显示“审核启用” | 原文没有删除客户操作，不得新增 |
 
@@ -268,7 +268,7 @@ GPS、地图、企微同步、消息、文章传播、商城支付和 AI 标签�
 - 五个业务设置默认 false；`autoAssignOrders=true` 在本原型只提示规则未配置，不产生自动分配副作用。
 - 超级管理员可完整查看编辑；销售主管和业务员可见电话，银行账号和税号遮蔽且不可导出；仓库和财务不能进入客户模块。
 - 本切片只保存六个预置属性，不实现动态自定义字段入口。
-- 列表累计订单数、累计消费金额、应收余额来自未来领域 provider。Provider 未接入时用明确 unavailable 状态，不以 0 或虚构 fixture 冒充真实业务结果。
+- 列表累计订单数、累计消费金额、当前欠款来自未来领域 provider。Provider 未接入时用明确 unavailable 状态，不以 0 或虚构 fixture 冒充真实业务结果。
 
 ### 页面状态与 Mock
 

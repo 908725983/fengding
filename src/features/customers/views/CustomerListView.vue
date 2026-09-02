@@ -119,7 +119,7 @@ onMounted(() => store.load())
       <div class="table-meta"><strong>客户档案</strong><span>共 {{ result.total }} 条 · 默认按创建时间倒序</span></div>
       <div class="customer-table-wrap">
         <table class="customer-table">
-          <thead><tr><th>客户编码</th><th>客户名称</th><th>客户分类</th><th>联系人</th><th>联系电话</th><th>所在地区</th><th>业务员</th><th>累计订单数</th><th>累计消费</th><th>应收余额</th><th>状态</th><th>操作</th></tr></thead>
+          <thead><tr><th>客户编码</th><th>客户名称</th><th>客户分类</th><th>联系人</th><th>联系电话</th><th>所在地区</th><th>业务员</th><th>累计订单数</th><th>累计消费</th><th>当前欠款</th><th>状态</th><th>操作</th></tr></thead>
           <tbody>
             <tr v-for="customer in result.items" :key="customer.id">
               <td class="mono">{{ customer.code }}</td>
