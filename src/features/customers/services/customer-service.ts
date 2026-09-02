@@ -208,7 +208,8 @@ export function createCustomerService(dependencies: CustomerServiceDependencies)
     assertWrite(actor)
     const normalizedInput = {
       ...input,
-      code: input.codeMode === 'auto' && !input.code?.trim() ? '__AUTO__' : input.code,
+      // New customer forms no longer expose a code field; any empty code is auto-generated.
+      code: !input.code?.trim() ? '__AUTO__' : input.code,
       salespersonId: input.salespersonId || actor.actorId,
     }
     assertCustomerDraft(normalizedInput)
@@ -218,7 +219,7 @@ export function createCustomerService(dependencies: CustomerServiceDependencies)
     return repository.transact((state) => {
       validateReferences(state, normalizedInput)
       let code = normalizedInput.code?.trim() ?? ''
-      if (normalizedInput.codeMode === 'auto') {
+      if (!input.code?.trim()) {
         do { code = `CUS-${String(state.nextCustomerSequence).padStart(6, '0')}`; state.nextCustomerSequence += 1 }
         while (state.customers.some((customer) => sameCode(customer.code, code)))
       }

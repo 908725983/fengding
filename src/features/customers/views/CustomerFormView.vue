@@ -93,10 +93,7 @@ function clearForm(): void {
 async function save(saveAndNew: boolean): Promise<void> {
   Object.keys(errors).forEach((key) => delete errors[key]);
   // The code input is intentionally hidden in auto mode; validate the generated placeholder instead.
-  const validationDraft =
-    draft.codeMode === "auto" && !draft.code?.trim()
-      ? { ...draft, code: "__AUTO__" }
-      : draft;
+  const validationDraft = !draft.code?.trim() ? { ...draft, code: "__AUTO__" } : draft;
   for (const issue of validateCustomerDraft(validationDraft))
     if (!errors[issue.path]) errors[issue.path] = issue.message;
   if (Object.keys(errors).length) {
