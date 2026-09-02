@@ -99,7 +99,20 @@ export function createInventoryMockSession(scenarioName: InventoryScenarioName =
   const repository = scenarioName === 'normal' && browserPersistenceAvailable()
     ? new BrowserSharedInventoryRepository(state)
     : new InMemoryInventoryRepository(state)
-  let sequence = 1; let processingOrderProvider = options.processingOrderProvider; let pickingOrderCoordinator = options.pickingOrderCoordinator; let deliveryStaffProvider = options.deliveryStaffProvider
+  let sequence = 1
+  const nextId = (kind: string): string => {
+    const used = new Set<string>()
+    for (const value of Object.values(repository.read())) {
+      if (!Array.isArray(value)) continue
+      for (const item of value) {
+        if (item && typeof item === 'object' && 'id' in item && typeof item.id === 'string') used.add(item.id)
+      }
+    }
+    let id = `${kind}-runtime-${sequence++}`
+    while (used.has(id)) id = `${kind}-runtime-${sequence++}`
+    return id
+  }
+  let processingOrderProvider = options.processingOrderProvider; let pickingOrderCoordinator = options.pickingOrderCoordinator; let deliveryStaffProvider = options.deliveryStaffProvider
   const processingOrderProviderProxy: ProcessingOrderSourceProvider = {
     listEligibleOrders: () => processingOrderProvider?.listEligibleOrders() ?? { state: 'unavailable', items: [], version: 'unavailable', message: '销售订单数据源未接入' },
     getEligibleOrder: (orderId) => processingOrderProvider?.getEligibleOrder(orderId) ?? null,
@@ -114,7 +127,7 @@ export function createInventoryMockSession(scenarioName: InventoryScenarioName =
     restore: (checkpoint) => { pickingOrderCoordinator?.restore(checkpoint) },
   }
   const deliveryStaffProviderProxy: DeliveryStaffProvider = { listStaff: () => deliveryStaffProvider?.listStaff() ?? [] }
-  const service = createInventoryService({ repository, catalog: options.catalogProvider ?? createInventoryCatalogProvider(scenarioName === 'partial-failure'), processingOrderProvider: processingOrderProviderProxy, pickingOrderCoordinator: pickingOrderCoordinatorProxy, deliveryStaffProvider: deliveryStaffProviderProxy, now: () => baseline.clock, nextId: (kind) => `${kind}-runtime-${sequence++}` })
+  const service = createInventoryService({ repository, catalog: options.catalogProvider ?? createInventoryCatalogProvider(scenarioName === 'partial-failure'), processingOrderProvider: processingOrderProviderProxy, pickingOrderCoordinator: pickingOrderCoordinatorProxy, deliveryStaffProvider: deliveryStaffProviderProxy, now: () => baseline.clock, nextId })
   const definition = scenarios[scenarioName]
   async function run<T>(operation: () => T): Promise<T> { await new Promise((resolve) => setTimeout(resolve, definition.latencyMs)); if (scenarioName === 'error') throw new InventoryMockError('MOCK_INTERNAL_ERROR', '原型模拟：库存服务暂时不可用'); return operation() }
   return { scenarioName, repository, service, run, setProcessingOrderProvider: (provider: ProcessingOrderSourceProvider) => { processingOrderProvider = provider }, setPickingOrderCoordinator: (value: PickingOrderCoordinator) => { pickingOrderCoordinator = value }, setDeliveryStaffProvider: (value: DeliveryStaffProvider) => { deliveryStaffProvider = value } }
