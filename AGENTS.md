@@ -4,7 +4,7 @@
 
 ## 开工顺序
 
-1. 确认当前目录是仓库根目录。
+1. 确认当前目录是仓库根目录；接手项目或新会话先阅读 `HANDOFF.md`。
 2. 阅读 `ARCHITECTURE.md`，确认系统边界与依赖方向。
 3. 阅读 `docs/QUALITY_SCORE.md`，只相信有证据的完成状态。
 4. 阅读 `docs/product-specs/index.md` 和 `docs/design-docs/implementation-sequence.md`，确认功能 ID、来源、依赖、字段准备度、人工决策门和总体顺序。
@@ -17,6 +17,7 @@
 
 | 要找的事实 | 唯一入口 |
 |---|---|
+| 交接基线、当前状态、下一步和已知问题 | `HANDOFF.md` |
 | 系统组成、代码位置、依赖边界 | `ARCHITECTURE.md` |
 | 用户、任务、范围、产品判断 | `docs/PRODUCT_SENSE.md` |
 | 全部功能、来源、依赖、规格准备度、人工决策 | `docs/product-specs/index.md` |

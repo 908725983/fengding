@@ -11,6 +11,7 @@
 ```
 
 - AI 开工入口：[AGENTS.md](AGENTS.md)
+- 项目交接入口：[HANDOFF.md](HANDOFF.md)
 - 系统地图：[ARCHITECTURE.md](ARCHITECTURE.md)
 - 产品规格：[docs/product-specs/index.md](docs/product-specs/index.md)
 - 总体实施顺序：[docs/design-docs/implementation-sequence.md](docs/design-docs/implementation-sequence.md)
