@@ -44,6 +44,18 @@ function sessionWith(initial: PickingOrderSnapshot[], failOutboundAt = 0, failSh
 }
 
 describe('INV-005 picking and delivery service', () => {
+  it('avoids persisted nested runtime IDs after a browser reload', () => {
+    const previous = createInventoryMockSession()
+    const persisted = previous.service.saveDeliveryRoute(admin, { name: '已保存线路', province: '山东省', city: '临沂市', district: '兰山区', stops: [{ name: '旧站点', province: '山东省', city: '临沂市', district: '兰山区', address: '旧地址 1 号' }], status: 'enabled' })
+    const session = createInventoryMockSession()
+    session.repository.transact((state) => { state.deliveryRoutes = [{ ...persisted, id: 'route-persisted' }] })
+
+    const created = session.service.saveDeliveryRoute(admin, { name: '新线路', province: '山东省', city: '临沂市', district: '兰山区', stops: [{ name: '新站点', province: '山东省', city: '临沂市', district: '兰山区', address: '新地址 1 号' }], status: 'enabled' })
+
+    expect(persisted.stops[0]?.id).toBe('log-runtime-2')
+    expect(created.stops[0]?.id).toBe('log-runtime-3')
+  })
+
   it('runs an exact individual pick from zero without changing stock until canonical Order outbound', () => {
     const { session, bridge } = sessionWith([order('order-a')]); const balancesBefore = session.repository.read().balances
     let task = session.service.createPickingTask(admin, 'order-a'); task = session.service.startPickingTask(admin, task.id, task.version, 'staff-picker')

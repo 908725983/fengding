@@ -9,6 +9,7 @@ import { assertProductFeatureState } from '../../src/features/products/schemas/p
 import { InMemoryProductRepository } from '../../src/features/products/repositories/product-repository'
 import { createProductService, type ProductServiceDependencies } from '../../src/features/products/services/product-service'
 import { createProcurementMockSession } from './procurement-handler'
+import { createRuntimeSequence } from '../runtime/application-browser-persistence'
 
 const featureData = baseline.featureData as Record<string, unknown>
 export const productBaseline = structuredClone(featureData['PRD-001']) as ProductFeatureState
@@ -18,12 +19,13 @@ export function createBaselineProductRepository(): InMemoryProductRepository {
 }
 
 const browserProductStateKey = 'fengding:mock:product-state:v1'
+const browserLegacyProductCleanupKey = 'fengding:mock:product-cleanup:v2'
 const legacyDemoProductIds = new Set(['product-1', 'product-2', 'product-3'])
 const legacyTestProductNames = new Set(['test1', 'coco', 'test2'])
 const legacyDemoDeletedAt = '2026-09-02T00:00:00+08:00'
-function hideLegacyDemoProducts(state: ProductFeatureState): ProductFeatureState {
+function hideLegacyDemoProducts(state: ProductFeatureState, removeLegacyTestNames = false): ProductFeatureState {
   const next = structuredClone(state)
-  next.products = next.products.map((product) => (legacyDemoProductIds.has(product.id) || legacyTestProductNames.has(product.name.trim().toLocaleLowerCase()))
+  next.products = next.products.map((product) => (legacyDemoProductIds.has(product.id) || (removeLegacyTestNames && legacyTestProductNames.has(product.name.trim().toLocaleLowerCase())))
     ? { ...product, status: 'off-sale', deletedAt: product.deletedAt ?? legacyDemoDeletedAt, updatedAt: product.updatedAt }
     : product)
   return next
@@ -41,10 +43,16 @@ class BrowserSharedProductRepository extends InMemoryProductRepository {
     if (!browserPersistenceAvailable()) return fallback
     try {
       const raw = window.localStorage.getItem(browserProductStateKey)
-      if (!raw) return fallback
+      if (!raw) {
+        window.localStorage.setItem(browserLegacyProductCleanupKey, 'done')
+        return fallback
+      }
       const persisted = JSON.parse(raw) as ProductFeatureState
       assertProductFeatureState(persisted)
-      return hideLegacyDemoProducts(persisted)
+      const cleanupLegacyNames = window.localStorage.getItem(browserLegacyProductCleanupKey) !== 'done'
+      const migrated = hideLegacyDemoProducts(persisted, cleanupLegacyNames)
+      if (cleanupLegacyNames) window.localStorage.setItem(browserLegacyProductCleanupKey, 'done')
+      return migrated
     } catch {
       return hideLegacyDemoProducts(fallback)
     }
@@ -96,9 +104,9 @@ export function createProductMockSession(scenarioName: ProductScenarioName = 'no
   const repository = scenarioName === 'normal' && browserPersistenceAvailable()
     ? new BrowserSharedProductRepository(state)
     : new InMemoryProductRepository(state)
-  let sequence = 1
+  const nextSequence = createRuntimeSequence()
   const effectiveSupplierProvider = supplierProvider ?? createProcurementMockSession('normal').service.createSupplyProvider()
-  const service = createProductService({ repository, supplierProvider: effectiveSupplierProvider, now: () => baseline.clock, nextId: (kind) => `${kind}-runtime-${sequence++}` })
+  const service = createProductService({ repository, supplierProvider: effectiveSupplierProvider, now: () => baseline.clock, nextId: (kind) => `${kind}-runtime-${nextSequence()}` })
   const definition = scenarioDefinitions[scenarioName]
 
   async function run<T>(operation: () => T): Promise<T> {

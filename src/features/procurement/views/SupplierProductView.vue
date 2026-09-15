@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { useRoute } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 import ProcurementSubnav from "../components/ProcurementSubnav.vue";
 import ProcurementScenarioBar from "../components/ProcurementScenarioBar.vue";
 import { useProcurementStore } from "../runtime/procurement-store";
@@ -52,6 +52,15 @@ function openCreate() {
   showForm.value = true;
 }
 async function create() {
+  formError.value = null;
+  if (!draft.supplierId) {
+    formError.value = "请选择启用供应商";
+    return;
+  }
+  if (!draft.skuId) {
+    formError.value = "当前站点没有可关联的已上架商品，请先新增商品并上架";
+    return;
+  }
   try {
     await store.saveRelation({ ...draft, preferred: false });
     showForm.value = false;
@@ -275,7 +284,13 @@ onMounted(async () => {
               </option>
             </select></label
           ><label
-            >SKU *<select v-model="draft.skuId">
+            >SKU *<select
+              v-model="draft.skuId"
+              :disabled="!selectableSkus.length"
+            >
+              <option v-if="!selectableSkus.length" disabled value="">
+                暂无可关联的已上架 SKU
+              </option>
               <option
                 v-for="item in selectableSkus"
                 :key="item.skuId"
@@ -285,7 +300,24 @@ onMounted(async () => {
                 {{ item.specification }}
               </option>
             </select></label
-          ><label
+          ><div
+            v-if="!selectableSkus.length"
+            class="procurement-empty-guide wide"
+            role="status"
+          >
+            <strong>当前站点没有已上架商品</strong>
+            <span
+              >浏览器中的原型数据按访问地址单独保存，本地维护的数据不会自动同步到部署站点。请使用右上角“数据迁移”导入本地数据，或在当前站点新增商品并上架。</span
+            >
+            <div class="procurement-inline-actions">
+              <RouterLink class="pur-button primary" to="/products/new"
+                >新增商品</RouterLink
+              >
+              <RouterLink class="pur-button" to="/products"
+                >查看商品列表</RouterLink
+              >
+            </div>
+          </div><label
             >供应价（元/采购单位）*<input
               :value="draft.supplyPriceCents / 100"
               type="number"
@@ -307,7 +339,7 @@ onMounted(async () => {
               取消</button
             ><button
               class="pur-button primary"
-              :disabled="saving"
+              :disabled="saving || !draft.supplierId || !draft.skuId"
               type="submit"
             >
               保存

@@ -2,6 +2,7 @@ import { InMemorySettingsRepository } from '@/features/settings/repositories/set
 import { createSettingsService } from '@/features/settings/services/settings-service'
 import { defaultRolePermissionIds } from '@/features/settings/config/permission-catalog'
 import type { SettingsFeatureState, SettingsWarehouseProvider } from '@/features/settings/types'
+import { createRuntimeSequence } from '../runtime/application-browser-persistence'
 
 export type SettingsScenarioName = 'normal' | 'empty' | 'error' | 'slow' | 'permission-denied' | 'partial-failure'
 const baseState: SettingsFeatureState = {
@@ -28,8 +29,8 @@ const baseState: SettingsFeatureState = {
 export function createSettingsMockSession(scenarioName: SettingsScenarioName = 'normal', options: { warehouseProvider: SettingsWarehouseProvider }) {
   const state = structuredClone(baseState)
   if (scenarioName === 'empty') { state.company = null; state.departments = []; state.announcements = []; state.regions = [state.regions[0]]; state.roles = (state.roles ?? []).filter((item) => item.kind === 'system'); state.employees = [] }
-  const repository = new InMemorySettingsRepository(state); let sequence = 1
-  const service = createSettingsService({ repository, warehouseProvider: options.warehouseProvider, now: () => '2026-08-10T10:00:00+08:00', nextId: (kind) => `${kind}-settings-${sequence++}` })
+  const repository = new InMemorySettingsRepository(state); const nextSequence = createRuntimeSequence()
+  const service = createSettingsService({ repository, warehouseProvider: options.warehouseProvider, now: () => '2026-08-10T10:00:00+08:00', nextId: (kind) => `${kind}-settings-${nextSequence()}` })
   const latencyMs = scenarioName === 'slow' ? 500 : 0
   async function run<T>(operation: () => T): Promise<T> { await new Promise((resolve) => setTimeout(resolve, latencyMs)); if (scenarioName === 'error') throw new Error('原型模拟：设置服务暂时不可用'); return operation() }
   return { scenarioName, repository, service, run }

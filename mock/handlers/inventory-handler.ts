@@ -8,11 +8,23 @@ import type { ProductFeatureState } from '../../src/features/products/types'
 import type { DeliveryStaffProvider, InventoryCatalogProvider, InventoryFeatureState, InventorySkuSnapshot, PickingOrderCoordinator, ProcessingOrderSourceProvider } from '../../src/features/inventory/types'
 import { InMemoryInventoryRepository } from '../../src/features/inventory/repositories/inventory-repository'
 import { createInventoryService } from '../../src/features/inventory/services/inventory-service'
+import { createRuntimeSequence } from '../runtime/application-browser-persistence'
 
 const featureData = baseline.featureData as Record<string, unknown>
 export const inventoryBaseline = structuredClone(featureData['INV-001']) as InventoryFeatureState
 const productBaseline = structuredClone(featureData['PRD-001']) as ProductFeatureState
 const knownSources = new Set(['opening:source-opening-1', 'opening:source-opening-2', 'opening:source-opening-3', 'opening:source-opening-4', 'opening:source-opening-5', 'prototype-inbound:source-inbound-1', 'prototype-outbound:source-outbound-1'])
+
+function collectEntityIds(value: unknown, ids: Set<string>): void {
+  if (!value || typeof value !== 'object') return
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectEntityIds(item, ids))
+    return
+  }
+  const record = value as Record<string, unknown>
+  if (typeof record.id === 'string') ids.add(record.id)
+  Object.values(record).forEach((item) => collectEntityIds(item, ids))
+}
 
 export function createInventoryCatalogProvider(partialFailure = false, readState: () => ProductFeatureState = () => productBaseline): InventoryCatalogProvider {
   function list(): InventorySkuSnapshot[] {
@@ -99,17 +111,12 @@ export function createInventoryMockSession(scenarioName: InventoryScenarioName =
   const repository = scenarioName === 'normal' && browserPersistenceAvailable()
     ? new BrowserSharedInventoryRepository(state)
     : new InMemoryInventoryRepository(state)
-  let sequence = 1
+  const nextSequence = createRuntimeSequence()
   const nextId = (kind: string): string => {
     const used = new Set<string>()
-    for (const value of Object.values(repository.read())) {
-      if (!Array.isArray(value)) continue
-      for (const item of value) {
-        if (item && typeof item === 'object' && 'id' in item && typeof item.id === 'string') used.add(item.id)
-      }
-    }
-    let id = `${kind}-runtime-${sequence++}`
-    while (used.has(id)) id = `${kind}-runtime-${sequence++}`
+    collectEntityIds(repository.read(), used)
+    let id = `${kind}-runtime-${nextSequence()}`
+    while (used.has(id)) id = `${kind}-runtime-${nextSequence()}`
     return id
   }
   let processingOrderProvider = options.processingOrderProvider; let pickingOrderCoordinator = options.pickingOrderCoordinator; let deliveryStaffProvider = options.deliveryStaffProvider

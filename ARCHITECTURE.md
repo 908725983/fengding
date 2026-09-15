@@ -71,6 +71,8 @@ Types -> Config -> Repository -> Service -> Runtime(Store/Composable) -> UI(View
 
 - `baseline.json` 相同只说明重置来源相同，不证明运行中的数据共享；“共用 baseline”和“共用 Runtime”必须分别验收。
 - 应用内同一次业务旅程只能有一份客户、商品、库存、订单、采购和资金运行状态。页面路由切换不得重新克隆领域 fixture；场景切换和显式 Mock reset 才能按契约重建状态。
+- `normal` 场景会把核心 Runtime 状态持久化到当前访问地址的浏览器 `localStorage`；它只能保证同一浏览器、同一 origin 刷新后保留，不能替代服务端数据库，也不会在本地地址、Vercel 域名、其他浏览器或其他设备之间自动同步。
+- 应用壳的数据迁移入口负责导出/导入经过 Schema 校验的核心领域 JSON 包。部署到新的 origin 后，需要从原地址导出并在目标地址导入；导入失败必须保持目标 Runtime 原状。
 - 跨领域写入由主领域 Service 经对方 `public.ts` command 协调；成功后所有消费方读取同一事实，失败时相关 Repository 一起回滚。
 - 领域 Store 可以维护加载、筛选和弹窗等页面状态，但不得拥有另一套 canonical 业务数据，也不得在 Store 内直接 `create*MockSession()`。
 - 原型是否要求浏览器刷新后保存运行状态由具体计划决定；同一 SPA 会话内跨路由共享是业务闭环验收的最低要求。

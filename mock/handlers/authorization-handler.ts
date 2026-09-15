@@ -9,6 +9,7 @@ import type { ProductFeatureState } from '../../src/features/products/types'
 import { InMemoryAuthorizationRepository } from '../../src/features/products/authorization/repositories/authorization-repository'
 import { createAuthorizationService } from '../../src/features/products/authorization/services/authorization-service'
 import type { AuthorizationCatalog, AuthorizationFeatureState } from '../../src/features/products/authorization/types'
+import { createRuntimeSequence } from '../runtime/application-browser-persistence'
 
 const featureData = baseline.featureData as Record<string, unknown>
 export const authorizationBaseline = structuredClone(featureData['PRD-003']) as AuthorizationFeatureState
@@ -33,9 +34,9 @@ export function createAuthorizationMockSession(scenarioName: AuthorizationScenar
   if (scenarioName === 'empty') { state.plans = []; state.rules = []; state.specials = []; state.changeLogs = [] }
   const repository = new InMemoryAuthorizationRepository(state)
   const catalog = createBaselineAuthorizationCatalog()
-  let sequence = 1
+  const nextSequence = createRuntimeSequence()
   let clock = baseline.clock
-  const service = createAuthorizationService({ repository, getCatalog: () => catalogProvider ? catalogProvider() : catalog, now: () => clock, nextId: (kind) => `authorization-${kind}-runtime-${sequence++}` })
+  const service = createAuthorizationService({ repository, getCatalog: () => catalogProvider ? catalogProvider() : catalog, now: () => clock, nextId: (kind) => `authorization-${kind}-runtime-${nextSequence()}` })
   const definition = scenarioDefinitions[scenarioName]
   async function run<T>(operation: () => T): Promise<T> { await new Promise((resolve) => setTimeout(resolve, definition.latencyMs)); if (scenarioName === 'error') throw new AuthorizationMockError('MOCK_INTERNAL_ERROR', '原型模拟：商品授权服务暂时不可用'); return operation() }
   function setClock(value: string): void { if (value < clock) throw new AuthorizationMockError('CLOCK_REWIND', '模拟时钟不能倒退'); clock = value }

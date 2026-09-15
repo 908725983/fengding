@@ -203,6 +203,117 @@ a {
   align-items: center;
 }
 
+.data-transfer-trigger,
+.data-transfer-button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  color: #465567;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 5px;
+}
+
+.data-transfer-trigger:hover,
+.data-transfer-button:hover {
+  color: var(--color-primary-strong);
+  border-color: var(--color-primary);
+}
+
+.data-transfer-button.primary {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.data-transfer-dialog {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(19 36 55 / 54%);
+}
+
+.data-transfer-dialog > section {
+  width: min(520px, 100%);
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-lg);
+}
+
+.data-transfer-dialog header {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-transfer-dialog header strong,
+.data-transfer-dialog header small {
+  display: block;
+}
+
+.data-transfer-dialog header small {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.data-transfer-close {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  color: var(--color-muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.data-transfer-body {
+  padding: 18px 16px;
+}
+
+.data-transfer-body > p {
+  margin: 0;
+}
+
+.data-transfer-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.data-transfer-note {
+  margin-top: 14px !important;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.data-transfer-error {
+  margin-top: 12px !important;
+  padding: 9px 10px;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border: 1px solid #f0c8ca;
+}
+
 .module-mega-menu {
   position: absolute;
   z-index: 25;
@@ -670,6 +781,15 @@ h3 {
   .topbar__location .eyebrow,
   .icon-button {
     display: none;
+  }
+
+  .prototype-chip {
+    display: none;
+  }
+
+  .data-transfer-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .content {

@@ -8,6 +8,7 @@ import type { CustomerFeatureState } from '../../src/features/customers/types'
 import { InMemoryCustomerRepository } from '../../src/features/customers/repositories/customer-repository'
 import { createCustomerService } from '../../src/features/customers/services/customer-service'
 import { createCustomerOperationsService } from '../../src/features/customers/services/customer-operations-service'
+import { createRuntimeSequence } from '../runtime/application-browser-persistence'
 
 const featureData = baseline.featureData as Record<string, unknown>
 
@@ -54,17 +55,17 @@ export function createCustomerMockSession(scenarioName: CustomerScenarioName = '
     state.channelState = { wecomSyncRecords: [], wecomBroadcasts: [], wecomTagMappings: [], wecomScripts: [], wecomWelcomeMessages: [], wecomGroups: [], wecomMoments: [], mallCustomers: [], mallEmployees: [], mallDesigns: [], mallExtensions: [], mallAds: [], mallPopups: [], mallMessages: [] }
   }
   const repository = new InMemoryCustomerRepository(state)
-  let sequence = 1
+  const nextSequence = createRuntimeSequence()
   const service = createCustomerService({
     repository,
     now: () => baseline.clock,
-    nextId: (kind) => `${kind}-runtime-${sequence++}`,
+    nextId: (kind) => `${kind}-runtime-${nextSequence()}`,
     staffNames: { 'staff-demo-1': '演示业务员甲', 'staff-demo-2': '演示业务员乙' },
   })
   const operations = createCustomerOperationsService({
     repository,
     now: () => baseline.clock,
-    nextId: (kind) => `${kind}-runtime-${sequence++}`,
+    nextId: (kind) => `${kind}-runtime-${nextSequence()}`,
     staffNames: { 'staff-demo-1': '演示业务员甲', 'staff-demo-2': '演示业务员乙' },
   })
   const definition = scenarioDefinitions[scenarioName]

@@ -7,6 +7,7 @@ import { createProcurementCatalogProvider, createProcurementMockSession, type Pr
 import { createSettingsMockSession, type SettingsScenarioName } from '../handlers/settings-handler'
 import { createAuthorizationMockSession } from '../handlers/authorization-handler'
 import type { AuthorizationCatalog } from '../../src/features/products/authorization/types'
+import { attachApplicationBrowserPersistence } from './application-browser-persistence'
 
 export type ApplicationMockScenarioName = FinanceScenarioName
 
@@ -124,7 +125,7 @@ export function createApplicationMockRuntime(scenario: ApplicationMockScenarioNa
   inventory.setPickingOrderCoordinator(pickingOrderCoordinator)
   inventory.setDeliveryStaffProvider({ listStaff: () => structuredClone(orderStaffValues) })
 
-  return {
+  const runtime = {
     runtimeId,
     scenario,
     clock: '2026-08-10T10:00:00+08:00',
@@ -137,6 +138,8 @@ export function createApplicationMockRuntime(scenario: ApplicationMockScenarioNa
     settings,
     authorization,
   }
+  if (scenario === 'normal') attachApplicationBrowserPersistence(runtime)
+  return runtime
 }
 
 export type ApplicationMockRuntime = ReturnType<typeof createApplicationMockRuntime>

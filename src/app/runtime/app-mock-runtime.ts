@@ -5,6 +5,10 @@ import {
   type ApplicationMockRuntime,
   type ApplicationMockScenarioName,
 } from '../../../mock/runtime/application-mock-runtime'
+import {
+  exportApplicationData,
+  importApplicationData,
+} from '../../../mock/runtime/application-browser-persistence'
 
 export interface ApplicationMockRuntimeController {
   runtime: ShallowRef<ApplicationMockRuntime>
@@ -16,6 +20,8 @@ export interface ApplicationMockRuntimeController {
   finance: ApplicationMockRuntime['finance']
   settings: ApplicationMockRuntime['settings']
   authorization: ApplicationMockRuntime['authorization']
+  exportData(): string
+  importData(input: string): ApplicationMockRuntime
   reset(scenario?: ApplicationMockScenarioName): ApplicationMockRuntime
 }
 
@@ -40,6 +46,14 @@ export function getApplicationMockRuntimeController(pinia: Pinia | undefined = g
     finance: proxy('finance'),
     settings: proxy('settings'),
     authorization: proxy('authorization'),
+    exportData() {
+      return exportApplicationData(runtime.value)
+    },
+    importData(input: string) {
+      importApplicationData(runtime.value, input)
+      runtime.value = createApplicationMockRuntime()
+      return runtime.value
+    },
     reset(scenario = 'normal') {
       runtime.value = createApplicationMockRuntime(scenario)
       return runtime.value

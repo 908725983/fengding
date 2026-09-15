@@ -2,6 +2,7 @@ node_modules/
 dist/
 .npm-cache/
 work/mock-state.json
+work/browser-checks/
 *.log
 .DS_Store
 功能演示.mp4

@@ -5,6 +5,7 @@ import { businessModules, findBusinessModule } from '@/app/module-catalog'
 import { moduleNavigation } from '@/app/module-navigation'
 import { currentProcurementRole } from '@/features/procurement/runtime/procurement-access'
 import ModuleContextNav from './ModuleContextNav.vue'
+import DataTransferDialog from './DataTransferDialog.vue'
 
 const route = useRoute()
 const isPublicShare = computed(() => route.path.startsWith('/share/orders/'))
@@ -89,6 +90,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', closeOnEscape); ca
           <strong>{{ currentModule?.label ?? '页面' }}</strong>
         </div>
         <div class="topbar__tools">
+          <DataTransferDialog />
           <span class="prototype-chip">原型模拟</span>
           <button class="icon-button" type="button" aria-label="帮助">?</button>
           <div class="avatar" aria-label="当前模拟用户：系统管理员">管</div>

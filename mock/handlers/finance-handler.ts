@@ -10,6 +10,7 @@ import { createFinanceExtensionService } from '../../src/features/finance/servic
 import { createFinanceRefundService } from '../../src/features/finance/services/finance-refund-service'
 import type { FinanceFeatureState } from '../../src/features/finance/types'
 import type { OrderFeatureState } from '../../src/features/orders/types'
+import { createRuntimeSequence } from '../runtime/application-browser-persistence'
 
 const featureData = baseline.featureData as Record<string, unknown>
 function upgradeFinanceBaseline(source: FinanceFeatureState): FinanceFeatureState {
@@ -75,9 +76,9 @@ export class FinanceMockError extends Error { constructor(readonly code: string,
 export function createFinanceMockSession(scenarioName: FinanceScenarioName = 'normal', clock = baseline.clock, initialState?: FinanceFeatureState) {
   const state = structuredClone(initialState ?? financeBaseline)
   if (scenarioName === 'empty') { state.accounts = []; state.movements = []; state.periods = []; state.banks = []; state.paymentChannels = []; state.paymentApplications = []; state.receivables = []; state.customerReceipts = []; state.receiptWriteoffs = []; state.prepaymentLedger = []; state.dailySequences = []; state.requests = []; state.auditLogs = []; state.creditAdjustments = []; state.refunds = []; state.payables = []; state.supplierPayments = []; state.supplierPaymentWriteoffs = []; state.supplierPayableCredits = []; state.transfers = []; state.incomeExpenseItems = []; state.otherTransactions = []; state.supplierRefundReceipts = [] }
-  const repository = new InMemoryFinanceRepository(state); let sequence = 1
+  const repository = new InMemoryFinanceRepository(state); const nextSequence = createRuntimeSequence()
   const unavailable = () => { throw new FinanceDomainError('DATA_PROVIDER_UNAVAILABLE', '原型模拟：第三方资料服务暂时不可用') }
-  const nextId = (kind: string) => `${kind}-runtime-${sequence++}`
+  const nextId = (kind: string) => `${kind}-runtime-${nextSequence()}`
   const service = { ...createFinanceService({ repository, now: () => clock, nextId, actorName: () => '演示操作员', assertBankProvider: scenarioName === 'partial-failure' ? unavailable : undefined, assertPaymentProvider: scenarioName === 'partial-failure' ? unavailable : undefined }), ...createFinanceExtensionService({ repository, now: () => clock, nextId, actorName: () => '演示操作员', assertInstitutionProvider: unavailable }), ...createFinanceRefundService({ repository, now: () => clock, nextId: nextId as Parameters<typeof createFinanceRefundService>[0]['nextId'], actorName: () => '演示操作员' }) }
   const definition = scenarios[scenarioName]
   async function run<T>(operation: () => T): Promise<T> { await new Promise((resolve) => setTimeout(resolve, definition.latencyMs)); if (scenarioName === 'error') throw new FinanceMockError('MOCK_INTERNAL_ERROR', '原型模拟：资金服务暂时不可用'); if (scenarioName === 'unavailable') throw new FinanceMockError('DATA_PROVIDER_UNAVAILABLE', '原型模拟：资金数据提供方尚未接入'); return operation() }
