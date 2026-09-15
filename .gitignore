@@ -4,3 +4,5 @@ dist/
 work/mock-state.json
 *.log
 .DS_Store
+功能演示.mp4
+.vercel/
